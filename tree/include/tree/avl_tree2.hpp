@@ -10,6 +10,7 @@ private:
     using valueType = typename util2::type_trait::value_ptr<T>::type;
     using classPtr  = AVLTree*;
     
+
     static constexpr auto reservedBytesSize() -> u64 {
         /* 
             value_ptr<t> folds any T above 8 bytes to a pointer. 
@@ -19,23 +20,27 @@ private:
         return 6 - ( (sizeof(T) < maxSizeInBytesOfValueType) ? sizeof(T) : 0 );
     }
 
-    constexpr u64 nodeSize() const {
+    
+    [[nodiscard]] constexpr u64 nodeSize() const {
         return sizeof(AVLTree<T>);
     }
 
 
+    [[nodiscard]] u8 computeHeight() const;
+    [[nodiscard]] i8 computeBalanceFactor() const;
 
-    // i8 balance(classPtr root) const;
-    bool     searchInternal(valueType searchValue, classPtr* toInit);
-    classPtr insertInternal(classPtr root, classPtr allocatedNode);
-    void rebalanceTree();
+    bool     search(valueType searchValue, classPtr* toInit);
+    classPtr insert(classPtr root, classPtr allocatedNode);
+    classPtr balance(classPtr root);
+    classPtr rotateLeft(classPtr root);
+    classPtr rotateRight(classPtr root);
 
 private:
-    AVLTree*  m_left  = nullptr;
-    AVLTree*  m_right = nullptr;
+    AVLTree*  m_left   = nullptr;
+    AVLTree*  m_right  = nullptr;
+    AVLTree*  m_parent = nullptr;
     valueType m_value;
-    i8        m_balance = 0;
-    u8        m_height  = 0;
+    u8        m_height = 0;
     u8        m_reserved[reservedBytesSize()]{};
 
 public:
@@ -53,15 +58,4 @@ public:
     bool insertNode(valueType toInsert) noexcept;
     bool deleteNode(valueType toDelete);
     bool search(valueType toSearch);
-
-    static bool isChild(classPtr root);
-    static bool isParent(classPtr root);
-    static bool isEmpty(classPtr root);
-
-
-    u64  height()     const;
-    u64  totalNodes() const;
-
-    void  shallowCopy(AVLTree& dest) const; /* These functions allocate memory */
-    void* deepCopy   (AVLTree& dest) const; /* These functions allocate memory */
 };

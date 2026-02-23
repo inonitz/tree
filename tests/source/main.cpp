@@ -1,5 +1,3 @@
-#define SDL_MAIN_HANDLED
-#include <SDL.h>
 #include <gtest/gtest.h>
 #include <cstdio>
 
@@ -65,18 +63,8 @@
 
 
 int main(int argc, char *argv[]) {
-    // Also needed for my dual main problem
-    SDL_SetMainReady();
-
-
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        std::printf("FATAL: Cannot init SDL: %s\n", SDL_GetError());
-        return -1;
-    }
-
     ::testing::InitGoogleTest(&argc, argv);
     int result = RUN_ALL_TESTS();  // Store the results in a variable
 
-    SDL_Quit();  // Quit SDL properly
     return result;  // Return the result, as required by google test
 }
