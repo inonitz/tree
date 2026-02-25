@@ -11,6 +11,11 @@ project(Testingtree
 
 set(SOURCES
     source/main.cpp
+    source/AVLTree.cpp
+    source/AVLTree.hpp
+    source/binaryTreePrettyPrint.cpp
+    source/binaryTreePrettyPrint.hpp
+
 )
 
 
@@ -21,6 +26,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/i
 target_link_libraries(
     ${PROJECT_NAME} PRIVATE
     TREELIB::treelib
+    util2
     GTest::gtest_main
 )
 gtest_discover_tests(${PROJECT_NAME})

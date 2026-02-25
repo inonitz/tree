@@ -70,7 +70,7 @@ struct binaryTree {
     }
 
 
-    void search(uint32_t value, binaryTree*& foundptr) {
+    void searchval(uint32_t value, binaryTree*& foundptr) {
         bool        foundcond = false;
         binaryTree* searchptr = nullptr;
 
@@ -224,7 +224,7 @@ struct AVLTree {
         }
 
 
-        m_root->search(val, found);
+        m_root->searchval(val, found);
         if(found != nullptr) {
             return false;
         }
@@ -236,7 +236,7 @@ struct AVLTree {
     bool deleteValue(uint32_t val) {
         binaryTree* found = nullptr;
 
-        m_root->search(val, found);
+        m_root->searchval(val, found);
         if(found == nullptr) {
             return false;
         }

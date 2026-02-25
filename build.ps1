@@ -60,7 +60,8 @@ $CMAKE_ARGLIST = @(
     "-DCMAKE_C_COMPILER=clang",
     "-DCMAKE_CXX_COMPILER=clang++",
     "-DCMAKE_EXPORT_COMPILE_COMMANDS=1",
-    "-DCMAKE_COLOR_DIAGNOSTICS=ON"
+    "-DCMAKE_COLOR_DIAGNOSTICS=ON",
+    "-DENABLE_AND_BUILD_TESTS=ON"
 )
 
 # --- Mapping logic ---
@@ -117,6 +118,6 @@ if ($Action -eq "build") {
 # 4. Run
 if ($Action -eq "run") {
     if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
-    Run-Command "Ninja Run" { ninja run_tests }
+    Run-Command "Ninja Run" { ninja run_Testingtree }
     if (-not $DryRun) { Pop-Location }
 }
