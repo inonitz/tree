@@ -13,8 +13,8 @@ set(SOURCES
     source/main.cpp
     source/AVLTree.cpp
     source/AVLTree.hpp
-    source/binaryTreePrettyPrint.cpp
-    source/binaryTreePrettyPrint.hpp
+    source/AVLTreeTest.cpp
+    source/AVLTreeTest.hpp
 
 )
 
@@ -29,7 +29,8 @@ target_link_libraries(
     util2
     GTest::gtest_main
 )
-gtest_discover_tests(${PROJECT_NAME})
+# gtest_discover_tests(${PROJECT_NAME})
+# add_test(NAME ${PROJECT_NAME} command ${PROJECT_NAME})
 
 
 # The minimum C/C++ versions required for the library

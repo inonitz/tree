@@ -34,10 +34,8 @@ void printTree2D(FILE* outputFile, binaryTree* root, int space) {
 
 
 
-int main(int argc, char *argv[]) {
-    constexpr auto treeSize = 50;
-    
-
+int main(int argc, char *argv[]) {    
+    uint64_t           treeSize = 100;
     FILE*              reportFile;
     std::random_device rd;
     std::mt19937       gen(rd());
@@ -84,9 +82,8 @@ int main(int argc, char *argv[]) {
 
 
     int c = 0;
-
     for (auto& val : data) {
-        opStatus = test.insertValue(val);
+        opStatus = test.insert(val);
 
         fprintf(reportFile, "--- 2D Tree Visualization (Rotate head left) ---\n");
         fprintf(reportFile, "[c=%3u] Insertion Of %3u -> %s\n", c, val, opStatus ? "SUCCESS" : "FAILURE");
@@ -105,7 +102,7 @@ int main(int argc, char *argv[]) {
     fprintf(reportFile, "-----------------------------------------------\n");
     for (auto& val : data) {
         auto& randValToDel = data[ distribIndices(gen) ];
-        opStatus = test.deleteValue(randValToDel);
+        opStatus = test.remove(randValToDel);
         
         fprintf(reportFile, "--- 2D Tree Visualization (Rotate head left) ---\n");
         fprintf(reportFile, "[c=%3u] Deletion Of %3u -> %s\n", c, randValToDel, opStatus ? "SUCCESS" : "FAILURE");

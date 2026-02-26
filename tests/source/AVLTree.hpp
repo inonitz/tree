@@ -1,7 +1,9 @@
 #pragma once
 #include <util2/C/ifcrash2.h>
 #include <cstdint>
+#include <cstdio>
 #include <deque>
+#include <queue>
 
 
 enum class AVLTreeRotationState : uint8_t {
@@ -47,7 +49,38 @@ struct binaryTree
         m_reserved{{0}}
         {}
 
-    static bool isLeaf(binaryTree* node) {
+
+    ~binaryTree() = default;
+
+    void destroy() noexcept {
+        uint32_t currentLevelSize = 0;
+        std::queue<binaryTree*> currentHeightNodes;
+        /* 
+            Iterative Level Order Traversal 
+            top node popped has already pushed its children to the queue
+        */
+        currentHeightNodes.push(this);
+        while(!currentHeightNodes.empty()) {
+            currentLevelSize = currentHeightNodes.size();
+
+            while(currentLevelSize) {
+                auto* node = currentHeightNodes.front();
+                
+                if(node->m_left) {
+                    currentHeightNodes.push(node->m_left);
+                }
+                if(node->m_right) {
+                    currentHeightNodes.push(node->m_right);
+                }
+                currentHeightNodes.pop();
+                --currentLevelSize;
+                delete node; /* calling delete on nullptr is safe */
+            }
+        }
+        return;
+    }
+
+    static bool isLeaf(binaryTree* node) noexcept {
         if(node == nullptr) {
             return false;
         }
@@ -55,7 +88,7 @@ struct binaryTree
     }
 
 
-    static bool singleChildParent(binaryTree* node) {
+    static bool singleChildParent(binaryTree* node) noexcept {
         if(node == nullptr) {
             return false;
         }
@@ -65,7 +98,7 @@ struct binaryTree
     }
 
 
-    static uint8_t computeHeight(binaryTree* node) {
+    static uint8_t computeHeight(binaryTree* node) noexcept {
         if(node == nullptr) {
             return -1;
         }
@@ -74,7 +107,7 @@ struct binaryTree
         return 1 + std::max(rh, lh);
     }
 
-    static int8_t computeBalanceFactor(binaryTree* node) {
+    static int8_t computeBalanceFactor(binaryTree* node) noexcept {
         if(node == nullptr) {
             return 0;
         }
@@ -613,8 +646,37 @@ struct AVLTree {
     binaryTree* m_root      = nullptr;
     uint32_t    m_nodeCount = 0;
 
+    bool isEmpty() const {
+        return m_nodeCount == 0;
+    }
 
-    bool insertValue(uint32_t val) {
+    size_t size() const {
+        return m_nodeCount;
+    }
+
+
+    auto const* getRoot() const {
+        return m_root;
+    }
+
+    auto const* getLeftChild() const {
+        return m_root->m_left;
+    }
+
+    auto const* getRightChild() const {
+        return m_root->m_left;
+    }
+
+
+    void clear() noexcept {
+        m_root->destroy();
+        m_root = nullptr;
+        m_nodeCount = 0;
+        return;
+    }
+
+
+    bool insert(uint32_t val) {
         binaryTree* found = m_root;
         
         if(m_root == nullptr) {
@@ -634,7 +696,7 @@ struct AVLTree {
     }
 
 
-    bool deleteValue(uint32_t val) {
+    bool remove(uint32_t val) {
         // m_root = binaryTree::deleteRecursive(m_root, val);
         if(m_root == nullptr) {
             return false;
@@ -648,8 +710,18 @@ struct AVLTree {
     }
 
 
+    bool search(uint32_t val) {
+        binaryTree* found = m_root;
+        binaryTree::searchval(val, found);
+        return found ? true : false;
+    }
 
-    bool isValid() const {
+
+    bool isValidBST() const noexcept {
+        return binaryTree::isValidBST(m_root);
+    }
+
+    bool isBalanced() const noexcept {
         return binaryTree::isValidAVL(m_root);
     }
 
