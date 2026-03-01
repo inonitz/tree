@@ -1,28 +1,35 @@
-#include <gtest/gtest.h>
+#include "AVLTreeTest.hpp"
+#include "binaryTree.hpp"
 #include <random>
-#include <iostream>
-#include "AVLTree.hpp" 
+
+#include <util2/C/macro.h>
 
 
-class AVLTreeTest : public ::testing::Test {
-protected:
-    AVLTree tree;
 
-    // Diagnostic helper to print results to the console
-    void PrintDiagnostics(const std::string& section, int ins, int dels, int searches, uint32_t seed = 0) {
-        std::cout << "\n[==========] " << section << " Diagnostics" << std::endl;
-        if (seed != 0) std::cout << "             Seed:        " << seed << std::endl;
-        std::cout << "             Insertions:  " << ins << std::endl;
-        std::cout << "             Deletions:   " << dels << std::endl;
-        std::cout << "             Searches:    " << searches << std::endl;
-        std::cout << "             Final Size:  " << tree.size() << std::endl;
-        std::cout << "             Tree Height: " << tree.getRoot()->m_height << std::endl;
+FILE*    g_reportFile           = nullptr;
+char*    g_massiveBuffer        = nullptr;
+uint32_t g_massiveBufferCurrIdx = 0;
+
+
+void printTreeToMassiveBuf(binaryTree const* root, int space) {
+    constexpr auto kCOUNT = 5;
+    
+    if (root == NULL) {
+        return;
     }
-};
+    space += kCOUNT;
+    
+    
+    printTreeToMassiveBuf(root->m_right, space);
+    write_to_test_buffer("\n\n\n%*s%d (%u, %d)\n", space - kCOUNT, "", root->m_data, root->m_height, root->m_bf);
+    printTreeToMassiveBuf(root->m_left, space);
+    return;
+}
+
 
 
 TEST_F(AVLTreeTest, BasicInsertionAndSearch) {
-    EXPECT_TRUE(tree.isEmpty());
+    EXPECT_TRUE(tree.empty());
     tree.insert(50);
     tree.insert(30);
     tree.insert(70);
@@ -31,40 +38,63 @@ TEST_F(AVLTreeTest, BasicInsertionAndSearch) {
     EXPECT_TRUE(tree.search(50));
     EXPECT_TRUE(tree.search(30));
     EXPECT_FALSE(tree.search(100));
-}
-
-
-TEST_F(AVLTreeTest, SingleRotations) {
-    // LL Case -> Right Rotation
-    EXPECT_TRUE(tree.insert(30));
-    EXPECT_TRUE(tree.insert(20));
-    EXPECT_TRUE(tree.insert(10));
-    EXPECT_EQ(tree.getRoot()->m_data, 20);
-    EXPECT_TRUE(tree.isBalanced());
-    
     tree.clear();
+    return;
+}
 
-    // RR Case -> Left Rotation
+
+TEST_F(AVLTreeTest, SingleRotationsLeftLeft) {
+    EXPECT_TRUE(tree.insert(30));
+    EXPECT_TRUE(tree.insert(20));
+    EXPECT_TRUE(tree.insert(10));
+    EXPECT_EQ(tree.getRoot()->m_data, 20);
+    EXPECT_TRUE(tree.isBalanced());
+
+    EXPECT_EQ(tree.size(), 3);
+    EXPECT_TRUE(tree.search(10));
+    EXPECT_TRUE(tree.search(20));
+    EXPECT_TRUE(tree.search(30));
+    EXPECT_FALSE(tree.search(40));
+    tree.clear();
+    return;
+}
+
+TEST_F(AVLTreeTest, SingleRotationsRightRight) {
     EXPECT_TRUE(tree.insert(10));
     EXPECT_TRUE(tree.insert(20));
     EXPECT_TRUE(tree.insert(30));
     EXPECT_EQ(tree.getRoot()->m_data, 20);
     EXPECT_TRUE(tree.isBalanced());
+
+    EXPECT_EQ(tree.size(), 3);
+    EXPECT_TRUE(tree.search(10));
+    EXPECT_TRUE(tree.search(20));
+    EXPECT_TRUE(tree.search(30));
+    EXPECT_FALSE(tree.search(40));
+    tree.clear();
+    return;
 }
 
 
-TEST_F(AVLTreeTest, DoubleRotations) {
-    // LR Case -> Left then Right Rotation
+TEST_F(AVLTreeTest, DoubleRotationsLeftRight) {
+    /* Rebalancing will rotate Left then Right */
     tree.insert(30); tree.insert(10); tree.insert(20);
     EXPECT_EQ(tree.getRoot()->m_data, 20);
     EXPECT_TRUE(tree.isBalanced());
     tree.clear();
+    return;
+}
 
-    // RL Case -> Right then Left Rotation
+
+TEST_F(AVLTreeTest, DoubleRotationsRightLeft) {
+    /* Rebalancing will rotate Right then Left */
     tree.insert(10); tree.insert(30); tree.insert(20);
     EXPECT_EQ(tree.getRoot()->m_data, 20);
     EXPECT_TRUE(tree.isBalanced());
+    tree.clear();
+    return;
 }
+
 
 
 TEST_F(AVLTreeTest, DeletionRebalancing) {
@@ -80,56 +110,145 @@ TEST_F(AVLTreeTest, DeletionRebalancing) {
     EXPECT_TRUE(tree.remove(25));
     EXPECT_TRUE(tree.isBalanced());
     EXPECT_TRUE(tree.isValidBST());
+    tree.clear();
 }
 
 
 /* RANDOMIZED STRESS TEST */
 TEST_F(AVLTreeTest, StochasticStressTest) {
-    std::vector<int> mirror; 
+    constexpr uint32_t TOTAL_OPS = 1000 * 1000;
+    constexpr uint32_t val_dist_min = 1;
+    constexpr uint32_t val_dist_max = 100000;
+    std::vector<uint32_t> treeValueSet; 
     std::random_device rd;
-    uint32_t seed = rd(); 
-    std::mt19937 gen(seed);
+    std::mt19937 gen;
     
-    std::uniform_int_distribution<> val_dist(1, 100000);
-    std::uniform_int_distribution<> op_dist(0, 2); // 0:Ins, 1:Del, 2:Search
+    std::uniform_int_distribution<> val_dist(val_dist_min, val_dist_max);
+    std::uniform_int_distribution<> op_dist(0, (u8)OperationType::MAX_OP);
+    
 
-    int ins = 0, dels = 0, searches = 0;
-    const int TOTAL_OPS = 15000;
+    uint32_t      seed = rd(); 
+    uint32_t      val = 0;
+    OperationType op  = OperationType::MAX_OP;
+    uint32_t tmpValue    = 0;
+    uint32_t tmpValueIdx = 0;
+    bool     searchedValueIsRandom = false;
+    bool     status                = false;
+    uint32_t insertion[2] = {0, 0};
+    uint32_t deletion[2]  = {0, 0};
+    uint32_t searchType[2]    = {0, 0 };
+    uint32_t searchRandVal[2] = {0, 0};
+    uint32_t searchInSet[2]   = {0, 0};
 
+    uint32_t& searchRandomValueOp   = searchType[0];
+    uint32_t& searchExistingValueOp = searchType[1];
+    uint32_t& searchRandomValueSuccess = searchRandVal[0];
+    uint32_t& searchRandomValueFailure = searchRandVal[1];
+    uint32_t& searchExistingValueSuccess = searchInSet[0];
+    uint32_t& searchExistingValueFailure = searchInSet[1];
+
+
+    gen.seed(seed);
     for (int i = 0; i < TOTAL_OPS; ++i) {
-        int val = val_dist(gen);
-        int op = op_dist(gen);
+        val = val_dist(gen);
+        op = __scast(OperationType, op_dist(gen) );
 
-        if (op == 0) { // Insert
-            if (!tree.search(val)) {
-                tree.insert(val);
-                mirror.push_back(val);
-                ins++;
+
+        switch(op) {
+            case OperationType::INSERT_OP:
+            if(tree.search(val) == true) {
+                continue;
             }
-        } 
-        else if (op == 1) { // Delete
-            if (!mirror.empty()) {
-                size_t idx = gen() % mirror.size();
-                int to_remove = mirror[idx];
-                tree.remove(to_remove);
-                mirror.erase(mirror.begin() + idx);
-                dels++;
+
+            status = tree.insert(val);
+            treeValueSet.push_back(val);
+            ++insertion[status ? 1 : 0];
+
+            write_to_test_buffer(
+                "%03u: insertion of %06u -> %u\n", 
+                i, val, status
+            );
+            break;
+
+            case OperationType::DELETE_OP:
+            if (treeValueSet.empty()) {
+                continue;
             }
-        } 
-        else { // Search
-            tree.search(val);
-            searches++;
+
+            tmpValueIdx = gen() % treeValueSet.size();
+            tmpValue    = treeValueSet[tmpValueIdx];
+            status      = tree.remove(tmpValue);
+            treeValueSet.erase(treeValueSet.begin() + tmpValueIdx);
+            ++deletion[status ? 1 : 0];
+
+            write_to_test_buffer(
+                "%03u: deletion  of %06u -> %u\n", 
+                i, tmpValue, status
+            );
+
+            break;
+
+            case OperationType::SEARCH_RAND_OP:
+            if(treeValueSet.empty()) {
+                continue;
+            }
+
+            tmpValue = val;
+            status = tree.search(tmpValue);
+            ++searchRandomValueOp;
+            searchRandomValueSuccess += status;
+            searchRandomValueFailure += !status;
+
+
+            write_to_test_buffer(
+                "%03u: rndsearch of %06u -> %u\n", 
+                i, tmpValue, status
+            );
+            break;
+
+
+            case OperationType::SEARCH_SET_OP:
+            if(treeValueSet.empty()) {
+                continue;
+            }
+
+            tmpValueIdx = gen() % treeValueSet.size();
+            tmpValue    = treeValueSet[tmpValueIdx];
+            status = tree.search(tmpValue);
+            ++searchExistingValueOp;
+            searchExistingValueSuccess += status;
+            searchExistingValueFailure += !status;
+
+
+            write_to_test_buffer(
+                "%03u: setsearch of %06u -> %u\n", 
+                i, tmpValue, status
+            );
+            break;
+
+            case OperationType::MAX_OP:
+            default:
+            break;
         }
 
+
         // Integrity check every 1000 ops
-        if (i % 1000 == 0) {
+        if (i % 50 == 0) {
             ASSERT_TRUE(tree.isBalanced()) << "Unbalanced at op " << i << " (Seed: " << seed << ")";
             ASSERT_TRUE(tree.isValidBST()) << "BST violation at op " << i << " (Seed: " << seed << ")";
-            ASSERT_EQ(tree.size(), mirror.size()) << "Size mismatch at op " << i;
+            ASSERT_EQ(tree.size(), treeValueSet.size()) << "Size mismatch at op " << i;
         }
     }
 
 
-    PrintDiagnostics("Stochastic Stress", ins, dels, searches, seed);
+    write_to_test_buffer("\n[==========] Stochastic Stress Diagnostics\n");
+    write_to_test_buffer("             Seed:                                       %u\n", seed);
+    write_to_test_buffer("             Insertions              (Success, Failure): %06u %06u\n", insertion[1], insertion[0]);
+    write_to_test_buffer("             Deletions               (Success, Failure): %06u %06u\n", deletion[1] , deletion[0] );
+    write_to_test_buffer("             Searches                (Random, Existing): %06u %06u\n", searchRandomValueOp,        searchExistingValueOp     );
+    write_to_test_buffer("             Random   Value Searches (Success, Failure): %06u %06u\n", searchRandomValueSuccess,   searchRandomValueFailure  );
+    write_to_test_buffer("             Existing Value Searches (Success, Failure): %06u %06u\n", searchExistingValueSuccess, searchExistingValueFailure);
+    write_to_test_buffer("             Final Size : %llu\n", tree.size());
+    write_to_test_buffer("             Tree Height: %u\n", tree.getRoot()->m_height);
     return;
 }

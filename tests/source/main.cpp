@@ -1,57 +1,38 @@
 #include <random>
-#include <gtest/gtest.h>
 #include <util2/C/ifcrash2.h>
-#include "AVLTree.hpp"
-
-
-std::vector<int> generate_random_data(size_t size) {
-    std::vector<int> data(size);
-    std::random_device rd;  // Non-deterministic seed
-    std::mt19937 gen(rd()); // Standard mersenne_twister_engine
-    std::uniform_int_distribution<> distrib(1, 100);
-
-    for (int& i : data) {
-        i = distrib(gen);
-    }
-    return data;
-}
-
-
-void printTree2D(FILE* outputFile, binaryTree* root, int space) {
-    constexpr auto kCOUNT = 5;
-    
-    if (root == NULL) {
-        return;
-    }
-    space += kCOUNT;
-    
-    
-    printTree2D(outputFile, root->m_right, space);
-    fprintf(outputFile, "\n\n\n%*s%d (%u, %d)\n", space - kCOUNT, "", root->m_data, root->m_height, root->m_bf);
-    printTree2D(outputFile, root->m_left, space);
-    return;
-}
+#include "AVLTreeTest.hpp"
 
 
 
-int main(int argc, char *argv[]) {    
-    uint64_t           treeSize = 100;
-    FILE*              reportFile;
+
+int main(int argc, char *argv[]) { 
+    constexpr u64 treeSize = 100;
+    constexpr u64 k_massiveBufferSize = 128 * 1024 * 1024;
     std::random_device rd;
     std::mt19937       gen(rd());
     std::uniform_int_distribution<> distrib(0, 100);
     std::uniform_int_distribution<> distribIndices(0, treeSize - 1);
 
+    auto generate_random_data = [&gen, &distrib](u32 dataAmount) -> std::vector<uint32_t> {
+        std::vector<uint32_t> dataToGen(dataAmount);
+        for (auto& i : dataToGen) {
+            i = distrib(gen);
+        }
+        return dataToGen;
+    };
+
+
     AVLTree test{};
     bool    opStatus = false;
-    
-    
-    auto data = generate_random_data(treeSize);
+    auto    data = generate_random_data(treeSize);
     
 
-    reportFile = fopen("report.txt", "w");
-    setbuf(reportFile, NULL);
-    ifcrash(reportFile == nullptr);
+    g_massiveBuffer = __rcast(char*, malloc(k_massiveBufferSize));
+    g_reportFile    = fopen("report.txt", "w");
+    ifcrash(g_reportFile == nullptr || g_massiveBuffer == nullptr);
+    
+    g_massiveBuffer[k_massiveBufferSize - 1] = '\0';
+    // setbuf(g_reportFile, NULL);
     // status = test.insertValue(100);
     // printf(" ----------------Inserting %3u -> %s----------", 100, status ? "SUCCESS" : "FAILURE");
     // printTree2D(test.m_root, 0);
@@ -85,11 +66,11 @@ int main(int argc, char *argv[]) {
     for (auto& val : data) {
         opStatus = test.insert(val);
 
-        fprintf(reportFile, "--- 2D Tree Visualization (Rotate head left) ---\n");
-        fprintf(reportFile, "[c=%3u] Insertion Of %3u -> %s\n", c, val, opStatus ? "SUCCESS" : "FAILURE");
-        printTree2D(reportFile, test.m_root, 0);
-        fprintf(reportFile, "Post Insertion AVL Tree Valid(?) %u\n", binaryTree::isValidAVL(test.m_root));
-        fprintf(reportFile, "-----------------------------------------------\n");
+        write_to_test_buffer("--- 2D Tree Visualization (Rotate head left) ---\n");
+        write_to_test_buffer("[c=%3u] Insertion Of %3u -> %s\n", c, val, opStatus ? "SUCCESS" : "FAILURE");
+        printTreeToMassiveBuf(test.getRoot(), 0);
+        write_to_test_buffer("Post Insertion AVL Tree Valid(?) %u\n", test.isBalanced());
+        write_to_test_buffer("-----------------------------------------------\n");
         ++c;
 
         if(c % 10 == 0) {
@@ -97,18 +78,18 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    fprintf(reportFile, "-----------------------------------------------\n");
-    fprintf(reportFile, "--------------------------------------------AAA\n");
-    fprintf(reportFile, "-----------------------------------------------\n");
+    write_to_test_buffer("-----------------------------------------------\n");
+    write_to_test_buffer("--------------------------------------------AAA\n");
+    write_to_test_buffer("-----------------------------------------------\n");
     for (auto& val : data) {
         auto& randValToDel = data[ distribIndices(gen) ];
         opStatus = test.remove(randValToDel);
         
-        fprintf(reportFile, "--- 2D Tree Visualization (Rotate head left) ---\n");
-        fprintf(reportFile, "[c=%3u] Deletion Of %3u -> %s\n", c, randValToDel, opStatus ? "SUCCESS" : "FAILURE");
-        printTree2D(reportFile, test.m_root, 0);
-        fprintf(reportFile, "Post Deletion AVL Tree Valid(?) %u\n", binaryTree::isValidAVL(test.m_root));
-        fprintf(reportFile, "-----------------------------------------------\n");
+        write_to_test_buffer("--- 2D Tree Visualization (Rotate head left) ---\n");
+        write_to_test_buffer("[c=%3u] Deletion Of %3u -> %s\n", c, randValToDel, opStatus ? "SUCCESS" : "FAILURE");
+        printTreeToMassiveBuf(test.getRoot(), 0);
+        write_to_test_buffer("Post Deletion AVL Tree Valid(?) %u\n", test.isBalanced());
+        write_to_test_buffer("-----------------------------------------------\n");
         ++c;
 
         if(c % 10 == 0) {
@@ -117,10 +98,14 @@ int main(int argc, char *argv[]) {
     }
 
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::GTEST_FLAG(catch_exceptions) = false;
+
     int result = RUN_ALL_TESTS();  // Store the results in a variable
 
 
 
-    fclose(reportFile);
+    (void)fprintf(g_reportFile, "%s", g_massiveBuffer);
+    fclose(g_reportFile);
+    free(g_massiveBuffer);
     return result;  // Return the result, as required by google test
 }

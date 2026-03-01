@@ -15,7 +15,8 @@ set(SOURCES
     source/AVLTree.hpp
     source/AVLTreeTest.cpp
     source/AVLTreeTest.hpp
-
+    source/binaryTree.cpp
+    source/binaryTree.hpp
 )
 
 
