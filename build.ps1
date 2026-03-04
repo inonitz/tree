@@ -8,7 +8,7 @@ param(
     [string]$LinkType,
 
     [Parameter(Mandatory=$true, ParameterSetName="Build")]
-    [ValidateSet("cleanbuild", "configure", "build", "run")]
+    [ValidateSet("cleanbuild", "configure", "build", "runtests", "runbench")]
     [string]$Action,
 
     [Parameter(Mandatory=$false, ParameterSetName="Build")]
@@ -19,15 +19,15 @@ param(
     [switch]$Help
 )
 
-# --- Helper Functions ---
 
+# --- Helper Functions ---
 function Show-CustomHelp {
     Write-Host "Usage: .\build.ps1 -BuildType <type> -LinkType <link> -Action <action> [-DryRun]" -ForegroundColor Cyan
     Write-Host "Usage: .\build.ps1 -Help" -ForegroundColor Cyan
     Write-Host "`nArguments:"
     Write-Host "  -BuildType   : debug, release, release_dbginfo, debug_perf, release_perf"
     Write-Host "  -LinkType    : shared, static"
-    Write-Host "  -Action      : cleanbuild, configure, build, run"
+    Write-Host "  -Action      : cleanbuild, configure, build, runtests, runbench"
 }
 
 
@@ -95,12 +95,14 @@ if ($Action -eq "cleanbuild") {
     }
 }
 
+
 # 2. Configure
 if ($Action -eq "configure" -or $Action -eq "cleanbuild") {
     $CMAKE_ARGLIST += "-DGIT_SUBMODULE=ON"
     Run-Command "mkdir $CMAKE_FINAL_BUILD_DIR" { New-Item -ItemType Directory -Path $CMAKE_FINAL_BUILD_DIR -Force | Out-Null }
     Run-Command "CMake Configure" { cmake -S . -B $CMAKE_FINAL_BUILD_DIR -G "Ninja" $CMAKE_ARGLIST }
 }
+
 
 # 3. Build
 if ($Action -eq "build") {
@@ -115,9 +117,16 @@ if ($Action -eq "build") {
     if (-not $DryRun) { Pop-Location }
 }
 
+
 # 4. Run
-if ($Action -eq "run") {
+if ($Action -eq "runtests") {
     if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
-    Run-Command "Ninja Run" { ninja run_Testingtree }
+    Run-Command "Ninja Run" { ninja run_test_treelib }
+    if (-not $DryRun) { Pop-Location }
+}
+
+if ($Action -eq "runbench") {
+    if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
+    Run-Command "Ninja Run" { ninja run_benchmark_treelib }
     if (-not $DryRun) { Pop-Location }
 }

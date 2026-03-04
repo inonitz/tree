@@ -7,11 +7,13 @@ project(treelib
 
 
 set(SOURCES
-    source/avl_tree.cpp
+    source/AVLTree.cpp
+    source/binaryTree.cpp
 )
 
 set(HEADERS
-    include/tree/avl_tree.hpp
+    include/tree/binaryTree.hpp
+    include/tree/AVLTree.hpp
 )
 
 
@@ -27,7 +29,6 @@ add_library(TREELIB::treelib ALIAS ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
 target_sources(${PROJECT_NAME} PRIVATE ${HEADERS})
-target_link_libraries(${PROJECT_NAME} PRIVATE UTIL2::util2)
 
 
 # The minimum C/C++ versions required for the library

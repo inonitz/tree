@@ -7,7 +7,13 @@ CMAKE_ARGLIST="\
     -DCMAKE_CXX_COMPILER=clang++-20 \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
     -DCMAKE_COLOR_DIAGNOSTICS=ON \
-    -DENABLE_AND_BUILD_TESTS=ON
+    -DENABLE_AND_BUILD_TESTS=ON \
+    -DBENCHMARK_ENABLE_INSTALL=OFF \
+    -DBENCHMARK_INSTALL_DOCS=OFF \
+    -DBENCHMARK_INSTALL_TOOLS=OFF \
+    -DBENCHMARK_DOWNLOAD_DEPENDENCIES=OFF \
+    -DBENCHMARK_ENABLE_GTEST_TESTS=OFF \
+    -DBENCHMARK_USE_BUNDLED_GTEST=OFF \
 "
 
 CMAKE_ORIGINAL_SCRIPT_PATH="$PWD" # Assuming that build.sh is in the same dir as the Root CMakeLists.txt
@@ -16,16 +22,17 @@ CMAKE_INTRMD_BUILD_DIR=""
 CLEAN_CURRENT_ROOT_BUILD_DIR=true
 CONFIGURE_CMAKE_FLAG=false
 BUILD_BINARIES_FLAG=false
-RUN_BINARY_FLAG=false
+RUN_TESTS_FLAG=false
+RUN_BENCH_FLAG=false
 
 
-if [ "$1" == "help" ]; then
+if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "--h" ]; then
     echo "Usage: $0 <build_type> <library_type> <action>"
     echo ""
     echo "Arguments:"
     echo "  build_type   - Type of build: debug, release, release_dbginfo, debug_perf, release_perf"
     echo "  library_type - Type of library: shared (.dll/.so), static (.lib/.a)"
-    echo "  action       - Action to take: cleanbuild, configure, build, run"
+    echo "  action       - Action to take: cleanbuild, configure, build, runtests, runbench"
     echo ""
     echo "Options:"
     echo "  help         - Display this help message"
@@ -101,14 +108,16 @@ then
     CLEAN_CURRENT_ROOT_BUILD_DIR=true
     CONFIGURE_CMAKE_FLAG=false
     BUILD_BINARIES_FLAG=false
-    RUN_BINARY_FLAG=false
+    RUN_TESTS_FLAG=false
+    RUN_BENCH_FLAG=false
 
 elif [ $3 = "configure" ];
 then
     CLEAN_CURRENT_ROOT_BUILD_DIR=false
     CONFIGURE_CMAKE_FLAG=true
     BUILD_BINARIES_FLAG=false
-    RUN_BINARY_FLAG=false
+    RUN_TESTS_FLAG=false
+    RUN_BENCH_FLAG=false
     CMAKE_ARGLIST+=" -DGIT_SUBMODULE=ON"
 
 elif [ $3 = "build" ];
@@ -116,18 +125,28 @@ then
     CLEAN_CURRENT_ROOT_BUILD_DIR=false
     CONFIGURE_CMAKE_FLAG=false
     BUILD_BINARIES_FLAG=true
-    RUN_BINARY_FLAG=false
+    RUN_TESTS_FLAG=false
+    RUN_BENCH_FLAG=false
 
-elif [ $3 = "run" ];
+elif [ $3 = "runtests" ];
 then
     CLEAN_CURRENT_ROOT_BUILD_DIR=false
     CONFIGURE_CMAKE_FLAG=false
     BUILD_BINARIES_FLAG=false
-    RUN_BINARY_FLAG=true
+    RUN_TESTS_FLAG=true
+    RUN_BENCH_FLAG=false
+elif [ $3 = "runbench" ];
+then
+    CLEAN_CURRENT_ROOT_BUILD_DIR=false
+    CONFIGURE_CMAKE_FLAG=false
+    BUILD_BINARIES_FLAG=false
+    RUN_TESTS_FLAG=false
+    RUN_BENCH_FLAG=true
 else
-    printf "Unknown Argument %s - valid values are: cleanbuild, configure, build, run\nExiting..." $3
+    printf "Unknown Argument %s - valid values are: cleanbuild, configure, build, runtests, runbench\nExiting..." $3
     exit
 fi
+
 
 
 
@@ -165,10 +184,16 @@ ninja $PROJECT_NAME
 fi
 
 
-if [ $RUN_BINARY_FLAG = "true" ];
+if [ $RUN_TESTS_FLAG = "true" ];
 then
     cd $CMAKE_FINAL_BUILD_DIR # This assumes we already built
-    ninja run_Testingtree
+    ninja run_test_treelib
+fi
+
+if [ $RUN_BENCH_FLAG = "true" ];
+then
+    cd $CMAKE_FINAL_BUILD_DIR # This assumes we already built
+    ninja run_benchmark_treelib
 fi
 
 

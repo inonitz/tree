@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 include(GoogleTest)
 
 
-project(Testingtree
+project(test_treelib
     VERSION 0.0.1
     DESCRIPTION "C/C++ Programs to Test Functionality of tree"
     LANGUAGES C CXX
@@ -11,12 +11,8 @@ project(Testingtree
 
 set(SOURCES
     source/main.cpp
-    source/AVLTree.cpp
-    source/AVLTree.hpp
     source/AVLTreeTest.cpp
     source/AVLTreeTest.hpp
-    source/binaryTree.cpp
-    source/binaryTree.hpp
 )
 
 
@@ -27,7 +23,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/i
 target_link_libraries(
     ${PROJECT_NAME} PRIVATE
     TREELIB::treelib
-    util2
+    UTIL2::util2
     GTest::gtest_main
 )
 # gtest_discover_tests(${PROJECT_NAME})

@@ -1,14 +1,17 @@
-#include "AVLTreeTest.hpp"
-#include "binaryTree.hpp"
 #include <random>
+#include <tree/binaryTree.hpp>
+#include "AVLTreeTest.hpp"
 
-#include <util2/C/macro.h>
+
+FILE* g_reportFile           = nullptr;
+char* g_massiveBuffer        = nullptr;
+u64   g_massiveBufferCurrIdx = 0;
+constexpr uint32_t gk_stest_total_ops    = 1 * 1000 * 1000;
+constexpr uint32_t gk_stest_val_dist_min = 1;
+constexpr uint32_t gk_stest_val_dist_max = 100000;
+constexpr u64      gk_massiveBufferSize  = 128ull * 1024 * 1024;
 
 
-
-FILE*    g_reportFile           = nullptr;
-char*    g_massiveBuffer        = nullptr;
-uint32_t g_massiveBufferCurrIdx = 0;
 
 
 void printTreeToMassiveBuf(binaryTree const* root, int space) {
@@ -116,14 +119,12 @@ TEST_F(AVLTreeTest, DeletionRebalancing) {
 
 /* RANDOMIZED STRESS TEST */
 TEST_F(AVLTreeTest, StochasticStressTest) {
-    constexpr uint32_t TOTAL_OPS = 1000 * 1000;
-    constexpr uint32_t val_dist_min = 1;
-    constexpr uint32_t val_dist_max = 100000;
+
     std::vector<uint32_t> treeValueSet; 
     std::random_device rd;
     std::mt19937 gen;
     
-    std::uniform_int_distribution<> val_dist(val_dist_min, val_dist_max);
+    std::uniform_int_distribution<> val_dist(gk_stest_val_dist_min, gk_stest_val_dist_max);
     std::uniform_int_distribution<> op_dist(0, (u8)OperationType::MAX_OP);
     
 
@@ -149,7 +150,8 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
 
 
     gen.seed(seed);
-    for (int i = 0; i < TOTAL_OPS; ++i) {
+    for (uint32_t i = 0; i < gk_stest_total_ops; ++i) {
+        printf("\r\r\r\r\r\r");
         val = val_dist(gen);
         op = __scast(OperationType, op_dist(gen) );
 
@@ -164,10 +166,7 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
             treeValueSet.push_back(val);
             ++insertion[status ? 1 : 0];
 
-            write_to_test_buffer(
-                "%03u: insertion of %06u -> %u\n", 
-                i, val, status
-            );
+            write_to_test_buffer("%07u: i %06u (%u)\n", i, val, status);
             break;
 
             case OperationType::DELETE_OP:
@@ -181,10 +180,7 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
             treeValueSet.erase(treeValueSet.begin() + tmpValueIdx);
             ++deletion[status ? 1 : 0];
 
-            write_to_test_buffer(
-                "%03u: deletion  of %06u -> %u\n", 
-                i, tmpValue, status
-            );
+            write_to_test_buffer("%07u: d %06u (%u)\n",i, tmpValue, status);
 
             break;
 
@@ -200,10 +196,7 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
             searchRandomValueFailure += !status;
 
 
-            write_to_test_buffer(
-                "%03u: rndsearch of %06u -> %u\n", 
-                i, tmpValue, status
-            );
+            write_to_test_buffer("%07u: rs %06u (%u)\n", i, tmpValue, status);
             break;
 
 
@@ -220,10 +213,7 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
             searchExistingValueFailure += !status;
 
 
-            write_to_test_buffer(
-                "%03u: setsearch of %06u -> %u\n", 
-                i, tmpValue, status
-            );
+            write_to_test_buffer("%07u: ss %06u (%u)\n", i, tmpValue, status);
             break;
 
             case OperationType::MAX_OP:
@@ -233,13 +223,14 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
 
 
         // Integrity check every 1000 ops
-        if (i % 50 == 0) {
+        if (i % 10 == 0) {
             ASSERT_TRUE(tree.isBalanced()) << "Unbalanced at op " << i << " (Seed: " << seed << ")";
             ASSERT_TRUE(tree.isValidBST()) << "BST violation at op " << i << " (Seed: " << seed << ")";
             ASSERT_EQ(tree.size(), treeValueSet.size()) << "Size mismatch at op " << i;
         }
+        printf("%06u", i);
     }
-
+    printf("\n");
 
     write_to_test_buffer("\n[==========] Stochastic Stress Diagnostics\n");
     write_to_test_buffer("             Seed:                                       %u\n", seed);
@@ -248,7 +239,7 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
     write_to_test_buffer("             Searches                (Random, Existing): %06u %06u\n", searchRandomValueOp,        searchExistingValueOp     );
     write_to_test_buffer("             Random   Value Searches (Success, Failure): %06u %06u\n", searchRandomValueSuccess,   searchRandomValueFailure  );
     write_to_test_buffer("             Existing Value Searches (Success, Failure): %06u %06u\n", searchExistingValueSuccess, searchExistingValueFailure);
-    write_to_test_buffer("             Final Size : %llu\n", tree.size());
+    write_to_test_buffer("             Final Size : %lu\n", tree.size());
     write_to_test_buffer("             Tree Height: %u\n", tree.getRoot()->m_height);
     return;
 }

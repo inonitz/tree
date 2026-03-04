@@ -1,5 +1,5 @@
 #include <random>
-#include <util2/C/ifcrash2.h>
+#include <util2/C/aligned_malloc.h>
 #include "AVLTreeTest.hpp"
 
 
@@ -7,7 +7,6 @@
 
 int main(int argc, char *argv[]) { 
     constexpr u64 treeSize = 100;
-    constexpr u64 k_massiveBufferSize = 128 * 1024 * 1024;
     std::random_device rd;
     std::mt19937       gen(rd());
     std::uniform_int_distribution<> distrib(0, 100);
@@ -27,11 +26,11 @@ int main(int argc, char *argv[]) {
     auto    data = generate_random_data(treeSize);
     
 
-    g_massiveBuffer = __rcast(char*, malloc(k_massiveBufferSize));
+    g_massiveBuffer = __rcast(char*, util2_aligned_malloc(gk_massiveBufferSize, CACHE_LINE_BYTES));
     g_reportFile    = fopen("report.txt", "w");
     ifcrash(g_reportFile == nullptr || g_massiveBuffer == nullptr);
     
-    g_massiveBuffer[k_massiveBufferSize - 1] = '\0';
+    g_massiveBuffer[gk_massiveBufferSize - 1] = '\0';
     // setbuf(g_reportFile, NULL);
     // status = test.insertValue(100);
     // printf(" ----------------Inserting %3u -> %s----------", 100, status ? "SUCCESS" : "FAILURE");
@@ -97,15 +96,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
+
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::GTEST_FLAG(catch_exceptions) = false;
-
     int result = RUN_ALL_TESTS();  // Store the results in a variable
 
 
-
+    write_to_test_buffer("g_massiveBuffer Consumed %llu Bytes for %llu Operations\n", g_massiveBufferCurrIdx, gk_stest_total_ops);
     (void)fprintf(g_reportFile, "%s", g_massiveBuffer);
     fclose(g_reportFile);
-    free(g_massiveBuffer);
+    util2_aligned_free(g_massiveBuffer);
     return result;  // Return the result, as required by google test
 }

@@ -105,7 +105,9 @@ add_subdirectory(tree)
 if(${ENABLE_AND_BUILD_TESTS})
     enable_testing()
     add_subdirectory(tests)
+    add_subdirectory(benchmarks)
     add_subdirectory(dependencies/googletest)
+    add_subdirectory(dependencies/benchmark)
 endif()
 
 

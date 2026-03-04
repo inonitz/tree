@@ -1,0 +1,88 @@
+Right Rotation:
+	TreeNode tmpRoot  = *root
+	TreeNode tmpLeft  = *root->left
+	TreeNode tmpRight = *root->right
+	TreeNode* rootptr  = root;
+	TreeNode* leftptr  = root->left;
+	TreeNode* rightptr = root->right;
+
+	if(rootParent) {
+		rootParent->right = leftptr;
+	}
+	root = leftptr;
+	root->right = rootptr;
+	root->right->left = tmpLeft.right;
+	return;
+
+
+
+
+Left Rotation:
+	TreeNode tmpRoot  = *root
+	TreeNode tmpLeft  = *root->left
+	TreeNode tmpRight = *root->right
+	TreeNode* rootptr  = root;
+	TreeNode* leftptr  = root->left;
+	TreeNode* rightptr = root->right;
+
+	if(rootParent) {
+		rootParent->left = rightptr;
+	}
+	root = rightptr;
+	root->left = rootptr;
+	root->left->right = tmpRight.left;
+	return;
+
+
+
+bool insertPublic(node* root, value) {
+	if(contains(root, value)) {
+		return false;
+	}
+
+	root = insert(root, value); // doesn't really do anything...
+	return true;
+}
+
+
+node* insert(node* root, value) {
+	if(root == nullptr) {
+		auto* malloc_node = (node*)malloc(sizeof(node));
+		memset(malloc_node, 0x00, sizeof(node));
+
+		malloc_node->value = value;
+		return malloc_node;
+	}
+	auto rh, lh, bf;
+	bool tmpbool = false;
+	
+
+	tmpbool = value < root->value;
+	root->m_nodes[tmpbool ? 0 : 1] = insert(tmpbool ? root->left : root->right, value);
+	
+	rh = root->m_right ? root->m_right->m_height : -1;
+	lh = root->m_left  ? root->m_left->m_height  : -1;
+	root->m_height = 1 + std::max(rh, lh);
+
+	bf = rh - lh;
+	if(bf == 0 || bf == -1 || bf == 1) {
+
+	} else {
+
+	}
+	switch(bf) {
+		case 2:
+		
+
+
+		case -1:
+		case 0:
+		case +1:
+		default:
+		break;
+	}
+
+
+
+	return true;
+}

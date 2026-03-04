@@ -1,17 +1,22 @@
 #pragma once
 #include <cstdio>
 #include <gtest/gtest.h>
-#include <util2/C/base_type.h>
-#include "AVLTree.hpp"
+#include <tree/AVLTree.hpp>
+#include <util2/C/ifcrash2.h>
 
 
 extern FILE*    g_reportFile;
 extern char*    g_massiveBuffer;
-extern uint32_t g_massiveBufferCurrIdx;
+extern u64      g_massiveBufferCurrIdx;
+extern const u32 gk_stest_total_ops;
+extern const u32 gk_stest_val_dist_min;
+extern const u32 gk_stest_val_dist_max;
+extern const u64 gk_massiveBufferSize;
 
 
 #define write_to_test_buffer(formatstr, ...) \
-    g_massiveBufferCurrIdx += sprintf(&g_massiveBuffer[g_massiveBufferCurrIdx], formatstr, __VA_ARGS__); \
+    g_massiveBufferCurrIdx += sprintf(&g_massiveBuffer[g_massiveBufferCurrIdx], formatstr ,##__VA_ARGS__); \
+    ifcrashfmt(g_massiveBufferCurrIdx >= gk_massiveBufferSize, "Report Buffer Index Reached %llu/%llu Bytes\n", g_massiveBufferCurrIdx, gk_massiveBufferSize); \
 
 
 void printTreeToMassiveBuf(binaryTree const* root, int space);

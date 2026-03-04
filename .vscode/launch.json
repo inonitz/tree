@@ -4,7 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        // Windows Debug
+        // Windows Debug Tests
         {
             "type": "lldb",
             "request": "launch",
@@ -31,7 +31,8 @@
                 // "breakpoint set --name main"
             ]
         },
-        // Windows RelWithDbgInfo
+
+        // Windows RelWithDbgInfo Tests
         {
             "type": "lldb",
             "request": "launch",
@@ -59,13 +60,41 @@
             ]
         },
 
+        // Windows RelWithDbgInfo Benchmarks
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "LLDB (Windows-x86_64-Static-RelWithDbgInfo-Benchmark)",
+            "program": "${workspaceFolder}\\build\\release_dbginfo\\static\\bin\\benchmark_treelib.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "initCommands": [
+                "settings set target.process.follow-fork-mode child",
+                // "breakpoint set --name main"
+            ]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "LLDB (Windows-x86_64-Shared-RelWithDbgInfo-Benchmark)",
+            "program": "${workspaceFolder}\\build\\release_dbginfo\\shared\\bin\\benchmark_treelib.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "initCommands": [
+                "settings set target.process.follow-fork-mode child",
+                // "breakpoint set --name main"
+            ]
+        },
+
         
-        // Linux Debug
+        // Linux Debug Tests
         {
             "type": "lldb",
             "request": "launch",
             "name": "LLDB (Linux-x86_64-Static-Debug)",
-            "program": "${workspaceFolder}/build/debug/static/bin/Testingtree",
+            "program": "${workspaceFolder}/build/debug/static/bin/test_libtree",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false,
@@ -78,7 +107,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "LLDB (Linux-x86_64-Shared-Debug)",
-            "program": "${workspaceFolder}/build/debug/shared/bin/Testingtree",
+            "program": "${workspaceFolder}/build/debug/shared/bin/test_libtree",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false,
@@ -88,12 +117,12 @@
             ]
         },
 
-        // Linux RelWithDbgInfo
+        // Linux RelWithDbgInfo Tests
         {
             "type": "lldb",
             "request": "launch",
             "name": "LLDB (Linux-x86_64-Static-RelWithDbgInfo)",
-            "program": "${workspaceFolder}/build/relWithDbgInfo/static/bin/Testingtree",
+            "program": "${workspaceFolder}/build/release_dbginfo/static/bin/test_libtree",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false,
@@ -105,8 +134,36 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "LLDB (Linux-x86_64-Shared-Production)",
-            "program": "${workspaceFolder}/build/relWithDbgInfo/shared/bin/Testingtree",
+            "name": "LLDB (Linux-x86_64-Shared-RelWithDbgInfo)",
+            "program": "${workspaceFolder}/build/release_dbginfo/shared/bin/test_libtree",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "initCommands": [
+                "settings set target.process.follow-fork-mode child",
+                // "breakpoint set --name main"
+            ]
+        },
+
+        // Linux RelWithDbgInfo Benchmark
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "LLDB (Linux-x86_64-Static-RelWithDbgInfo-Benchmark)",
+            "program": "${workspaceFolder}/build/release_dbginfo/static/bin/benchmark_treelib",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "initCommands": [
+                "settings set target.process.follow-fork-mode child",
+                // "breakpoint set --name main"
+            ]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "LLDB (Linux-x86_64-Shared-RelWithDbgInfo-Benchmark)",
+            "program": "${workspaceFolder}/build/release_dbginfo/shared/bin/benchmark_treelib",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false,
