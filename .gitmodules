@@ -11,3 +11,6 @@
 [submodule "dependencies/util2"]
 	path = dependencies/util2
 	url = https://github.com/inonitz/util2
+[submodule "dependencies/benchmark"]
+	path = dependencies/benchmark
+	url = https://github.com/google/benchmark
