@@ -12,7 +12,11 @@ project(test_treelib
 set(SOURCES
     source/main.cpp
     source/AVLTreeTest.cpp
-    source/AVLTreeTest.hpp
+    source/AVLTreeGenericTest.cpp
+
+    include/AVLTreeTest.hpp
+    include/AVLTreeGenericTest.hpp
+
 )
 
 
@@ -25,6 +29,7 @@ target_link_libraries(
     TREELIB::treelib
     UTIL2::util2
     GTest::gtest_main
+    WORKSPACE_CONFIG::Sanitizers
 )
 # gtest_discover_tests(${PROJECT_NAME})
 # add_test(NAME ${PROJECT_NAME} command ${PROJECT_NAME})

@@ -38,6 +38,23 @@ update_submodules_on_cmake_configure("dependencies/util2/CMakeLists.txt")
 update_submodules_on_cmake_configure("dependencies/googletest/CMakeLists.txt")
 
 
+option(ENABLE_SANITIZER_ADDRESS 
+    "Enable AddressSanitizer" 
+    OFF
+)
+
+option(ENABLE_SANITIZER_UNDEFINED 
+    "Enable UndefinedBehaviorSanitizer" 
+    OFF
+)
+
+OPTION(ENABLE_AND_BUILD_TESTS
+    "Create Build, Run Targets for Testing of tree" 
+    OFF
+)
+
+
+
 
 # Using <config> will generate in a multi-generator-dependant way, which is undesirable
 # I'd rather choose it myself using a script.
@@ -51,8 +68,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY})
 
 # prevent installing to system directories. 
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE INTERNAL "")
-
-
 
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -73,12 +88,6 @@ if(NOT DEFINED CMAKE_BUILD_TYPE)
 endif()
 
 
-# if(NOT DEFINED CMAKE_PROJECT_DIRECTORY)
-#     set(CMAKE_PROJECT_DIRECTORY "${CMAKE_SOURCE_DIR}/projects")
-# endif()
-
-
-
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
     set(CMAKE_ASM_COMPILER_LAUNCHER  "${CCACHE_PROGRAM}")
@@ -88,14 +97,21 @@ if(CCACHE_PROGRAM)
 endif()
 
 
-OPTION(MEASURE_PERFORMANCE_TIMEOUT 
-    "Timeout the program after a certain amount of iterations" 
-    ON
-)
 
-OPTION(ENABLE_AND_BUILD_TESTS
-    "Create Build, Run Targets for Testing of tree"
-)
+
+add_library(workspace_cfg_sanitizers INTERFACE)
+add_library(WORKSPACE_CONFIG::Sanitizers ALIAS workspace_cfg_sanitizers)
+
+if(${ENABLE_SANITIZER_ADDRESS})
+    target_compile_options(WORKSPACE_CONFIG::Sanitizers INTERFACE -fsanitize=address -fno-omit-frame-pointer)
+    target_link_options(WORKSPACE_CONFIG::Sanitizers INTERFACE -fsanitize=address)
+endif()
+if(${ENABLE_SANITIZER_UNDEFINED})
+    target_compile_options(WORKSPACE_CONFIG::Sanitizers INTERFACE -fsanitize=undefined)
+    target_link_options(WORKSPACE_CONFIG::Sanitizers INTERFACE -fsanitize=undefined)
+endif()
+
+
 
 
 add_subdirectory(tree)

@@ -94,7 +94,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "LLDB (Linux-x86_64-Static-Debug)",
-            "program": "${workspaceFolder}/build/debug/static/bin/test_libtree",
+            "program": "${workspaceFolder}/build/debug/static/bin/test_treelib",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false,
@@ -164,7 +164,7 @@
             "request": "launch",
             "name": "LLDB (Linux-x86_64-Shared-RelWithDbgInfo-Benchmark)",
             "program": "${workspaceFolder}/build/release_dbginfo/shared/bin/benchmark_treelib",
-            "args": [],
+            "args": [ "--benchmark_filter=BM_TreeInsertion_SeemsSimple" ],
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false,
             "initCommands": [

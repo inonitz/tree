@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
-#include <tree/AVLTree.hpp>
+#include <cstring>
+#include <tmp/AVLTreeDraft.hpp>
 #include <vector>
 #include <random>
 #include <algorithm>
@@ -7,12 +8,10 @@
 
 
 uint32_t generateRandomNumber() {
-    static std::random_device g_rd;
-    static std::mt19937 g_generator(g_rd());
-    static std::uniform_int_distribution<> g_val_dist(0, 100000);
+    thread_local std::mt19937 gen(std::random_device{}());
+    std::uniform_int_distribution<uint32_t> dist(0, UINT32_MAX);
 
-
-    return g_val_dist(g_generator);
+    return dist(gen);
 }
 
 
@@ -191,67 +190,6 @@ static void BM_TreeInsertion2(benchmark::State& state) {
 
 
 
-
-static void BM_TreeDeletion3(benchmark::State& state) {
-    AVLTree testTree;
-    std::vector<uint32_t> testVector;
-    uint32_t N           = state.range(0);
-    uint32_t valToRemIdx = 0;
-    uint32_t valToRem    = 0;
-    
-    generateUniqueVectorSet(testVector, N);
-    for(auto& elem : testVector) {
-        testTree.insert(elem);
-    }
-
-
-    for (auto _ : state) {
-        state.PauseTiming();
-        valToRemIdx = generateRandomNumber() % testVector.size();
-        valToRem = testVector[valToRemIdx];
-        testVector.erase(testVector.begin() + valToRemIdx);
-        state.ResumeTiming();
-        benchmark::DoNotOptimize(testTree.remove(valToRem));
-    }
-
-    state.SetComplexityN(N);
-    return;
-}
-
-
-static void BM_TreeDeletion4(benchmark::State& state) {
-    const uint32_t N = state.range(0);
-    
-    std::random_device    rd;
-    std::mt19937          gen(rd());
-    AVLTree               testTree;
-    std::vector<uint32_t> testVec;
-
-
-    testVec.clear();
-    generateUniqueVectorSet(testVec, N);
-    while (state.KeepRunningBatch(N)) 
-    {
-        state.PauseTiming();
-
-        testTree.clear();
-        for(auto& elem : testVec) {
-            testTree.insert(elem);
-        }
-        std::shuffle(testVec.begin(), testVec.end(), gen);
-        
-        state.ResumeTiming();
-        
-        
-        for (uint32_t i = 0; i < N; ++i) {
-            benchmark::DoNotOptimize(testTree.remove(testVec[i]));
-        }
-    }
-
-    state.SetComplexityN(N);
-}
-
-
 static void BM_TreeDeletion_Fixed(benchmark::State& state) {
     const uint32_t N = state.range(0);
     // const uint32_t numToDelete = std::max<uint32_t>(1, N / 10); // 10% slice
@@ -283,29 +221,124 @@ static void BM_TreeDeletion_Fixed(benchmark::State& state) {
 }
 
 
-static void BM_TreeDeletion_Single(benchmark::State& state) {
-    const uint32_t N = state.range(0);
-    std::mt19937 gen(42);
-    
-    AVLTree testTree;
-    std::vector<uint32_t> testVec;
-    generateUniqueVectorSet(testVec, N);
 
-    printf("state.range(0) ->%u\n", N);
-    fflush(stdout);
+
+static void BM_TreeInsertion_SeemsSimple(benchmark::State& state) {
+    const uint64_t N = state.range(0);
+
+    // std::random_device rd;
+    // std::mt19937 gen(42);
+    // std::uniform_int_distribution<uint32_t> valueDist(0, UINT32_MAX);
+    AVLTree  tree;
+    uint32_t valToInsert = 0;
+    bool     status = false;
+    uint32_t insertStatus[2] = { 0, 0 };
+
+
     for (auto _ : state) {
         state.PauseTiming();
-        testTree.clear();
-        for(auto& x : testVec) {
-            testTree.insert(x);
-        }
+        
+        valToInsert = generateRandomNumber();
+        ++insertStatus[status];
 
-        uint32_t target = testVec[gen() % N];
+        state.ResumeTiming();
+        
+        
+        benchmark::DoNotOptimize(status = tree.insert(valToInsert));
+    }
+
+    
+    --insertStatus[0];
+    state.counters["Failure"] = benchmark::Counter(insertStatus[0]);
+    state.counters["Success"] = benchmark::Counter(insertStatus[1]);
+    state.counters["Rate"]    = benchmark::Counter(insertStatus[1] + insertStatus[0], benchmark::Counter::kIsRate);
+    state.SetComplexityN(N);
+    return;
+}
+
+
+static void BM_TreeDeletion_UniqueTail(benchmark::State& state) {
+    const uint64_t N = state.range(0);
+    bool status = false;
+    std::mt19937 gen(0);
+    uint32_t i = 0;
+    uint32_t valToDelete = 0;
+    uint32_t deletionStatus[2] = {0, 0};
+    std::vector<uint32_t> original_data, working_set;
+    AVLTree tree;
+
+
+    
+    generateUniqueVectorSet(original_data, N);
+    for (auto _ : state) {
+        state.PauseTiming();
+
+        ++deletionStatus[ status ];
+        if (working_set.empty()) {
+            tree.clear();
+            working_set = original_data;
+            std::shuffle(working_set.begin(), working_set.end(), gen);
+
+            for(auto& workingSetValue : working_set) {
+                tree.insert(workingSetValue);
+            }
+        }
+        valToDelete = working_set.back();
+        working_set.pop_back();
+        
         state.ResumeTiming();
 
-        benchmark::DoNotOptimize(testTree.remove(target));
 
+        benchmark::DoNotOptimize(status = tree.remove(valToDelete));
     }
+
+    --deletionStatus[0];
+    state.counters["DeletionRate"] = benchmark::Counter(deletionStatus[0] + deletionStatus[1], benchmark::Counter::kIsRate);
+    state.SetComplexityN(N);
+    return;
+}
+
+
+static void BM_TreeDeletion_Rev1(benchmark::State& state) {
+    const uint64_t N = state.range(0);
+    bool status = false;
+    std::mt19937 gen(0);
+    uint32_t i = 0;
+    uint32_t valToDelete = 0;
+    uint32_t deletionStatus[2] = {0, 0};
+    std::vector<uint32_t> original_data, working_set;
+    AVLTree tree;
+
+
+    
+    generateUniqueVectorSet(original_data, N);
+    working_set.reserve(N);
+    for (auto _ : state) {
+        state.PauseTiming();
+
+        ++deletionStatus[ status ];
+        if (working_set.empty()) {
+            tree.clear();
+            // working_set = original_data;
+            working_set.resize(N);
+            memcpy(working_set.data(), original_data.data(), sizeof(uint32_t) * original_data.size());
+            std::shuffle(working_set.begin(), working_set.end(), gen);
+
+            for(auto& workingSetValue : working_set) {
+                tree.insert(workingSetValue);
+            }
+        }
+        valToDelete = working_set.back();
+        working_set.pop_back();
+        
+        state.ResumeTiming();
+
+
+        benchmark::DoNotOptimize(status = tree.remove(valToDelete));
+    }
+
+    --deletionStatus[0];
+    state.counters["DeletionRate"] = benchmark::Counter(deletionStatus[0] + deletionStatus[1], benchmark::Counter::kIsRate);
     state.SetComplexityN(N);
     return;
 }
@@ -321,9 +354,9 @@ static void BM_TreeSearch(benchmark::State& state) {
     
 
     generateUniqueVectorSet(testVec, N);
-    testVecIndices.resize(N);
-    for(auto& idx : testVecIndices) {
-        idx = generateRandomNumber() % N;
+    testVecIndices.reserve(N);
+    for(i = 0; i < N; ++i) {
+        testVecIndices.push_back( generateRandomNumber() % N );
     }
     for(auto& elem : testVec) {
         testTree.insert(elem);
@@ -343,13 +376,29 @@ static void BM_TreeSearch(benchmark::State& state) {
 }
 
 
-// BENCHMARK(BM_TreeInsertion)->Range(1<<10, 1<<20)->Complexity();
 // BENCHMARK(BM_TreeDeletion)->Range(1<<10, 1<<20)->Complexity();
-BENCHMARK(BM_TreeDeletion_Single)
-    ->RangeMultiplier(2)
-    ->Range(1<<10, 1<<20)
-    ->Repetitions(4)
-    ->DisplayAggregatesOnly(true)
-    ->Complexity();
+// BENCHMARK(BM_TreeInsertion_SeemsSimple)
+//     ->RangeMultiplier(2)
+//     ->Range(1<<10, 1<<22)
+//     ->Repetitions(2)
+//     ->DisplayAggregatesOnly(true)
+//     ->Complexity();
 
-BENCHMARK(BM_TreeSearch)->RangeMultiplier(2)->Range(1<<10, 1<<20)->Complexity();
+// BENCHMARK(BM_TreeDeletion_UniqueTail)
+//     ->RangeMultiplier(2)
+//     ->Range(1<<10, 1<<22)
+//     ->Repetitions(2)
+//     // ->DisplayAggregatesOnly(true)
+//     ->Complexity();
+
+// BENCHMARK(BM_TreeDeletion_Rev1)
+//     ->RangeMultiplier(2)
+//     ->Range(1<<10, 1<<22)
+//     ->Repetitions(4)
+//     // ->DisplayAggregatesOnly(true)
+//     ->Complexity();
+
+// BENCHMARK(BM_TreeSearch)
+//     ->RangeMultiplier(2)
+//     ->Range(1<<10, 1<<22)
+//     ->Complexity();

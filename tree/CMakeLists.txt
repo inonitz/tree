@@ -7,13 +7,28 @@ project(treelib
 
 
 set(SOURCES
-    source/AVLTree.cpp
-    source/binaryTree.cpp
+    source/tmp/AVLTreeDraft.cpp
+    source/tmp/binaryTreeDraft.cpp
 )
 
 set(HEADERS
-    include/tree/binaryTree.hpp
+    include/tmp/AVLTreeDraft.hpp
+    include/tmp/binaryTreeDraft.hpp
+
+    include/tree/C/treelib_api.h
+    include/tree/C/treelib_extern.h
+    include/tree/C/avl_tree.h
+    include/tree/C/binary_tree.h
+
+    include/tree/internal/AVLTreeGeneric.hpp
+    include/tree/internal/AVLTreeGeneric.tpp
+    include/tree/internal/AVLTreeRotateState.hpp
+    include/tree/internal/binaryTreeGeneric.hpp
+    include/tree/internal/binaryTreeGeneric.tpp
+    include/tree/internal/treelib_util.hpp
+
     include/tree/AVLTree.hpp
+    include/tree/AVLTreeImpl.hpp
 )
 
 
@@ -32,6 +47,7 @@ target_sources(${PROJECT_NAME} PRIVATE ${HEADERS})
 
 
 # The minimum C/C++ versions required for the library
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 target_compile_features(${PROJECT_NAME} PUBLIC c_std_11)
 if(BUILD_SHARED_LIBS)
     set_target_properties(${PROJECT_NAME} PROPERTIES 

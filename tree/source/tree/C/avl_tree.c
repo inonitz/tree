@@ -1,0 +1,521 @@
+#include "tree/C/op_result.h"
+#include <tree/C/avl_tree.h>
+#include <tree/C/binary_tree.h>
+#include <tree/C/stack.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+
+#ifndef mallocTypeExplicit
+#   define mallocTypeExplicit(Type) \
+        (  (Type*)(malloc(sizeof(Type)))  )
+#endif /* mallocTypeExplicit */
+
+#ifndef freeTypeExplicit
+#   define freeTypeExplicit(Pointer) \
+        (  free( (void*)Pointer )  )
+#endif /* freeTypeExplicit */
+
+
+enum AVLTreeRotation {
+    NONE       = 0,
+    LEFTLEFT   = 1,
+    RIGHTRIGHT = 2,
+    LEFTRIGHT  = 3,
+    RIGHTLEFT  = 4
+};
+
+
+int8_t AVLTreeComputeHeight(binaryTreeNode* node);
+int8_t AVLTreeComputeBalance(binaryTreeNode* node);
+binaryTreeNode* rotateLeft (binaryTreeNode* node);
+binaryTreeNode* rotateRight(binaryTreeNode* node);
+void AVLTreeMaybeRebalance(
+    binaryTreeNode* node, 
+    binaryTreeNode** maybeNewRootAddr
+);
+
+
+
+void AVLTreeCreate(AVLTree* root, binaryTreeComparatorFunc valueCompare)
+{
+    root->m_root      = NULL;
+    root->m_cmp       = valueCompare;
+    root->m_nodeCount = 0;
+    return;
+}
+
+
+void AVLTreeDestroy(AVLTree* root)
+{
+    binaryTreeDestroy(root->m_root, root->m_nodeCount);
+    return;
+}
+
+
+binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
+{
+    binaryTreeBool_t inserted    = BINARY_TREE_BOOL_FALSE;
+    binaryTreeBool_t foundNode   = BINARY_TREE_BOOL_FALSE;
+    int8_t          cmpResult    = 0;
+    int8_t          bfLeft       = 0;
+    int8_t          bfRight      = 0;
+    binaryTreeNode* search       = NULL;
+    binaryTreeNode* maybeNewRoot = NULL;
+    binaryTreeNode* allocNode    = NULL;
+    binaryTreeNode* currParent   = NULL;
+    GenericStack    nodesTouched;
+
+
+    /* Initial Tree Empty case */
+    if(root->m_root == NULL) {
+        
+        root->m_root = mallocTypeExplicit(binaryTreeNode);
+        binaryTreeNodeCreate(root->m_root, value, root->m_dataSizeBytes);
+        ++root->m_nodeCount;
+
+        return BINARY_TREE_OP_SUCCESS;
+    }
+
+
+    /* Tree isn't empty, we may find the node in the tree */
+    GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode), 2 * AVLTreeHeight(root));
+    for(search = root->m_root; !foundNode && search != NULL; ) {
+        GenericStackPush(&nodesTouched, (void*)&search);
+        
+        cmpResult = root->m_cmp(value, search->m_data);
+        foundNode = (cmpResult == 0);
+        search    = cmpResult < 0 ? search->m_left : search->m_right;
+    }
+
+
+    if(foundNode) {
+        GenericStackDestroy(&nodesTouched);
+        return BINARY_TREE_OP_FAILURE;
+    }
+
+
+    allocNode = mallocTypeExplicit(binaryTreeNode);
+    binaryTreeNodeCreate(allocNode, value, root->m_dataSizeBytes);
+
+    for(; !GenericStackEmpty(&nodesTouched) ;) {
+        
+        GenericStackTop(&nodesTouched, (void*)&currParent);
+        /* 
+            If there was a rebalance, maybeNewRoot would change to the correct root
+            Otherwise, maybeNewRoot is just the old root, and thus can be returned as normal.
+        */
+        maybeNewRoot = currParent;
+
+
+        if(!inserted) {
+            cmpResult = root->m_cmp(value, currParent->m_data);
+
+            if(cmpResult < 0)
+                currParent->m_left = allocNode;
+            else
+                currParent->m_right = allocNode;
+            
+            allocNode->m_parent = search;
+            inserted = BINARY_TREE_BOOL_TRUE;
+        }
+
+        AVLTreeMaybeRebalance(currParent, &maybeNewRoot);
+        GenericStackPop(&nodesTouched);
+    }
+
+
+    root->m_root = maybeNewRoot;
+    return BINARY_TREE_OP_SUCCESS;
+}
+
+
+binaryTreeResult_t AVLTreeRemove(AVLTree* root, void* value)
+{
+    uint8_t         foundNode = BINARY_TREE_BOOL_FALSE;
+    int8_t          cmpResult = 0;
+    binaryTreeNode* currNode  = root->m_root;
+    binaryTreeNode* childNodeIfSingleParent = NULL;
+    GenericStack    nodesTouched;
+
+
+    /* Step 1. Check for Edge-Cases that can be easily handled */
+    if(currNode == NULL) {
+        return BINARY_TREE_OP_FAILURE;
+    }
+    
+    if(binaryTreeNodeIsLeaf(currNode)
+        && 
+        root->m_cmp(value, currNode->m_data) == 0
+    ) {
+        binaryTreeNodeDestroy(currNode);
+        free(currNode);
+        root->m_root = NULL;
+        return BINARY_TREE_OP_SUCCESS;
+    }
+
+    childNodeIfSingleParent = currNode->m_left ? currNode->m_left : currNode->m_right;
+    if(binaryTreeNodeIsSingleNodeParent(currNode) 
+        && root->m_cmp(value, currNode->m_data) == 0
+    ) { 
+        binaryTreeNodeDestroy(currNode);
+        free(currNode);
+        
+        childNodeIfSingleParent->m_parent = NULL;
+        root->m_root = childNodeIfSingleParent;
+        return BINARY_TREE_OP_SUCCESS;
+    }
+
+    if(binaryTreeNodeIsSingleNodeParent(currNode) 
+        && root->m_cmp(value, childNodeIfSingleParent->m_data) == 0
+    ) { 
+        binaryTreeNodeDestroy(childNodeIfSingleParent);
+        free(childNodeIfSingleParent);
+        
+        currNode->m_left  = (childNodeIfSingleParent == currNode->m_left ) ? 
+            NULL : currNode->m_left;
+        currNode->m_right = (childNodeIfSingleParent == currNode->m_right) ? 
+            NULL : currNode->m_right;
+        return BINARY_TREE_OP_SUCCESS;
+    }
+
+
+    GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode), 2 * AVLTreeHeight(root));
+    for(; !foundNode && currNode != NULL; ) {
+        GenericStackPush(&nodesTouched, (void*)&currNode);
+        
+        cmpResult = root->m_cmp(value, currNode->m_data);
+        foundNode = (cmpResult == 0);
+        currNode  = cmpResult < 0 ? currNode->m_left : currNode->m_right;
+    }
+
+
+    if(!foundNode) { /* we didn't find value in the tree, so we fail and exit. */
+        GenericStackDestroy(&nodesTouched);
+        return BINARY_TREE_OP_FAILURE;
+    }
+
+
+
+
+
+
+    return BINARY_TREE_OP_SUCCESS;
+}
+
+
+binaryTreeBool_t AVLTreeSearch(AVLTree const* root, void* value)
+{
+    binaryTreeNode* search       = root->m_root;
+    binaryTreeNode* searchParent = NULL;
+    int8_t          cmpResult    = 0;
+
+    for(; cmpResult != 0 && search != NULL ;) {
+        cmpResult    = root->m_cmp(value, search->m_data);
+        searchParent = search;
+        search       = cmpResult < 0 ? search->m_left : search->m_right;
+    }
+
+
+    return cmpResult == 0 ? BINARY_TREE_BOOL_TRUE : BINARY_TREE_BOOL_FALSE;
+}
+
+
+binaryTreeBool_t AVLTreeIsValidBST(AVLTree const* root)
+{
+    uint8_t               satisfiesCondition = 1;
+    uint8_t               tmpCond = 0;
+    GenericStack          nodeStack;
+    binaryTreeNode*       topNode  = NULL;
+    const binaryTreeNode* currNode = root->m_root;
+
+
+    /* Iterative Reverse-In-Order Tree Traversal (Visit right, then root, then left) */
+    GenericStackCreate(&nodeStack, sizeof(binaryTreeNode*), root->m_nodeCount);
+    while (  satisfiesCondition && ( currNode != NULL || !GenericStackEmpty(&nodeStack) )  ) 
+    {
+        while (currNode != NULL) {
+            GenericStackPush(&nodeStack, (void*)&currNode);
+            currNode = currNode->m_right;
+        }
+
+        GenericStackTop(&nodeStack, (void*)&topNode);
+        GenericStackPop(&nodeStack);
+
+        tmpCond = 
+            (topNode->m_balance ==  0) || 
+            (topNode->m_balance == -1) || 
+            (topNode->m_balance == +1);
+        satisfiesCondition = satisfiesCondition && tmpCond;
+
+        currNode = currNode->m_left;
+    }
+
+
+    
+    return satisfiesCondition ? BINARY_TREE_BOOL_TRUE : BINARY_TREE_BOOL_FALSE;
+}
+
+
+binaryTreeBool_t AVLTreeIsBalanced(AVLTree const* root)
+{
+    if(!binaryTreeIsValidBST(root->m_root, root->m_nodeCount, root->m_cmp)) {
+        return false;
+    }
+
+
+    uint8_t               satisfiesCondition = 1;
+    uint8_t               tmpCond = 0;
+    GenericStack          nodeStack;
+    const binaryTreeNode* currNode = root->m_root;
+
+
+    /* Iterative Reverse-In-Order Tree Traversal */
+    GenericStackCreate(&nodeStack, sizeof(binaryTreeNode*), root->m_nodeCount);
+    while (  satisfiesCondition && ( currNode != NULL || !GenericStackEmpty(&nodeStack) )  ) 
+    {
+        while (currNode != NULL) {
+            GenericStackPush(&nodeStack, (void*)&currNode);
+            currNode = currNode->m_right;
+        }
+
+        GenericStackTop(&nodeStack, (void*)&currNode);
+        GenericStackPop(&nodeStack);
+
+        tmpCond = 
+            (currNode->m_balance ==  0) || 
+            (currNode->m_balance == -1) || 
+            (currNode->m_balance == +1);
+        satisfiesCondition = satisfiesCondition && tmpCond;
+
+        currNode = currNode->m_left;
+    }
+
+
+    GenericStackDestroy(&nodeStack);
+    return satisfiesCondition ? BINARY_TREE_BOOL_TRUE : BINARY_TREE_BOOL_FALSE;
+}
+
+
+binaryTreeBool_t AVLTreeEmpty(AVLTree const* root)
+{
+    return root->m_nodeCount == 0 ? BINARY_TREE_BOOL_TRUE : BINARY_TREE_BOOL_FALSE;
+}
+
+
+uint32_t AVLTreeSize(AVLTree const* root)
+{
+    return root->m_nodeCount;
+}
+
+
+int8_t AVLTreeHeight(AVLTree const* root)
+{
+    int8_t result = -1;
+    
+    result = !AVLTreeEmpty(root) ? (int8_t)root->m_root->m_height : result;
+    return result;
+}
+
+
+void AVLTreePrint(AVLTree const* root, void* filePointer)
+{
+    struct PointerSpacePair {
+        binaryTreeNode const* m_ptr;
+        uint32_t              m_space;
+    };
+
+    static const uint32_t kSpaceCount = 8;
+    PointerSpacePair      tmpNode{};
+    uint32_t              currentSpace = 0;
+    GenericStack          nodeStack;
+    const binaryTreeNode* currNode = root->m_root;
+
+
+    if(AVLTreeEmpty(root)) {
+        return;
+    }
+
+    /* Iterative Reverse-In-Order Tree Traversal */
+    GenericStackCreate(&nodeStack, sizeof(PointerSpacePair), root->m_nodeCount);
+    while (currNode != NULL || !GenericStackEmpty(&nodeStack)) 
+    {
+        while (currNode != NULL) {
+            currentSpace += kSpaceCount;
+            tmpNode = PointerSpacePair{ currNode, currentSpace };
+
+            GenericStackPush(&nodeStack, (void*)&tmpNode);
+            currNode = currNode->m_right;
+        }
+
+        GenericStackTop(&nodeStack, (void*)&tmpNode);
+        GenericStackPop(&nodeStack);
+
+        (void)fprintf( (FILE*)filePointer, "\n%*s 0x%lX (%u, %d)\n", 
+            tmpNode.m_space - kSpaceCount, "",
+            (uintptr_t)currNode->m_data,
+            currNode->m_height,
+            currNode->m_balance
+        );
+
+        currNode = currNode->m_left;
+    }
+
+
+    GenericStackDestroy(&nodeStack);
+    return;
+}
+
+
+
+
+int8_t AVLTreeComputeHeight(binaryTreeNode* node) {
+    if(node == NULL) {
+        return -1;
+    }
+    int8_t rh  = node->m_right ? node->m_right->m_height : -1;
+    int8_t lh  = node->m_left  ? node->m_left->m_height  : -1;
+    int8_t res = lh < rh ? rh : lh;
+    return 1 + res;
+}
+
+int8_t AVLTreeComputeBalance(binaryTreeNode* node) {
+    if(node == NULL) {
+        return 0;
+    }
+    int16_t rh = node->m_right ? node->m_right->m_height : -1;
+    int16_t lh = node->m_left  ? node->m_left->m_height  : -1;
+    return rh - lh;
+}
+
+
+/* 
+    Before the Rotation:
+        X (Root)
+        / \
+    Z   Y
+        / \
+        B   C
+    After The Rotation:
+        Y (New Root)
+        / \
+        X   C
+        / \
+    Z   B
+*/
+binaryTreeNode* rotateLeft(binaryTreeNode* node)
+{
+    binaryTreeNode* root_parent = node->m_parent;
+    binaryTreeNode* x = node;
+    binaryTreeNode* y = node->m_right;
+    binaryTreeNode* b = y->m_left;
+
+    x->m_right = b;
+    y->m_left = x;
+
+    y->m_parent = root_parent;
+    x->m_parent = y;
+    if(b) {
+        b->m_parent = x;
+    }
+    if(root_parent) {
+        /* swap X for Y on the upper-parent level */
+        root_parent->m_left  = (root_parent->m_left  == x) ? y : root_parent->m_left;
+        root_parent->m_right = (root_parent->m_right == x) ? y : root_parent->m_right;
+    }
+
+    x->m_height  = AVLTreeComputeHeight(x);
+    x->m_balance = AVLTreeComputeBalance(x);
+    y->m_height  = AVLTreeComputeHeight(y);
+    y->m_balance = AVLTreeComputeBalance(y);
+    return y;
+}
+
+
+/* 
+    Before The Rotation:
+        Y (Old Root)
+        / \
+        X   C
+        / \
+    Z   B
+
+    After the Rotation:
+        X (Root)
+        / \
+    Z   Y
+        / \
+        B   C
+*/
+binaryTreeNode* rotateRight(binaryTreeNode* node)
+{
+    binaryTreeNode* root_parent = node->m_parent;
+    binaryTreeNode* y = node;
+    binaryTreeNode* x = y->m_left;
+    binaryTreeNode* b = x->m_right;
+
+    y->m_left = b;
+    x->m_right = y;
+
+    x->m_parent = root_parent;
+    y->m_parent = x;
+    if(b) {
+        b->m_parent = y;
+    }
+    if(root_parent) {
+        /* swap Y for X on the upper-parent level */
+        root_parent->m_left  = (root_parent->m_left  == y) ? x : root_parent->m_left;
+        root_parent->m_right = (root_parent->m_right == y) ? x : root_parent->m_right;
+    }
+
+    y->m_height  = AVLTreeComputeHeight(y);
+    y->m_balance = AVLTreeComputeBalance(y);
+    x->m_height  = AVLTreeComputeHeight(x);
+    x->m_balance = AVLTreeComputeBalance(x);
+    return x;
+}
+
+
+void AVLTreeMaybeRebalance(
+    binaryTreeNode*  node, 
+    binaryTreeNode** maybeNewRootAddr
+) {
+    int8_t bfRight, bfLeft;
+    AVLTreeRotation state = AVLTreeRotation::NONE;
+
+
+    node->m_height  = AVLTreeComputeHeight(node);
+    node->m_balance = AVLTreeComputeBalance(node);
+    bfRight = AVLTreeComputeBalance(node->m_right);
+    bfLeft  = AVLTreeComputeBalance(node->m_left);
+    state = (node->m_balance == -2 && bfLeft  <= 0) ? AVLTreeRotation::LEFTLEFT   : state;
+    state = (node->m_balance == -2 && bfLeft  >  0) ? AVLTreeRotation::LEFTRIGHT  : state;
+    state = (node->m_balance == +2 && bfRight >= 0) ? AVLTreeRotation::RIGHTRIGHT : state;
+    state = (node->m_balance == +2 && bfRight <  0) ? AVLTreeRotation::RIGHTLEFT  : state;
+    switch(state) {
+        case AVLTreeRotation::LEFTLEFT:
+        *maybeNewRootAddr = rotateRight(node);
+        break;
+
+        case AVLTreeRotation::LEFTRIGHT:
+        node->m_left = rotateLeft(node->m_left);
+        *maybeNewRootAddr = rotateRight(node);
+        break;
+
+        case AVLTreeRotation::RIGHTRIGHT:
+        *maybeNewRootAddr = rotateLeft(node);
+        break;
+
+        case AVLTreeRotation::RIGHTLEFT:
+        node->m_right = rotateRight(node->m_right);
+        *maybeNewRootAddr = rotateLeft(node);
+        break;
+
+        case AVLTreeRotation::NONE:
+        default:
+        break;
+    }
+
+
+    return;
+}

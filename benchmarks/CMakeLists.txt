@@ -12,6 +12,7 @@ project(benchmark_treelib
 set(SOURCES
     source/main.cpp
     source/AVLTreeBench.cpp
+    source/AVLTreeGenericBench.cpp
 )
 
 
