@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
 #include <cstring>
+#include <numeric>
 #include <tmp/AVLTreeDraft.hpp>
 #include <vector>
 #include <random>

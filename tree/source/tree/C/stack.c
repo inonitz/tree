@@ -16,7 +16,7 @@ uint8_t GenericStackCreate (
 ) {
     toCreate->m_objSize  = objectSizeInBytes;
     toCreate->m_objCount = 0;
-    toCreate->m_maxObjCount  = objectSizeInBytes * firstObjCount;
+    toCreate->m_maxObjCount  = firstObjCount == 0 ? 1 : firstObjCount;
     toCreate->m_buffer = (uint8_t*)malloc( (uint64_t)toCreate->m_maxObjCount * toCreate->m_objSize);
     return toCreate->m_buffer == NULL ? 1 : 0;
 }

@@ -1,10 +1,10 @@
 #include "AVLTreeGenericTest.hpp"
-#include <iomanip>
 #include <util2/C/aligned_malloc.h>
 #include <util2/C/ifcrash2.h>
 #include <tree/AVLTreeImpl.hpp>
+#include <iomanip>
 #include <random>
-
+#include <array>
 
 
 static FILE* g_reportFile           = nullptr;

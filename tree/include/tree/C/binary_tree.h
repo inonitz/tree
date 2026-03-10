@@ -11,9 +11,9 @@ TREELIB_EXTERNC_DECL_BEGIN
 
 
 typedef struct binaryTreeNode {
-    binaryTreeNode* m_left;
-    binaryTreeNode* m_right;
-    binaryTreeNode* m_parent;
+    struct binaryTreeNode* m_left;
+    struct binaryTreeNode* m_right;
+    struct binaryTreeNode* m_parent;
     void*           m_data;
     int8_t          m_height;
     int8_t          m_balance;

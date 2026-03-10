@@ -9,16 +9,25 @@ project(treelib
 set(SOURCES
     source/tmp/AVLTreeDraft.cpp
     source/tmp/binaryTreeDraft.cpp
+
+    source/tree/C/avl_tree.c
+    source/tree/C/binary_tree.c
+    source/tree/C/queue.c
+    source/tree/C/stack.c
 )
 
 set(HEADERS
     include/tmp/AVLTreeDraft.hpp
     include/tmp/binaryTreeDraft.hpp
 
-    include/tree/C/treelib_api.h
-    include/tree/C/treelib_extern.h
     include/tree/C/avl_tree.h
     include/tree/C/binary_tree.h
+    include/tree/C/compare_func.h
+    include/tree/C/op_result.h
+    include/tree/C/queue.h
+    include/tree/C/stack.h
+    include/tree/C/treelib_api.h
+    include/tree/C/treelib_extern.h
 
     include/tree/internal/AVLTreeGeneric.hpp
     include/tree/internal/AVLTreeGeneric.tpp

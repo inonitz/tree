@@ -18,11 +18,11 @@
 
 
 enum AVLTreeRotation {
-    NONE       = 0,
-    LEFTLEFT   = 1,
-    RIGHTRIGHT = 2,
-    LEFTRIGHT  = 3,
-    RIGHTLEFT  = 4
+    AVL_TREE_ROTATION_NONE       = 0,
+    AVL_TREE_ROTATION_LEFTLEFT   = 1,
+    AVL_TREE_ROTATION_RIGHTRIGHT = 2,
+    AVL_TREE_ROTATION_LEFTRIGHT  = 3,
+    AVL_TREE_ROTATION_RIGHTLEFT  = 4
 };
 
 
@@ -37,11 +37,16 @@ void AVLTreeMaybeRebalance(
 
 
 
-void AVLTreeCreate(AVLTree* root, binaryTreeComparatorFunc valueCompare)
-{
-    root->m_root      = NULL;
-    root->m_cmp       = valueCompare;
-    root->m_nodeCount = 0;
+
+void TREELIB_API AVLTreeCreate(
+    AVLTree*                 root,
+    binaryTreeComparatorFunc valueCompare,
+    uint32_t                 valueSizeInBytes
+) {
+    root->m_root          = NULL;
+    root->m_cmp           = valueCompare;
+    root->m_nodeCount     = 0;
+    root->m_dataSizeBytes = valueSizeInBytes;
     return;
 }
 
@@ -49,6 +54,10 @@ void AVLTreeCreate(AVLTree* root, binaryTreeComparatorFunc valueCompare)
 void AVLTreeDestroy(AVLTree* root)
 {
     binaryTreeDestroy(root->m_root, root->m_nodeCount);
+    root->m_root          = NULL;
+    root->m_cmp           = NULL;
+    root->m_nodeCount     = 0;
+    root->m_dataSizeBytes = 0;
     return;
 }
 
@@ -260,7 +269,7 @@ binaryTreeBool_t AVLTreeIsValidBST(AVLTree const* root)
 binaryTreeBool_t AVLTreeIsBalanced(AVLTree const* root)
 {
     if(!binaryTreeIsValidBST(root->m_root, root->m_nodeCount, root->m_cmp)) {
-        return false;
+        return BINARY_TREE_BOOL_FALSE;
     }
 
 
@@ -320,13 +329,13 @@ int8_t AVLTreeHeight(AVLTree const* root)
 
 void AVLTreePrint(AVLTree const* root, void* filePointer)
 {
-    struct PointerSpacePair {
+    typedef struct PointerSpacePair {
         binaryTreeNode const* m_ptr;
         uint32_t              m_space;
-    };
+    } NodeSpacing_t;
 
-    static const uint32_t kSpaceCount = 8;
-    PointerSpacePair      tmpNode{};
+    static const uint32_t kSpaceCount  = 8;
+    NodeSpacing_t         tmpNode      = {};
     uint32_t              currentSpace = 0;
     GenericStack          nodeStack;
     const binaryTreeNode* currNode = root->m_root;
@@ -337,12 +346,12 @@ void AVLTreePrint(AVLTree const* root, void* filePointer)
     }
 
     /* Iterative Reverse-In-Order Tree Traversal */
-    GenericStackCreate(&nodeStack, sizeof(PointerSpacePair), root->m_nodeCount);
+    GenericStackCreate(&nodeStack, sizeof(NodeSpacing_t), root->m_nodeCount);
     while (currNode != NULL || !GenericStackEmpty(&nodeStack)) 
     {
         while (currNode != NULL) {
             currentSpace += kSpaceCount;
-            tmpNode = PointerSpacePair{ currNode, currentSpace };
+            tmpNode = (NodeSpacing_t){ currNode, currentSpace };
 
             GenericStackPush(&nodeStack, (void*)&tmpNode);
             currNode = currNode->m_right;
@@ -481,37 +490,37 @@ void AVLTreeMaybeRebalance(
     binaryTreeNode** maybeNewRootAddr
 ) {
     int8_t bfRight, bfLeft;
-    AVLTreeRotation state = AVLTreeRotation::NONE;
+    enum AVLTreeRotation state = AVL_TREE_ROTATION_NONE;
 
 
     node->m_height  = AVLTreeComputeHeight(node);
     node->m_balance = AVLTreeComputeBalance(node);
     bfRight = AVLTreeComputeBalance(node->m_right);
     bfLeft  = AVLTreeComputeBalance(node->m_left);
-    state = (node->m_balance == -2 && bfLeft  <= 0) ? AVLTreeRotation::LEFTLEFT   : state;
-    state = (node->m_balance == -2 && bfLeft  >  0) ? AVLTreeRotation::LEFTRIGHT  : state;
-    state = (node->m_balance == +2 && bfRight >= 0) ? AVLTreeRotation::RIGHTRIGHT : state;
-    state = (node->m_balance == +2 && bfRight <  0) ? AVLTreeRotation::RIGHTLEFT  : state;
+    state = (node->m_balance == -2 && bfLeft  <= 0) ? AVL_TREE_ROTATION_LEFTLEFT   : state;
+    state = (node->m_balance == -2 && bfLeft  >  0) ? AVL_TREE_ROTATION_LEFTRIGHT  : state;
+    state = (node->m_balance == +2 && bfRight >= 0) ? AVL_TREE_ROTATION_RIGHTRIGHT : state;
+    state = (node->m_balance == +2 && bfRight <  0) ? AVL_TREE_ROTATION_RIGHTLEFT  : state;
     switch(state) {
-        case AVLTreeRotation::LEFTLEFT:
+        case AVL_TREE_ROTATION_LEFTLEFT:
         *maybeNewRootAddr = rotateRight(node);
         break;
-
-        case AVLTreeRotation::LEFTRIGHT:
+        
+        case AVL_TREE_ROTATION_LEFTRIGHT:
         node->m_left = rotateLeft(node->m_left);
         *maybeNewRootAddr = rotateRight(node);
         break;
 
-        case AVLTreeRotation::RIGHTRIGHT:
+        case AVL_TREE_ROTATION_RIGHTRIGHT:
         *maybeNewRootAddr = rotateLeft(node);
         break;
 
-        case AVLTreeRotation::RIGHTLEFT:
+        case AVL_TREE_ROTATION_RIGHTLEFT:
         node->m_right = rotateRight(node->m_right);
         *maybeNewRootAddr = rotateLeft(node);
         break;
 
-        case AVLTreeRotation::NONE:
+        case AVL_TREE_ROTATION_NONE:
         default:
         break;
     }
