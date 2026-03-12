@@ -97,6 +97,7 @@ template <typename T> static void BM_TreeInsertion_SeemsSimple(benchmark::State&
     --insertStatus[0];
     state.counters["Failure"] = benchmark::Counter(static_cast<double>(insertStatus[0]));
     state.counters["Success"] = benchmark::Counter(static_cast<double>(insertStatus[1]));
+    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
     state.SetComplexityN(N);
     return;
 }
@@ -131,6 +132,7 @@ template <typename T> static void BM_TreeDeletion_UniqueTail(benchmark::State& s
     }
 
 
+    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
     state.SetComplexityN(N);
     return;
 }
@@ -161,6 +163,7 @@ template <typename T> static void BM_TreeDeletion_Rev1(benchmark::State& state) 
     }
 
 
+    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
     state.SetComplexityN(N);
     return;
 }
@@ -189,6 +192,7 @@ template <typename T> static void BM_TreeSearch(benchmark::State& state) {
     }
 
 
+    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
     state.SetComplexityN(N);
     return;
 }
@@ -197,11 +201,11 @@ template <typename T> static void BM_TreeSearch(benchmark::State& state) {
 #define REGISTER_TYPED_AVL_TREE_BENCH(T) \
     BENCHMARK_TEMPLATE(BM_TreeInsertion_SeemsSimple, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
     BENCHMARK_TEMPLATE(BM_TreeDeletion_UniqueTail, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_TreeSearch, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Complexity();
+    BENCHMARK_TEMPLATE(BM_TreeSearch, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->Complexity();
 
 
 REGISTER_TYPED_AVL_TREE_BENCH(u64)
-// REGISTER_TYPED_AVL_TREE_BENCH(u32)
+REGISTER_TYPED_AVL_TREE_BENCH(u32)
 // REGISTER_TYPED_AVL_TREE_BENCH(u16)
 // REGISTER_TYPED_AVL_TREE_BENCH(u8)
 // REGISTER_TYPED_AVL_TREE_BENCH(int64_t)
@@ -209,6 +213,6 @@ REGISTER_TYPED_AVL_TREE_BENCH(u64)
 // REGISTER_TYPED_AVL_TREE_BENCH(int16_t)
 // REGISTER_TYPED_AVL_TREE_BENCH(int8_t)
 // REGISTER_TYPED_AVL_TREE_BENCH(float)
-// REGISTER_TYPED_AVL_TREE_BENCH(double)
+REGISTER_TYPED_AVL_TREE_BENCH(double)
 REGISTER_TYPED_AVL_TREE_BENCH(std::string)
 REGISTER_TYPED_AVL_TREE_BENCH(DummyRecord)

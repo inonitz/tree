@@ -2,6 +2,7 @@
 #include <util2/C/aligned_malloc.h>
 #include <util2/C/ifcrash2.h>
 #include <tree/AVLTreeImpl.hpp>
+#include <cinttypes>
 #include <iomanip>
 #include <random>
 #include <array>
@@ -17,7 +18,7 @@ static constexpr u64      gk_massiveBufferSize  = 256ull * 1024 * 1024;
 
 #define generic_write_to_test_buffer(formatstr, ...) \
     g_massiveBufferCurrIdx += sprintf(&g_massiveBuffer[g_massiveBufferCurrIdx], formatstr ,##__VA_ARGS__); \
-    ifcrashfmt(g_massiveBufferCurrIdx >= gk_massiveBufferSize, "Report Buffer Index Reached %llu/%llu Bytes\n", g_massiveBufferCurrIdx, gk_massiveBufferSize); \
+    ifcrashfmt(g_massiveBufferCurrIdx >= gk_massiveBufferSize, "Report Buffer Index Reached %" PRIu64 "/%" PRIu64 " Bytes\n", g_massiveBufferCurrIdx, gk_massiveBufferSize); \
 
 
 
@@ -32,7 +33,7 @@ void setup_generic_report_buffer() {
 }
 
 void teardown_generic_report_buffer() {
-    generic_write_to_test_buffer("g_massiveBuffer Consumed %lu/%lu Bytes for %u Operations\n", g_massiveBufferCurrIdx, gk_massiveBufferSize, gk_stest_total_ops);
+    generic_write_to_test_buffer("g_massiveBuffer Consumed %" PRIu64 "/%" PRIu64 " Bytes for %u Operations\n",  g_massiveBufferCurrIdx, gk_massiveBufferSize, gk_stest_total_ops);
     (void)fprintf(g_reportFile, "%s", g_massiveBuffer);
     fclose(g_reportFile);
     util2_aligned_free(g_massiveBuffer);
@@ -441,7 +442,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
     generic_write_to_test_buffer("             Searches                (Random, Existing): %06u %06u\n", searchRandomValueOp,        searchExistingValueOp     );
     generic_write_to_test_buffer("             Random   Value Searches (Success, Failure): %06u %06u\n", searchRandomValueSuccess,   searchRandomValueFailure  );
     generic_write_to_test_buffer("             Existing Value Searches (Success, Failure): %06u %06u\n", searchExistingValueSuccess, searchExistingValueFailure);
-    generic_write_to_test_buffer("             Final Size : %lu\n", tree.size());
+    generic_write_to_test_buffer("             Final Size : %" PRIu64 "\n", tree.size());
     generic_write_to_test_buffer("             Tree Height: %u\n", tree.getRoot()->m_height);
     return;
 }

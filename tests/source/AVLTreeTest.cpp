@@ -4,6 +4,7 @@
 #include <tmp/AVLTreeDraft.hpp>
 #include <tmp/binaryTreeDraft.hpp>
 #include <random>
+#include <cinttypes>
 
 
 static FILE* g_reportFile           = nullptr;
@@ -16,7 +17,7 @@ static constexpr u64      gk_massiveBufferSize  = 128ull * 1024 * 1024;
 
 #define write_to_test_buffer(formatstr, ...) \
     g_massiveBufferCurrIdx += sprintf(&g_massiveBuffer[g_massiveBufferCurrIdx], formatstr ,##__VA_ARGS__); \
-    ifcrashfmt(g_massiveBufferCurrIdx >= gk_massiveBufferSize, "Report Buffer Index Reached %llu/%llu Bytes\n", g_massiveBufferCurrIdx, gk_massiveBufferSize); \
+    ifcrashfmt(g_massiveBufferCurrIdx >= gk_massiveBufferSize, "Report Buffer Index Reached %" PRIu64 "/%" PRIu64 " Bytes\n", g_massiveBufferCurrIdx, gk_massiveBufferSize); \
 
 
 
@@ -31,7 +32,7 @@ void setup_report_buffer() {
 }
 
 void teardown_report_buffer() {
-    write_to_test_buffer("g_massiveBuffer Consumed %lu/%lu Bytes for %u Operations\n", g_massiveBufferCurrIdx, gk_massiveBufferSize, gk_stest_total_ops);
+    write_to_test_buffer("g_massiveBuffer Consumed %" PRIu64 "/%" PRIu64 " Bytes for %u Operations\n",  g_massiveBufferCurrIdx, gk_massiveBufferSize, gk_stest_total_ops);
     (void)fprintf(g_reportFile, "%s", g_massiveBuffer);
     fclose(g_reportFile);
     util2_aligned_free(g_massiveBuffer);
@@ -341,7 +342,7 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
     write_to_test_buffer("             Searches                (Random, Existing): %06u %06u\n", searchRandomValueOp,        searchExistingValueOp     );
     write_to_test_buffer("             Random   Value Searches (Success, Failure): %06u %06u\n", searchRandomValueSuccess,   searchRandomValueFailure  );
     write_to_test_buffer("             Existing Value Searches (Success, Failure): %06u %06u\n", searchExistingValueSuccess, searchExistingValueFailure);
-    write_to_test_buffer("             Final Size : %lu\n", testTree.size());
+    write_to_test_buffer("             Final Size : %" PRIu64 "\n", testTree.size());
     write_to_test_buffer("             Tree Height: %u\n", testTree.getRoot()->m_height);
     return;
 }

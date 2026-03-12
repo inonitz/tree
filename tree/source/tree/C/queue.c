@@ -25,13 +25,8 @@ uint8_t GenericQueueCreate(
 
 
 void GenericQueueDestroy(GenericQueue* toDestroy) {
-    toDestroy->m_objSize     = 0;
-    toDestroy->m_objCount    = 0;
-    toDestroy->m_maxObjCount = 0;
-    toDestroy->m_head        = 0;
-    toDestroy->m_tail        = 0;
     free(toDestroy->m_buffer);
-    toDestroy->m_buffer      = NULL;
+    memset(toDestroy, 0x00, sizeof(GenericQueue));
     return;
 }
 
@@ -46,7 +41,10 @@ uint8_t GenericQueuePush(
     /* Queue is full */
     if(toModify->m_objCount == toModify->m_maxObjCount) 
     {
-        failStatus = GenericQueueGrow(toModify, (toModify->m_objCount * 3) / 2 );
+        uint32_t newMaxSize = toModify->m_maxObjCount == 1 ? 
+            3 : (3 * toModify->m_maxObjCount) / 2;
+
+        failStatus = GenericQueueGrow(toModify, newMaxSize);
         if(failStatus) {
             return 1;
         }
@@ -62,14 +60,14 @@ uint8_t GenericQueuePush(
 }
 
 
-void GenericQueueFront(GenericQueue const* toRead, void* objAddrToWriteTo) {
+uint8_t GenericQueueFront(GenericQueue const* toRead, void* objAddrToWriteTo) {
     if(GenericQueueEmpty(toRead)) {
-        return;
+        return 1;
     }
 
     void* srcptr = &toRead->m_buffer[ (uint64_t)toRead->m_objSize * toRead->m_head ];
     memcpy(objAddrToWriteTo, srcptr, toRead->m_objSize);
-    return;
+    return 0;
 }
 
 
@@ -78,6 +76,8 @@ void GenericQueuePop(GenericQueue* toModify) {
         return;
     }
 
+    void* objectToReset = &toModify->m_buffer[ (uint64_t)toModify->m_objSize * toModify->m_head ];
+    memset(objectToReset, 0x00, toModify->m_objSize);
 
     toModify->m_head = (toModify->m_head + 1) % toModify->m_maxObjCount;
     --toModify->m_objCount;

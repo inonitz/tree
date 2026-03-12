@@ -1,7 +1,11 @@
 #pragma once
-#include <cstdio>
 #include <gtest/gtest.h>
 #include <util2/C/base_type.h>
+
+
+#ifdef _MSC_VER
+#   define _CRT_SECURE_NO_WARNINGS
+#endif
 
 
 void setup_report_buffer();

@@ -3,6 +3,13 @@
 #include <string.h>
 
 
+/* 
+    Thanks to:
+    https://stackoverflow.com/questions/2796639/implementation-of-ceil-function-in-c
+*/
+#define CEIL_POSITIVE(X) ( (X) - ((uint32_t)X) > 0 ? (X + 1) : X  )
+    
+
 static uint8_t GenericStackGrow(
     GenericStack* toReAlloc,
     uint32_t      newObjectCount
@@ -22,11 +29,8 @@ uint8_t GenericStackCreate (
 }
 
 void GenericStackDestroy(GenericStack* toDestroy) {
-    toDestroy->m_objSize     = 0;
-    toDestroy->m_objCount    = 0;
-    toDestroy->m_maxObjCount = 0;
     free(toDestroy->m_buffer);
-    toDestroy->m_buffer      = NULL;
+    memset(toDestroy, 0x00, sizeof(GenericStack));
     return;
 }
 
@@ -41,7 +45,10 @@ uint8_t GenericStackPush(
 
 
     if(toModify->m_objCount == toModify->m_maxObjCount) { /* Stack is full */
-        failStatus = GenericStackGrow(toModify, (3 * toModify->m_maxObjCount) / 2);
+        uint32_t newMaxSize = toModify->m_maxObjCount == 1 ? 
+            3 : (3 * toModify->m_maxObjCount) / 2;
+
+        failStatus = GenericStackGrow(toModify, newMaxSize);
         if(failStatus) {
             return 1;
         }
@@ -55,14 +62,18 @@ uint8_t GenericStackPush(
 }
 
 
-void GenericStackTop(
+uint8_t GenericStackTop(
     GenericStack const* toRead,  
     void* objAddrToWriteTo
 ) {
-    uint8_t* srcptr = &toRead->m_buffer[ (uint64_t)toRead->m_objSize * toRead->m_objCount ];
+    if(GenericStackEmpty(toRead)) {
+        return 1;
+    }
 
+
+    uint8_t* srcptr = &toRead->m_buffer[ (uint64_t)toRead->m_objSize * (toRead->m_objCount - 1) ];
     memcpy(objAddrToWriteTo, srcptr, toRead->m_objSize);
-    return;
+    return 0;
 }
 
 
@@ -78,6 +89,9 @@ uint8_t GenericStackEmpty(GenericStack const* toRead) {
     return toRead->m_objCount == 0;
 }
 
+uint32_t GenericStackSize(GenericStack const* toRead) {
+    return toRead->m_objCount;
+}
 
 
 static uint8_t GenericStackGrow(

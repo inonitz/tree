@@ -61,10 +61,21 @@ $CMAKE_ARGLIST = @(
     "-DCMAKE_CXX_COMPILER=clang++",
     "-DCMAKE_EXPORT_COMPILE_COMMANDS=1",
     "-DCMAKE_COLOR_DIAGNOSTICS=ON",
-    "-DENABLE_AND_BUILD_TESTS=ON"
+    "-DENABLE_SANITIZER_ADDRESS=OFF",
+    "-DENABLE_SANITIZER_UNDEFINED=OFF",
+    "-DENABLE_SANITIZER_MEMORY=OFF",
+    "-DTREELIB_BUILD_TESTS=ON",
+    "-DBUILD_GMOCK=OFF",
+    "-DBENCHMARK_ENABLE_INSTALL=OFF",
+    "-DBENCHMARK_INSTALL_DOCS=OFF",
+    "-DBENCHMARK_INSTALL_TOOLS=OFF",
+    "-DBENCHMARK_DOWNLOAD_DEPENDENCIES=OFF",
+    "-DBENCHMARK_ENABLE_TESTING=OFF"
+    "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF",
+    "-DBENCHMARK_USE_BUNDLED_GTEST=OFF"
 )
 
-# --- Mapping logic ---
+
 
 switch ($BuildType) {
     "debug"           { $CMAKE_ARGLIST += "-DCMAKE_BUILD_TYPE=Debug" }
@@ -73,7 +84,19 @@ switch ($BuildType) {
     "release_dbginfo" { $CMAKE_ARGLIST += "-DCMAKE_BUILD_TYPE=RelWithDbgInfo" }
     "release_perf"    { $CMAKE_ARGLIST += "-DCMAKE_BUILD_TYPE=Release" }
 }
-$CMAKE_ARGLIST += $( If ($LinkType -eq "shared") { "-DBUILD_SHARED_LIBS=1" } Else { "-DBUILD_SHARED_LIBS=0" } )
+# $CMAKE_ARGLIST += $( If ($LinkType -eq "shared") { "-DBUILD_SHARED_LIBS=1 -DGTEST_LINKED_AS_SHARED_LIBRARY=1" } Else { "-DBUILD_SHARED_LIBS=0 -DGTEST_LINKED_AS_SHARED_LIBRARY=0" } )
+switch ($LinkType) {
+    "shared" { 
+        $CMAKE_ARGLIST += "-DGTEST_CREATE_SHARED_LIBRARY=1"
+        $CMAKE_ARGLIST += "-DGTEST_LINKED_AS_SHARED_LIBRARY=1"
+        $CMAKE_ARGLIST += "-DBUILD_SHARED_LIBS=1"
+    }
+    "static" { 
+        $CMAKE_ARGLIST += "-DGTEST_CREATE_SHARED_LIBRARY=0"
+        $CMAKE_ARGLIST += "-DGTEST_LINKED_AS_SHARED_LIBRARY=0"
+        $CMAKE_ARGLIST += "-DBUILD_SHARED_LIBS=0"
+    }
+}
 
 
 # Constructing paths
@@ -98,7 +121,7 @@ if ($Action -eq "cleanbuild") {
 
 # 2. Configure
 if ($Action -eq "configure" -or $Action -eq "cleanbuild") {
-    $CMAKE_ARGLIST += "-DGIT_SUBMODULE=ON"
+    $CMAKE_ARGLIST += "-DGIT_SUBMODULE=OFF"
     Run-Command "mkdir $CMAKE_FINAL_BUILD_DIR" { New-Item -ItemType Directory -Path $CMAKE_FINAL_BUILD_DIR -Force | Out-Null }
     Run-Command "CMake Configure" { cmake -S . -B $CMAKE_FINAL_BUILD_DIR -G "Ninja" $CMAKE_ARGLIST }
 }

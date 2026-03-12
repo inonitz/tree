@@ -12,7 +12,7 @@ TREELIB_EXTERNC_DECL_BEGIN
 
 typedef struct binaryTreeNode binaryTreeNode;
 
-typedef struct TREELIB_API __avl_tree_definition {
+typedef struct __avl_tree_definition {
 	binaryTreeNode*          m_root;
 	binaryTreeComparatorFunc m_cmp;
 	uint32_t                 m_nodeCount;
@@ -38,5 +38,6 @@ void               TREELIB_API AVLTreePrint(AVLTree const* root, void* filePoint
 
 
 TREELIB_EXTERNC_DECL_END
+
 
 #endif /* __AVL_TREE_C_VERSION_DEFINITION_HEADER__ */

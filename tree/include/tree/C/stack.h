@@ -17,11 +17,11 @@ uint8_t TREELIB_API GenericStackCreate (
     uint32_t      objectSizeInBytes,
     uint32_t      maximumInitialAmountOfObjects
 );
-void    TREELIB_API GenericStackDestroy(GenericStack*       toDestroy);
-uint8_t TREELIB_API GenericStackPush   (GenericStack*       toModify, void* objAddr);
-void    TREELIB_API GenericStackTop    (GenericStack const* toRead,   void* objAddrToWriteTo);
-void    TREELIB_API GenericStackPop    (GenericStack*       toModify);
-uint8_t TREELIB_API GenericStackEmpty  (GenericStack const* toRead);
-
+void     TREELIB_API GenericStackDestroy(GenericStack*       toDestroy);
+uint8_t  TREELIB_API GenericStackPush   (GenericStack*       toModify, void* objAddr);
+uint8_t  TREELIB_API GenericStackTop    (GenericStack const* toRead,   void* objAddrToWriteTo);
+void     TREELIB_API GenericStackPop    (GenericStack*       toModify);
+uint8_t  TREELIB_API GenericStackEmpty  (GenericStack const* toRead);
+uint32_t TREELIB_API GenericStackSize   (GenericStack const* toRead);
 
 #endif /* __SIMPLE_LINEAR_STACK_C_DEFINITION_HEADER__ */

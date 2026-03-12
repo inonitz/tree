@@ -21,7 +21,7 @@ uint8_t  TREELIB_API GenericQueueCreate(
 );
 void     TREELIB_API GenericQueueDestroy(GenericQueue*       toDestroy);
 uint8_t  TREELIB_API GenericQueuePush   (GenericQueue*       toModify, void* objAddr);
-void     TREELIB_API GenericQueueFront  (GenericQueue const* toRead,   void* objAddrToWriteTo);
+uint8_t  TREELIB_API GenericQueueFront  (GenericQueue const* toRead,   void* objAddrToWriteTo);
 void     TREELIB_API GenericQueuePop    (GenericQueue*       toModify);
 uint8_t  TREELIB_API GenericQueueEmpty  (GenericQueue const* toRead);
 uint32_t TREELIB_API GenericQueueSize   (GenericQueue const* toRead);

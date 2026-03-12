@@ -34,8 +34,10 @@ function(UPDATE_SUBMODULES_ON_CMAKE_CONFIGURE SUBMODULE_CMAKE_TXT_PATH)
 endfunction() 
 
 
-update_submodules_on_cmake_configure("dependencies/util2/CMakeLists.txt")
+update_submodules_on_cmake_configure("dependencies/benchmark/CMakeLists.txt")
+update_submodules_on_cmake_configure("dependencies/cmocka/CMakeLists.txt")
 update_submodules_on_cmake_configure("dependencies/googletest/CMakeLists.txt")
+update_submodules_on_cmake_configure("dependencies/util2/CMakeLists.txt")
 
 
 option(ENABLE_SANITIZER_ADDRESS 
@@ -48,7 +50,7 @@ option(ENABLE_SANITIZER_UNDEFINED
     OFF
 )
 
-OPTION(ENABLE_AND_BUILD_TESTS
+OPTION(TREELIB_BUILD_TESTS
     "Create Build, Run Targets for Testing of tree" 
     OFF
 )
@@ -101,14 +103,17 @@ endif()
 
 add_library(workspace_cfg_sanitizers INTERFACE)
 add_library(WORKSPACE_CONFIG::Sanitizers ALIAS workspace_cfg_sanitizers)
-
 if(${ENABLE_SANITIZER_ADDRESS})
-    target_compile_options(WORKSPACE_CONFIG::Sanitizers INTERFACE -fsanitize=address -fno-omit-frame-pointer)
-    target_link_options(WORKSPACE_CONFIG::Sanitizers INTERFACE -fsanitize=address)
+    target_compile_options(workspace_cfg_sanitizers INTERFACE -fsanitize=address -fno-omit-frame-pointer)
+    target_link_options(workspace_cfg_sanitizers INTERFACE -fsanitize=address)
 endif()
 if(${ENABLE_SANITIZER_UNDEFINED})
-    target_compile_options(WORKSPACE_CONFIG::Sanitizers INTERFACE -fsanitize=undefined)
-    target_link_options(WORKSPACE_CONFIG::Sanitizers INTERFACE -fsanitize=undefined)
+    target_compile_options(workspace_cfg_sanitizers INTERFACE -fsanitize=undefined)
+    target_link_options(workspace_cfg_sanitizers INTERFACE -fsanitize=undefined)
+endif()
+if(${ENABLE_SANITIZER_MEMORY})
+    target_compile_options(workspace_cfg_sanitizers INTERFACE -fno-omit-frame-pointer -fsanitize=memory)
+    target_link_options(workspace_cfg_sanitizers INTERFACE -fno-omit-frame-pointer -fsanitize=memory)
 endif()
 
 
@@ -118,12 +123,13 @@ add_subdirectory(tree)
 # Thank you to:
 # https://github.com/cld-gh/cpp-with-gtest-example
 # https://stackoverflow.com/questions/50468620/what-does-enable-testing-do-in-cmake
-if(${ENABLE_AND_BUILD_TESTS})
-    enable_testing()
+if(${TREELIB_BUILD_TESTS})
+    # enable_testing()
     add_subdirectory(tests)
     add_subdirectory(benchmarks)
     add_subdirectory(dependencies/googletest)
     add_subdirectory(dependencies/benchmark)
+    add_subdirectory(dependencies/cmocka)
 endif()
 
 
