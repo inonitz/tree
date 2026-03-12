@@ -7,10 +7,16 @@
 	path = dependencies/googletest
 	url = https://github.com/google/googletest.git
 
+[submodule "dependencies/cmocka"]
+	path = dependencies/cmocka
+	url = https://gitlab.com/cmocka/cmocka
+	branch = stable-2.0
+
 
 [submodule "dependencies/util2"]
 	path = dependencies/util2
 	url = https://github.com/inonitz/util2
+
 [submodule "dependencies/benchmark"]
 	path = dependencies/benchmark
 	url = https://github.com/google/benchmark
