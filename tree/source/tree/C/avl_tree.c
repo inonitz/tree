@@ -3,7 +3,9 @@
 #include <tree/C/stack.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <inttypes.h>
+#include <util2/C/debugbreak.h>
 
 
 #ifndef mallocTypeExplicit
@@ -34,6 +36,7 @@ void AVLTreeMaybeRebalance(
     binaryTreeNode* node, 
     binaryTreeNode** maybeNewRootAddr
 );
+void removeNodeAndLinkParentWithChild(binaryTreeNode* nodeToModify);
 binaryTreeNode* AVLTreeFindMaxAndPushParents(
     binaryTreeNode* node, 
     GenericStack*   parentQueue
@@ -42,6 +45,7 @@ binaryTreeNode* AVLTreeFindMinAndPushParents(
     binaryTreeNode* node, 
     GenericStack*   parentQueue
 );
+void AVLTreeContextPrint(binaryTreePrintCtx* ctx, const char* format, ...);
 
 
 
@@ -96,7 +100,7 @@ binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
 
 
     /* Tree isn't empty, we may find the node in the tree */
-    GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode), 2 * AVLTreeHeight(root));
+    GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode*), 2 * AVLTreeHeight(root));
     for(search = root->m_root; !foundNode && search != NULL; ) {
         GenericStackPush(&nodesTouched, (void*)&search);
         
@@ -133,7 +137,7 @@ binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
             else
                 currParent->m_right = allocNode;
             
-            allocNode->m_parent = search;
+            allocNode->m_parent = currParent;
             inserted = BINARY_TREE_BOOL_TRUE;
             ++root->m_nodeCount;
         }
@@ -150,12 +154,11 @@ binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
 
 binaryTreeResult_t AVLTreeRemove(AVLTree* root, void* value)
 {
-    uint8_t         foundNode   = BINARY_TREE_BOOL_FALSE;
+    uint8_t         foundNode = BINARY_TREE_BOOL_FALSE;
     int8_t          cmpResult = 0;
     binaryTreeNode* currNode  = root->m_root;
     binaryTreeNode* childNodeIfSingleParent = NULL;
     GenericStack    nodesTouched;
-    
     
     uint8_t         deletedNode  = BINARY_TREE_BOOL_FALSE;
     binaryTreeNode* maybeNewRoot = NULL;
@@ -210,7 +213,7 @@ binaryTreeResult_t AVLTreeRemove(AVLTree* root, void* value)
     }
 
 
-    GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode), 2 * AVLTreeHeight(root));
+    GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode*), 2 * AVLTreeHeight(root));
     for(; !foundNode && currNode != NULL; ) {
         GenericStackPush(&nodesTouched, (void*)&currNode);
         
@@ -225,8 +228,9 @@ binaryTreeResult_t AVLTreeRemove(AVLTree* root, void* value)
     }
 
 
-    /* GenericStackTop(&nodesTouched) will return the element to be deleted, if found == true. */
-    GenericStackTop(&nodesTouched, &deletedNodeCopy);
+    /* GenericStackTop(&nodesTouched) will return the element to be deleted, if found == true */
+    GenericStackTop(&nodesTouched, &childNodeIfSingleParent);
+    binaryTreeNodeShallowCopy(childNodeIfSingleParent, &deletedNodeCopy);
     for(; !GenericStackEmpty(&nodesTouched) ;) 
     {
         /* 
@@ -302,33 +306,112 @@ binaryTreeResult_t AVLTreeRemove(AVLTree* root, void* value)
 
 
             /* if a node was deleted we do not want to update any of its values. */
+            /* i.e We don't want to call AVLTreeMaybeRebalance */
             GenericStackPop(&nodesTouched);
             continue;
         }
 
 
-
         AVLTreeMaybeRebalance(currParent, &maybeNewRoot);
         GenericStackPop(&nodesTouched);
-    } 
+    }
 
+
+    GenericStackDestroy(&nodesTouched);
+    return BINARY_TREE_OP_SUCCESS;
+}
+
+
+binaryTreeResult_t AVLTreeRemove2(AVLTree* root, void* value)
+{
+    uint8_t         foundNode    = BINARY_TREE_BOOL_FALSE;
+    int8_t          cmpResult    = 0;
+    binaryTreeNode* currNode     = root->m_root;
+    binaryTreeNode* toDelete     = NULL;
+    binaryTreeNode* maybeNewRoot = NULL;
+    GenericStack    nodesTouched;
+
+
+    GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode*), 2 * AVLTreeHeight(root));
+    for(; !foundNode && currNode != NULL; ) 
+    {
+        GenericStackPush(&nodesTouched, (void*)&currNode);
+        
+        cmpResult = root->m_cmp(value, currNode->m_data);
+        foundNode = (cmpResult == 0);
+        currNode  = cmpResult < 0 ? currNode->m_left : currNode->m_right;
+    }
+    if(!foundNode) {
+        GenericStackDestroy(&nodesTouched);
+        return BINARY_TREE_OP_FAILURE;
+    }
+
+
+    /* GenericStackTop() is the node to be deleted.  */
+    GenericStackTop(&nodesTouched, &currNode);
+    uint8_t fullNode = binaryTreeNodeIsFull(currNode);
+    toDelete = currNode;
+    if(fullNode)
+    {
+        binaryTreeNode* successorNode = NULL;
+        void*           tmp           = NULL;
+        /* 
+            search in the smaller subtree 
+            the successerNode along with its parents will be pushed to the stack
+            GenericStackTop() -> successorNode
+        */
+        if(currNode->m_left->m_height < currNode->m_right->m_height) {
+            successorNode = AVLTreeFindMaxAndPushParents(currNode->m_left, &nodesTouched);
+        } else {
+            successorNode = AVLTreeFindMinAndPushParents(currNode->m_right, &nodesTouched);
+        }
+        
+        tmp                   = currNode->m_data;
+        currNode->m_data      = successorNode->m_data;
+        successorNode->m_data = tmp;
+        /* Now successorNode contains the value to be deleted, we unlink it in the next step */
+        // currNode = successorNode;
+        toDelete = successorNode;
+    }
+    util2_debugbreakif(currNode->m_data == (binaryTreeNode*)0xfeeefeeefeeefeee);
+    removeNodeAndLinkParentWithChild(toDelete); /* Needs to happen whether the node is full/not */
+    GenericStackPop(&nodesTouched);             /* Pop the value we just deleted from the tree. */
+
+
+    /* Check for rebalance/root changes */
+    for(; !GenericStackEmpty(&nodesTouched) ;) 
+    {
+        GenericStackTop(&nodesTouched, &currNode);
+        util2_debugbreakif(currNode->m_data == (binaryTreeNode*)0xfeeefeeefeeefeee);
+        maybeNewRoot = currNode;
+
+        
+        AVLTreeMaybeRebalance(currNode, &maybeNewRoot);
+        GenericStackPop(&nodesTouched);
+    }
+    
+
+    root->m_root = maybeNewRoot;
+    --root->m_nodeCount;
+    GenericStackDestroy(&nodesTouched);
     return BINARY_TREE_OP_SUCCESS;
 }
 
 
 binaryTreeBool_t AVLTreeSearch(AVLTree const* root, void* value)
 {
-    binaryTreeNode* search       = root->m_root;
-    binaryTreeNode* searchParent = NULL;
-    int8_t          cmpResult    = 0;
-
-    for(; cmpResult != 0 && search != NULL ;) {
-        cmpResult    = root->m_cmp(value, search->m_data);
-        searchParent = search;
-        search       = cmpResult < 0 ? search->m_left : search->m_right;
+    if(AVLTreeEmpty(root)) {
+        return BINARY_TREE_BOOL_FALSE;
     }
 
 
+    binaryTreeNode* search       = NULL;
+    int8_t          cmpResult    = -1;
+    for(search = root->m_root; search != NULL && (cmpResult != 0); ) {
+        cmpResult = root->m_cmp(value, search->m_data);
+        search    = cmpResult < 0 ? search->m_left : search->m_right;
+    }
+    
     return cmpResult == 0 ? BINARY_TREE_BOOL_TRUE : BINARY_TREE_BOOL_FALSE;
 }
 
@@ -338,7 +421,6 @@ binaryTreeBool_t AVLTreeIsValidBST(AVLTree const* root)
     uint8_t               satisfiesCondition = 1;
     uint8_t               tmpCond = 0;
     GenericStack          nodeStack;
-    binaryTreeNode*       topNode  = NULL;
     const binaryTreeNode* currNode = root->m_root;
 
 
@@ -351,20 +433,19 @@ binaryTreeBool_t AVLTreeIsValidBST(AVLTree const* root)
             currNode = currNode->m_right;
         }
 
-        GenericStackTop(&nodeStack, (void*)&topNode);
+        GenericStackTop(&nodeStack, (void*)&currNode);
         GenericStackPop(&nodeStack);
 
         tmpCond = 
-            (topNode->m_balance ==  0) || 
-            (topNode->m_balance == -1) || 
-            (topNode->m_balance == +1);
+            (currNode->m_balance ==  0) || 
+            (currNode->m_balance == -1) || 
+            (currNode->m_balance == +1);
         satisfiesCondition = satisfiesCondition && tmpCond;
 
         currNode = currNode->m_left;
     }
 
 
-    
     return satisfiesCondition ? BINARY_TREE_BOOL_TRUE : BINARY_TREE_BOOL_FALSE;
 }
 
@@ -430,50 +511,122 @@ int8_t AVLTreeHeight(AVLTree const* root)
 }
 
 
-void AVLTreePrint(AVLTree const* root, void* filePointer)
-{
+// void AVLTreePrint(AVLTree const* root, void* filePointer)
+// {
+//     typedef struct PointerSpacePair {
+//         binaryTreeNode const* m_ptr;
+//         uint32_t              m_space;
+//     } NodeSpacing_t;
+
+//     static const uint32_t kSpaceCount  = 8;
+//     NodeSpacing_t         tmpNode      = {};
+//     uint32_t              currentSpace = 0;
+//     GenericStack          nodeStack;
+//     const binaryTreeNode* currNode = root->m_root;
+
+
+//     (void)fprintf( (FILE*)filePointer, "\n-------------------------------- AVLTreePrintBegin() --------------------------------\n");
+//     if(AVLTreeEmpty(root)) {
+//         (void)fprintf( (FILE*)filePointer, "\nNULL (0, 0)\n");
+//         return;
+//     }
+
+//     /* Iterative Reverse-In-Order Tree Traversal */
+//     GenericStackCreate(&nodeStack, sizeof(NodeSpacing_t), root->m_nodeCount);
+//     while (currNode != NULL || !GenericStackEmpty(&nodeStack)) 
+//     {
+//         while (currNode != NULL) {
+//             currentSpace += kSpaceCount;
+//             tmpNode = (NodeSpacing_t){ currNode, currentSpace };
+
+//             GenericStackPush(&nodeStack, (void*)&tmpNode);
+//             currNode = currNode->m_right;
+//         }
+
+//         GenericStackTop(&nodeStack, &tmpNode);
+//         currentSpace = tmpNode.m_space;
+//         GenericStackPop(&nodeStack);
+
+//         (void)fprintf( (FILE*)filePointer, "\n%*s 0x%" PRIx64  " (%u, %d)\n", 
+//             tmpNode.m_space - kSpaceCount, "",
+//             (uintptr_t)tmpNode.m_ptr->m_data,
+//             (uint32_t)tmpNode.m_ptr->m_height,
+//             (int32_t)tmpNode.m_ptr->m_balance
+//         );
+
+//         currNode = tmpNode.m_ptr->m_left;
+//     }
+
+
+//     (void)fprintf( (FILE*)filePointer, "\n--------------------------------  AVLTreePrintEnd()  --------------------------------\n");
+//     GenericStackDestroy(&nodeStack);
+//     return;
+// }
+
+
+void AVLTreePrint(
+    AVLTree const* root, 
+    void*          outputTargetPtr, 
+    uint8_t        isBuffer, 
+    uint64_t       bufferSize,
+    binaryTreeNodeDataPrinterFunc dataPrinter
+) {
     typedef struct PointerSpacePair {
         binaryTreeNode const* m_ptr;
         uint32_t              m_space;
     } NodeSpacing_t;
+
 
     static const uint32_t kSpaceCount  = 8;
     NodeSpacing_t         tmpNode      = {};
     uint32_t              currentSpace = 0;
     GenericStack          nodeStack;
     const binaryTreeNode* currNode = root->m_root;
+    binaryTreePrintCtx    ctx = { outputTargetPtr, bufferSize, 0 };
 
 
+    AVLTreeContextPrint(&ctx, "\n--- AVLTreePrintBegin() ---\n");
     if(AVLTreeEmpty(root)) {
+        AVLTreeContextPrint(&ctx, "NULL (0, 0)\n---  AVLTreePrintEnd()  ---\n");
         return;
     }
 
-    /* Iterative Reverse-In-Order Tree Traversal */
+
     GenericStackCreate(&nodeStack, sizeof(NodeSpacing_t), root->m_nodeCount);
     while (currNode != NULL || !GenericStackEmpty(&nodeStack)) 
     {
         while (currNode != NULL) {
             currentSpace += kSpaceCount;
             tmpNode = (NodeSpacing_t){ currNode, currentSpace };
-
             GenericStackPush(&nodeStack, (void*)&tmpNode);
             currNode = currNode->m_right;
         }
 
-        GenericStackTop(&nodeStack, (void*)&tmpNode);
+        GenericStackTop(&nodeStack, &tmpNode);
+        currentSpace = tmpNode.m_space;
         GenericStackPop(&nodeStack);
 
-        (void)fprintf( (FILE*)filePointer, "\n%*s 0x%" PRIx64  " (%u, %d)\n", 
-            tmpNode.m_space - kSpaceCount, "",
-            (uintptr_t)currNode->m_data,
-            currNode->m_height,
-            currNode->m_balance
-        );
 
-        currNode = currNode->m_left;
+        /* Actual Printing Begin */
+        AVLTreeContextPrint(&ctx, "\n%*s ", tmpNode.m_space - kSpaceCount, "");
+
+        if(dataPrinter != NULL) {
+            dataPrinter(&ctx, tmpNode.m_ptr->m_data);
+        } else {
+            AVLTreeContextPrint(&ctx, "0x%" PRIx64, (uintptr_t)tmpNode.m_ptr->m_data);
+        }
+        
+        AVLTreeContextPrint(&ctx, " (%u, %d)\n", 
+            (uint32_t)tmpNode.m_ptr->m_height,
+            (int32_t)tmpNode.m_ptr->m_balance
+        );
+        /* Actual Printing End */
+        
+        currNode = tmpNode.m_ptr->m_left;
     }
 
 
+    AVLTreeContextPrint(&ctx, "\n---  AVLTreePrintEnd()  ---\n");
     GenericStackDestroy(&nodeStack);
     return;
 }
@@ -633,6 +786,28 @@ void AVLTreeMaybeRebalance(
 }
 
 
+void removeNodeAndLinkParentWithChild(binaryTreeNode* nodeToModify) 
+{
+    binaryTreeNode* parentNode = nodeToModify->m_parent;
+    binaryTreeNode* childNode  = nodeToModify->m_left ? 
+        nodeToModify->m_left 
+        : 
+        nodeToModify->m_right ? nodeToModify->m_right : NULL;
+    
+
+    if(childNode != NULL) {
+        childNode->m_parent = parentNode;
+    }
+    if(parentNode != NULL) {
+        parentNode->m_left  = (parentNode->m_left  == nodeToModify) ? childNode : parentNode->m_left;
+        parentNode->m_right = (parentNode->m_right == nodeToModify) ? childNode : parentNode->m_right;
+    }
+    binaryTreeNodeDestroy(nodeToModify);
+    free(nodeToModify);
+    return;
+}
+
+
 binaryTreeNode* AVLTreeFindMaxAndPushParents(
     binaryTreeNode* node, 
     GenericStack*   parentQueue
@@ -660,3 +835,30 @@ binaryTreeNode* AVLTreeFindMinAndPushParents(
     return node;
 }
 
+
+void AVLTreeContextPrint(binaryTreePrintCtx* ctx, const char* format, ...) 
+{
+    va_list args;
+    va_start(args, format);
+
+
+    if(ctx->m_buf == NULL || (ctx->m_bufSize != 0 && ctx->m_bufOffset >= ctx->m_bufSize)) {
+        return;
+    }
+    if(ctx->m_bufSize == 0) {
+        vfprintf((FILE*)ctx->m_buf, format, args);
+        return;
+    }
+
+
+    int written = vsnprintf(
+        (char*)ctx->m_buf + ctx->m_bufOffset, 
+        ctx->m_bufSize - ctx->m_bufOffset, 
+        format, 
+        args
+    );
+    ctx->m_bufOffset += (written > 0) ? written : 0;
+    
+    va_end(args);
+    return;
+}

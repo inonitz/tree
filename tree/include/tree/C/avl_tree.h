@@ -4,6 +4,7 @@
 #include <tree/C/treelib_extern.h>
 #include <tree/C/compare_func.h>
 #include <tree/C/op_result.h>
+#include <tree/C/print_func.h>
 #include <stddef.h>
 
 
@@ -28,13 +29,20 @@ void TREELIB_API AVLTreeCreate(
 void               TREELIB_API AVLTreeDestroy(AVLTree* root);
 binaryTreeResult_t TREELIB_API AVLTreeInsert(AVLTree* root, void* value);
 binaryTreeResult_t TREELIB_API AVLTreeRemove(AVLTree* root, void* value);
+binaryTreeResult_t TREELIB_API AVLTreeRemove2(AVLTree* root, void* value);
 binaryTreeBool_t   TREELIB_API AVLTreeSearch(AVLTree const* root, void* value);
 binaryTreeBool_t   TREELIB_API AVLTreeIsValidBST(AVLTree const* root);
 binaryTreeBool_t   TREELIB_API AVLTreeIsBalanced(AVLTree const* root);
 binaryTreeBool_t   TREELIB_API AVLTreeEmpty(AVLTree const* root);
 uint32_t           TREELIB_API AVLTreeSize(AVLTree const* root);
 int8_t             TREELIB_API AVLTreeHeight(AVLTree const* root);
-void               TREELIB_API AVLTreePrint(AVLTree const* root, void* filePointer);
+void               TREELIB_API AVLTreePrint(
+    AVLTree const* root, 
+    void*          outputTargetPtr, 
+    uint8_t        isBuffer, 
+    uint64_t       bufferSize,
+    binaryTreeNodeDataPrinterFunc optionalNodePrinter
+);
 
 
 TREELIB_EXTERNC_DECL_END

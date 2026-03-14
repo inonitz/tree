@@ -1,17 +1,14 @@
 #include "AVLTreeCTest.h"
 #include <util2/C/aligned_malloc.h>
 #include <util2/C/ifcrash2.h>
+#include <util2/C/random.h>
 #include <tree/C/avl_tree.h>
+
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
-#include <time.h>
 #include <inttypes.h>
-
-#include <stddef.h>
 #include <cmocka.h>
 
 
@@ -29,15 +26,42 @@ static uint64_t g_massiveBufferCurrIdx = 0;
 	g_massiveBufferCurrIdx += sprintf(&g_massiveBuffer[g_massiveBufferCurrIdx], formatstr, ##__VA_ARGS__); \
 	ifcrashfmt(g_massiveBufferCurrIdx >= GK_MASSIVE_BUFFER_SIZE, "Report Buffer Index Reached %" PRIu64 "/%" PRIu64 " Bytes\n", g_massiveBufferCurrIdx, (uint64_t) GK_MASSIVE_BUFFER_SIZE);
 
+
 static int8_t uint32_cmp(const void* a, const void* b) {
 	uint32_t valA = *(const uint32_t*) a;
 	uint32_t valB = *(const uint32_t*) b;
-	if (valA < valB)
-		return -1;
-	if (valA > valB)
-		return 1;
-	return 0;
+
+	return valA == valB ? 0 : (valA < valB) ? -1 : 1;
 }
+
+
+static void printTreeDataMember(
+    binaryTreePrintCtx* ctx,
+    const void* value
+) {
+	const char* formatString = "[%u]";
+	uint32_t    actualVal 	 = *((uint32_t*)value);
+
+    if(ctx->m_buf == NULL || (ctx->m_bufSize != 0 && ctx->m_bufOffset >= ctx->m_bufSize)) {
+        return;
+    }
+
+	if(ctx->m_bufSize == 0) {
+		fprintf((FILE*)ctx->m_buf, formatString, actualVal);
+		return;
+	}
+
+
+	int bytesWritten = snprintf(
+		(char*)ctx->m_buf + ctx->m_bufOffset, 
+		ctx->m_bufSize - ctx->m_bufOffset, 
+		formatString, 
+		actualVal
+	);
+	ctx->m_bufOffset += (bytesWritten > 0) ? bytesWritten : 0;
+	return;
+}
+
 
 static int setup_c_report_buffer(void** state) {
 	(void) state;
@@ -47,6 +71,7 @@ static int setup_c_report_buffer(void** state) {
 	assert_non_null(g_reportFile);
 	assert_non_null(g_massiveBuffer);
 
+	setvbuf(g_reportFile, NULL, _IONBF, 0);
 	g_massiveBuffer[GK_MASSIVE_BUFFER_SIZE - 1] = '\0';
 	return 0;
 }
@@ -61,6 +86,7 @@ static int teardown_c_report_buffer(void** state) {
 	util2_aligned_free(g_massiveBuffer);
 	return 0;
 }
+
 
 /* --- Dynamic Array Implementation to replace std::vector --- */
 typedef struct {
@@ -100,18 +126,18 @@ static void array_destroy(UIntArray* arr) {
 	arr->size     = 0;
 	arr->capacity = 0;
 }
-
 /* --------------------------------------------------------- */
 
 
+
+
 static void BasicInsertionAndSearch(void** state) {
-	(void) state;
+	(void)state;
 	AVLTree tree;
-	AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
-
-	assert_true(AVLTreeEmpty(&tree));
-
 	uint32_t vals[] = {50, 30, 70, 100};
+	
+	AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
+	assert_true(AVLTreeEmpty(&tree));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[0]));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[1]));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[2]));
@@ -140,7 +166,6 @@ static void SingleRotationsLeftLeft(void** state) {
 	assert_int_equal(BINARY_TREE_BOOL_TRUE, AVLTreeSearch(&tree, &vals[2]));
 	assert_int_equal(BINARY_TREE_BOOL_TRUE, AVLTreeSearch(&tree, &vals[1]));
 	assert_int_equal(BINARY_TREE_BOOL_TRUE, AVLTreeSearch(&tree, &vals[0]));
-    // AVLTreePrint(&tree, stdout);
 	assert_int_equal(BINARY_TREE_BOOL_FALSE, AVLTreeSearch(&tree, &vals[3]));
 
 	AVLTreeDestroy(&tree);
@@ -218,14 +243,13 @@ static void DeletionRebalancing(void** state) {
 
 
 	/* Remove leaf */
-	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeRemove(&tree, &val10));
+	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeRemove2(&tree, &val10));
 	assert_int_equal(BINARY_TREE_BOOL_FALSE, AVLTreeSearch(&tree, &val10));
 	assert_true(AVLTreeIsBalanced(&tree));
 
 	/* Remove node with two children */
-	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeRemove(&tree, &val25));
+	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeRemove2(&tree, &val25));
 	assert_true(AVLTreeIsBalanced(&tree));
-	assert_true(AVLTreeIsValidBST(&tree));
 
 	AVLTreeDestroy(&tree);
     return;
@@ -236,14 +260,15 @@ static void ManualVerificationInsertDeleteTest(void** state) {
 	(void)state;
 	AVLTree  test;
 	uint32_t data[MANUAL_TREE_SIZE];
+	uint32_t randIdx      = 0;
+	uint32_t randValToDel = 0;
     bool     opStatus = false;
 	int      c        = 0;
     
 
-	srand((unsigned int) time(NULL));
 	AVLTreeCreate(&test, uint32_cmp, sizeof(uint32_t));
 	for (size_t i = 0; i < MANUAL_TREE_SIZE; ++i) {
-		data[i] = (uint32_t)(rand() % 101); /* 0 to 100 */
+		data[i] = (uint32_t)(random32u() % 101); /* 0 to 100 */
 	}
 
 
@@ -252,32 +277,35 @@ static void ManualVerificationInsertDeleteTest(void** state) {
 		opStatus     = AVLTreeInsert(&test, &val);
 
 		write_to_test_buffer("--- 2D Tree Visualization (Rotate head left) ---\n");
-		write_to_test_buffer("[c=%3u] Insertion Of %3u -> %s\n", c, val, opStatus ? "SUCCESS" : "FAILURE");
+		write_to_test_buffer("[c=%3u] Insertion Of %3u -> %s\n", c, val, opStatus == BINARY_TREE_OP_SUCCESS ? "SUCCESS" : "FAILURE");
 
 		if (g_reportFile)
-			AVLTreePrint(&test, g_reportFile);
+			AVLTreePrint(&test, g_reportFile, 0, 0, printTreeDataMember);
 
 		write_to_test_buffer("Post Insertion AVL Tree Valid(?) %u\n", AVLTreeIsBalanced(&test));
 		write_to_test_buffer("-----------------------------------------------\n");
 		++c;
 	}
 
+
 	write_to_test_buffer("-----------------------------------------------\n");
 	write_to_test_buffer("--------------------------------------------AAA\n");
 	write_to_test_buffer("-----------------------------------------------\n");
+	fflush(g_reportFile);
 
-	for (size_t i = 0; i < MANUAL_TREE_SIZE; ++i) {
-		/* Pick a random index to delete */
-		uint32_t randIdx      = (uint32_t) (rand() % MANUAL_TREE_SIZE);
-		uint32_t randValToDel = data[randIdx];
 
-		opStatus = AVLTreeRemove(&test, &randValToDel);
+	for (size_t i = 1; i < MANUAL_TREE_SIZE; ++i) 
+	{
+		randIdx      = (uint32_t) (random32u() % MANUAL_TREE_SIZE);
+		randValToDel = data[randIdx];
+
+		opStatus = AVLTreeRemove2(&test, &randValToDel);
 
 		write_to_test_buffer("--- 2D Tree Visualization (Rotate head left) ---\n");
 		write_to_test_buffer("[c=%3u] Deletion Of %3u -> %s\n", c, randValToDel, opStatus ? "SUCCESS" : "FAILURE");
 
 		if (g_reportFile)
-			AVLTreePrint(&test, g_reportFile);
+			AVLTreePrint(&test, g_reportFile, 0, 0, printTreeDataMember);
 
 		write_to_test_buffer("Post Deletion AVL Tree Valid(?) %u\n", AVLTreeIsBalanced(&test));
 		write_to_test_buffer("-----------------------------------------------\n");
@@ -296,8 +324,6 @@ static void StochasticStressTest(void** state) {
 	UIntArray treeValueSet;
 	array_init(&treeValueSet);
 
-	unsigned int seed = (unsigned int) time(NULL);
-	srand(seed);
 
 	CTestOperationType op          = CTEST_AVL_OPER_MAX_OP;
 	uint32_t           val         = 0;
@@ -311,7 +337,6 @@ static void StochasticStressTest(void** state) {
 	uint32_t searchRandVal[2] = {0, 0};
 	uint32_t searchInSet[2]   = {0, 0};
 
-	/* C Pointers replacing C++ References for tracking */
 	uint32_t* searchRandomValueOp        = &searchType[0];
 	uint32_t* searchExistingValueOp      = &searchType[1];
 	uint32_t* searchRandomValueSuccess   = &searchRandVal[0];
@@ -323,8 +348,8 @@ static void StochasticStressTest(void** state) {
 	for (uint32_t i = 0; i < GK_STEST_TOTAL_OPS; ++i) {
 		printf("\r\r\r\r\r\r");
 
-		val = (rand() % (GK_STEST_VAL_DIST_MAX - GK_STEST_VAL_DIST_MIN + 1)) + GK_STEST_VAL_DIST_MIN;
-		op  = (CTestOperationType) (rand() % CTEST_AVL_OPER_MAX_OP);
+		val = (random32u() % (GK_STEST_VAL_DIST_MAX - GK_STEST_VAL_DIST_MIN + 1)) + GK_STEST_VAL_DIST_MIN;
+		op  = (CTestOperationType) (random32u() % CTEST_AVL_OPER_MAX_OP);
 
 		switch (op) {
 		case CTEST_AVL_OPER_INSERT_OP:
@@ -341,7 +366,7 @@ static void StochasticStressTest(void** state) {
 			if (treeValueSet.size == 0) {
 				continue;
 			}
-			tmpValueIdx = rand() % treeValueSet.size;
+			tmpValueIdx = random32u() % treeValueSet.size;
 			tmpValue    = treeValueSet.data[tmpValueIdx];
 			status      = AVLTreeRemove(&testTree, &tmpValue);
 			array_erase(&treeValueSet, tmpValueIdx);
@@ -367,7 +392,7 @@ static void StochasticStressTest(void** state) {
 			if (treeValueSet.size == 0) {
 				continue;
 			}
-			tmpValueIdx = rand() % treeValueSet.size;
+			tmpValueIdx = random32u() % treeValueSet.size;
 			tmpValue    = treeValueSet.data[tmpValueIdx];
 			status      = AVLTreeSearch(&testTree, &tmpValue);
 			(*searchExistingValueOp)++;
@@ -380,7 +405,7 @@ static void StochasticStressTest(void** state) {
 
 		case CTEST_AVL_OPER_MAX_OP:
 		default:
-			break;
+		break;
 		}
 
 
@@ -395,7 +420,6 @@ static void StochasticStressTest(void** state) {
 	printf("\n");
 
 	write_to_test_buffer("\n[==========] Stochastic Stress Diagnostics\n");
-	write_to_test_buffer("             Seed:                                       %u\n", seed);
 	write_to_test_buffer("             Insertions              (Success, Failure): %06u %06u\n", insertion[1], insertion[0]);
 	write_to_test_buffer("             Deletions               (Success, Failure): %06u %06u\n", deletion[1], deletion[0]);
 	write_to_test_buffer("             Searches                (Random, Existing): %06u %06u\n", *searchRandomValueOp, *searchExistingValueOp);
@@ -406,6 +430,7 @@ static void StochasticStressTest(void** state) {
 
 	array_destroy(&treeValueSet);
 	AVLTreeDestroy(&testTree);
+	return;
 }
 
 

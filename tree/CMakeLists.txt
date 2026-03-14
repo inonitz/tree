@@ -24,6 +24,7 @@ set(HEADERS
     include/tree/C/binary_tree.h
     include/tree/C/compare_func.h
     include/tree/C/op_result.h
+    include/tree/C/print_func.h
     include/tree/C/queue.h
     include/tree/C/stack.h
     include/tree/C/treelib_api.h
@@ -53,7 +54,9 @@ add_library(TREELIB::treelib ALIAS ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
 target_sources(${PROJECT_NAME} PRIVATE ${HEADERS})
-
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    UTIL2::util2
+)
 
 # The minimum C/C++ versions required for the library
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)

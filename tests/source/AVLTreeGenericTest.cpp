@@ -6,43 +6,47 @@
 #include <iomanip>
 #include <random>
 #include <array>
+#include <cstdarg>
 
 
-static FILE* g_reportFile           = nullptr;
-static char* g_massiveBuffer        = nullptr;
-static u64   g_massiveBufferCurrIdx = 0;
-static constexpr uint32_t gk_stest_total_ops    = 1 * 1000 * 1000;
-static constexpr uint32_t gk_stest_val_dist_min = 1;
-static constexpr uint32_t gk_stest_val_dist_max = 100000;
-static constexpr u64      gk_massiveBufferSize  = 256ull * 1024 * 1024;
+template<typename T>
+void GenericAVLTreeTest<T>::generic_write_to_test_buffer(const char* formatstr, ...) {
+    va_list args;
+    va_start(args, formatstr);
 
-#define generic_write_to_test_buffer(formatstr, ...) \
-    g_massiveBufferCurrIdx += sprintf(&g_massiveBuffer[g_massiveBufferCurrIdx], formatstr ,##__VA_ARGS__); \
-    ifcrashfmt(g_massiveBufferCurrIdx >= gk_massiveBufferSize, "Report Buffer Index Reached %" PRIu64 "/%" PRIu64 " Bytes\n", g_massiveBufferCurrIdx, gk_massiveBufferSize); \
-
-
-
-
-void setup_generic_report_buffer() {
-    g_massiveBuffer = __rcast(char*, util2_aligned_malloc(gk_massiveBufferSize, CACHE_LINE_BYTES));
-    g_reportFile    = fopen("generic_avl_test_report.txt", "w");
-    ifcrash(g_reportFile == nullptr || g_massiveBuffer == nullptr);
+    u64 bytesWritten = vsnprintf(&m_massiveBuffer[m_massiveBufferCurrIdx], gk_massiveBufferSize - m_massiveBufferCurrIdx, formatstr, args);
     
-    g_massiveBuffer[gk_massiveBufferSize - 1] = '\0';
+    va_end(args);
+
+    m_massiveBufferCurrIdx += (bytesWritten > 0) ? bytesWritten : 0;
+    ifcrashfmt(m_massiveBufferCurrIdx >= gk_massiveBufferSize, 
+        "Report Buffer Index Reached %" PRIu64 "/%" PRIu64 " Bytes\n", 
+        m_massiveBufferCurrIdx, 
+        gk_massiveBufferSize
+    );
+}
+
+
+template<typename T> void GenericAVLTreeTest<T>::SetUp() {
+    m_massiveBuffer = __rcast(char*, util2_aligned_malloc(gk_massiveBufferSize, CACHE_LINE_BYTES));
+    m_reportFile    = fopen(gk_test_report_name, "w");
+    ifcrash(m_reportFile == nullptr || m_massiveBuffer == nullptr);
+    
+    m_massiveBuffer[gk_massiveBufferSize - 1] = '\0';
     return;
 }
 
-void teardown_generic_report_buffer() {
-    generic_write_to_test_buffer("g_massiveBuffer Consumed %" PRIu64 "/%" PRIu64 " Bytes for %u Operations\n",  g_massiveBufferCurrIdx, gk_massiveBufferSize, gk_stest_total_ops);
-    (void)fprintf(g_reportFile, "%s", g_massiveBuffer);
-    fclose(g_reportFile);
-    util2_aligned_free(g_massiveBuffer);
+template<typename T> void GenericAVLTreeTest<T>::TearDown() {
+    generic_write_to_test_buffer("g_massiveBuffer Consumed %" PRIu64 "/%" PRIu64 " Bytes for %u Operations\n",  m_massiveBufferCurrIdx, gk_massiveBufferSize, gk_stest_total_ops);
+    (void)fprintf(m_reportFile, "%s", m_massiveBuffer);
+    fclose(m_reportFile);
+    util2_aligned_free(m_massiveBuffer);
     return;
 }
 
 
 template<typename T>
-static void printTreeToMassiveBuf(binaryTree<T> const* root, int space) {
+void GenericAVLTreeTest<T>::printTreeToMassiveBuf(void const* root, int space) {
     constexpr auto kCOUNT = 5;
     
     if (root == NULL) {
@@ -50,12 +54,18 @@ static void printTreeToMassiveBuf(binaryTree<T> const* root, int space) {
     }
     space += kCOUNT;
     
-
-    printTreeToMassiveBuf(root->m_right, space);
-    generic_write_to_test_buffer("\n\n\n%*s%d (%u, %d)\n", space - kCOUNT, "", root->m_data, root->m_height, root->m_bf);
-    printTreeToMassiveBuf(root->m_left, space);
+    binaryTree<T>* _root = (binaryTree<T>*)root;
+    printTreeToMassiveBuf(_root->m_right, space);
+    generic_write_to_test_buffer("\n\n\n%*s%d (%u, %d)\n", space - kCOUNT, "", 
+        _root->m_data, 
+        _root->m_height, 
+        _root->m_bf
+    );
+    printTreeToMassiveBuf(_root->m_left, space);
     return;
 }
+
+
 
 
 template<typename T>
@@ -297,7 +307,6 @@ TYPED_TEST(GenericAVLTreeTest, DoubleRotationsRightLeft) {
 }
 
 
-
 TYPED_TEST(GenericAVLTreeTest, DeletionRebalancing) {
     AVLTree<TypeParam> tree;
     auto               testData = generateDataForRebalanceTest<TypeParam>();
@@ -317,6 +326,8 @@ TYPED_TEST(GenericAVLTreeTest, DeletionRebalancing) {
     EXPECT_TRUE(tree.isValidBST());
     tree.clear();
 }
+
+
 
 
 /* RANDOMIZED STRESS TEST */
@@ -353,7 +364,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
 
 
     gen.seed(seed);
-    for (uint32_t i = 0; i < gk_stest_total_ops; ++i) {
+    for (uint32_t i = 0; i < GenericAVLTreeTest<TypeParam>::gk_stest_total_ops; ++i) {
         printf("\r\r\r\r\r\r");
         val = generateValueForStressTest<TypeParam>();
         op = __scast(OpType, op_dist(gen) );
@@ -369,7 +380,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
             treeValueSet.push_back(val);
             ++insertion[status ? 1 : 0];
 
-            generic_write_to_test_buffer("%07u: i (%u)\n", i, status);
+            this->generic_write_to_test_buffer("%07u: i (%u)\n", i, status);
             break;
 
             case OpType::DELETE_OP:
@@ -383,7 +394,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
             treeValueSet.erase(treeValueSet.begin() + tmpValueIdx);
             ++deletion[status ? 1 : 0];
 
-            generic_write_to_test_buffer("%07u: d (%u)\n", i, status);
+            this->generic_write_to_test_buffer("%07u: d (%u)\n", i, status);
 
             break;
 
@@ -399,7 +410,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
             searchRandomValueFailure += !status;
 
 
-            generic_write_to_test_buffer("%07u: rs (%u)\n", i, status);
+            this->generic_write_to_test_buffer("%07u: rs (%u)\n", i, status);
             break;
 
 
@@ -416,7 +427,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
             searchExistingValueFailure += !status;
 
 
-            generic_write_to_test_buffer("%07u: ss (%u)\n", i, status);
+            this->generic_write_to_test_buffer("%07u: ss (%u)\n", i, status);
             break;
 
             case OpType::MAX_OP:
@@ -435,14 +446,14 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
     }
     printf("\n");
 
-    generic_write_to_test_buffer("\n[==========] Stochastic Stress Diagnostics\n");
-    generic_write_to_test_buffer("             Seed:                                       %u\n", seed);
-    generic_write_to_test_buffer("             Insertions              (Success, Failure): %06u %06u\n", insertion[1], insertion[0]);
-    generic_write_to_test_buffer("             Deletions               (Success, Failure): %06u %06u\n", deletion[1] , deletion[0] );
-    generic_write_to_test_buffer("             Searches                (Random, Existing): %06u %06u\n", searchRandomValueOp,        searchExistingValueOp     );
-    generic_write_to_test_buffer("             Random   Value Searches (Success, Failure): %06u %06u\n", searchRandomValueSuccess,   searchRandomValueFailure  );
-    generic_write_to_test_buffer("             Existing Value Searches (Success, Failure): %06u %06u\n", searchExistingValueSuccess, searchExistingValueFailure);
-    generic_write_to_test_buffer("             Final Size : %" PRIu64 "\n", tree.size());
-    generic_write_to_test_buffer("             Tree Height: %u\n", tree.getRoot()->m_height);
+    this->generic_write_to_test_buffer("\n[==========] Stochastic Stress Diagnostics\n");
+    this->generic_write_to_test_buffer("             Seed:                                       %u\n", seed);
+    this->generic_write_to_test_buffer("             Insertions              (Success, Failure): %06u %06u\n", insertion[1], insertion[0]);
+    this->generic_write_to_test_buffer("             Deletions               (Success, Failure): %06u %06u\n", deletion[1] , deletion[0] );
+    this->generic_write_to_test_buffer("             Searches                (Random, Existing): %06u %06u\n", searchRandomValueOp,        searchExistingValueOp     );
+    this->generic_write_to_test_buffer("             Random   Value Searches (Success, Failure): %06u %06u\n", searchRandomValueSuccess,   searchRandomValueFailure  );
+    this->generic_write_to_test_buffer("             Existing Value Searches (Success, Failure): %06u %06u\n", searchExistingValueSuccess, searchExistingValueFailure);
+    this->generic_write_to_test_buffer("             Final Size : %" PRIu64 "\n", tree.size());
+    this->generic_write_to_test_buffer("             Tree Height: %u\n", tree.getRoot()->m_height);
     return;
 }

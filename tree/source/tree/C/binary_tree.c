@@ -1,4 +1,3 @@
-#include "tree/C/op_result.h"
 #include <tree/C/binary_tree.h>
 #include <tree/C/queue.h>
 #include <string.h>
@@ -179,7 +178,7 @@ void TREELIB_API binaryTreeNodeMove(
 
 binaryTreeBool_t binaryTreeNodeIsLeaf(binaryTreeNode const* node) {
     if(node == NULL) {
-        return 0;
+        return BINARY_TREE_BOOL_FALSE;
     }
     return (node->m_left == NULL) && (node->m_right == NULL);
 }
@@ -187,11 +186,19 @@ binaryTreeBool_t binaryTreeNodeIsLeaf(binaryTreeNode const* node) {
 
 binaryTreeBool_t binaryTreeNodeIsSingleNodeParent(binaryTreeNode const* node) {
     if(node == NULL) {
-        return 0;
+        return BINARY_TREE_BOOL_FALSE;
     }
     uint8_t leftEmpty  = (node->m_left  == NULL);
     uint8_t rightEmpty = (node->m_right == NULL);
     return ( leftEmpty && !rightEmpty ) || ( !leftEmpty && rightEmpty );
+}
+
+
+binaryTreeBool_t binaryTreeNodeIsFull(binaryTreeNode const* node) {
+    if(node == NULL) {
+        return BINARY_TREE_BOOL_FALSE;
+    }
+    return (node->m_left != NULL) && (node->m_right != NULL);
 }
 
 

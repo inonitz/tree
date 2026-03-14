@@ -5,42 +5,49 @@
 #include <tmp/binaryTreeDraft.hpp>
 #include <random>
 #include <cinttypes>
+#include <stdarg.h>
 
 
-static FILE* g_reportFile           = nullptr;
-static char* g_massiveBuffer        = nullptr;
-static u64   g_massiveBufferCurrIdx = 0;
-static constexpr uint32_t gk_stest_total_ops    = 1 * 1000 * 1000;
-static constexpr uint32_t gk_stest_val_dist_min = 1;
-static constexpr uint32_t gk_stest_val_dist_max = 100000;
-static constexpr u64      gk_massiveBufferSize  = 128ull * 1024 * 1024;
+void AVLTreeTest::write_to_test_buffer(const char* formatstr, ...) {
+    va_list args;
+    va_start(args, formatstr);
 
-#define write_to_test_buffer(formatstr, ...) \
-    g_massiveBufferCurrIdx += sprintf(&g_massiveBuffer[g_massiveBufferCurrIdx], formatstr ,##__VA_ARGS__); \
-    ifcrashfmt(g_massiveBufferCurrIdx >= gk_massiveBufferSize, "Report Buffer Index Reached %" PRIu64 "/%" PRIu64 " Bytes\n", g_massiveBufferCurrIdx, gk_massiveBufferSize); \
-
-
-
-
-void setup_report_buffer() {
-    g_massiveBuffer = __rcast(char*, util2_aligned_malloc(gk_massiveBufferSize, CACHE_LINE_BYTES));
-    g_reportFile    = fopen("avl_test_report.txt", "w");
-    ifcrash(g_reportFile == nullptr || g_massiveBuffer == nullptr);
+    u64 bytesWritten = vsnprintf(&m_massiveBuffer[m_massiveBufferCurrIdx], gk_massiveBufferSize - m_massiveBufferCurrIdx, formatstr, args);
     
-    g_massiveBuffer[gk_massiveBufferSize - 1] = '\0';
+    va_end(args);
+
+    m_massiveBufferCurrIdx += (bytesWritten > 0) ? bytesWritten : 0;
+    ifcrashfmt(m_massiveBufferCurrIdx >= gk_massiveBufferSize, 
+        "Report Buffer Index Reached %" PRIu64 "/%" PRIu64 " Bytes\n", 
+        m_massiveBufferCurrIdx, 
+        gk_massiveBufferSize
+    );
+}
+
+
+void AVLTreeTest::SetUp() {
+    m_massiveBuffer = __rcast(char*, util2_aligned_malloc(gk_massiveBufferSize, CACHE_LINE_BYTES));
+    m_reportFile    = fopen(gk_test_report_name, "w");
+    ifcrash(m_reportFile == nullptr || m_massiveBuffer == nullptr);
+    
+    m_massiveBuffer[gk_massiveBufferSize - 1] = '\0';
     return;
 }
 
-void teardown_report_buffer() {
-    write_to_test_buffer("g_massiveBuffer Consumed %" PRIu64 "/%" PRIu64 " Bytes for %u Operations\n",  g_massiveBufferCurrIdx, gk_massiveBufferSize, gk_stest_total_ops);
-    (void)fprintf(g_reportFile, "%s", g_massiveBuffer);
-    fclose(g_reportFile);
-    util2_aligned_free(g_massiveBuffer);
+void AVLTreeTest::TearDown() {
+    write_to_test_buffer("g_massiveBuffer Consumed %" PRIu64 "/%" PRIu64 " Bytes for %u Operations\n",  
+        m_massiveBufferCurrIdx,
+        gk_massiveBufferSize,
+        gk_stest_total_ops
+    );
+    (void)fprintf(m_reportFile, "%s", m_massiveBuffer);
+    fclose(m_reportFile);
+    util2_aligned_free(m_massiveBuffer);
     return;
 }
 
 
-static void printTreeToMassiveBuf(binaryTree const* root, int space) {
+void AVLTreeTest::printTreeToMassiveBuf(void const* root, int space) {
     constexpr auto kCOUNT = 5;
     
     if (root == NULL) {
@@ -48,10 +55,14 @@ static void printTreeToMassiveBuf(binaryTree const* root, int space) {
     }
     space += kCOUNT;
     
-    
-    printTreeToMassiveBuf(root->m_right, space);
-    write_to_test_buffer("\n\n\n%*s%d (%u, %d)\n", space - kCOUNT, "", root->m_data, root->m_height, root->m_bf);
-    printTreeToMassiveBuf(root->m_left, space);
+    binaryTree* _root = (binaryTree*)root;
+    printTreeToMassiveBuf(_root->m_right, space);
+    write_to_test_buffer("\n\n\n%*s%d (%u, %d)\n", space - kCOUNT, "", 
+        _root->m_data, 
+        _root->m_height, 
+        _root->m_bf
+    );
+    printTreeToMassiveBuf(_root->m_left, space);
     return;
 }
 

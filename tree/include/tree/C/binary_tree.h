@@ -52,6 +52,7 @@ void TREELIB_API binaryTreeNodeMove(
 
 binaryTreeBool_t TREELIB_API binaryTreeNodeIsLeaf(binaryTreeNode const* node);
 binaryTreeBool_t TREELIB_API binaryTreeNodeIsSingleNodeParent(binaryTreeNode const* node);
+binaryTreeBool_t TREELIB_API binaryTreeNodeIsFull(binaryTreeNode const* node);
 binaryTreeNode*  TREELIB_API binaryTreeFindMax(binaryTreeNode* node);
 binaryTreeNode*  TREELIB_API binaryTreeFindMin(binaryTreeNode* node);
 binaryTreeBool_t TREELIB_API binaryTreeIsValidBST(
