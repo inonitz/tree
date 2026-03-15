@@ -19,17 +19,17 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 A Long while ago I had to write a Virtual Address Space Manager for [primOS](https://github.com/inonitz/primOS) -  
-At the time, an AVL Tree seemed a fitting Data Structure for searching & managing an address space,  
-since **[the height is kept to a certain minimum](https://en.wikipedia.org/wiki/AVL_tree#Properties)**, which is the most(ly*) common operation in an address space  
-While I Did find a working, open-source implementation online that fit the bill and did its job perfectly (See Acknowledgements Section), I never got into the inner-workings of AVL Trees, as I never had the time for it.  
+At the time, an AVL Tree seemed like a fitting data structure for searching & managing an address space,  
+since **[its height is kept to a certain minimum boundary](https://en.wikipedia.org/wiki/AVL_tree#Properties)**, which is a very common operation   
 
-Finally,  
+I did eventually find a working, open-source implementation online that fit the bill (See Acknowledgements Section),  
+I never had the time to research the inner-workings of AVL Trees.  
 This project is a Working, Tested, and Benchmarked Iterative-Only Generic Implementation of AVL Trees in C & C++
 
 <br></br>
 
 ### Project Structure
-The project has the same structure as my other project [tree](https://github.com/inonitz/util2), except that I added benchmarks & Proper Testing
+The project has the same structure as my other project [util2](https://github.com/inonitz/util2), except that I added benchmarks & Proper Testing
 <br></br>
 
 <!-- ### Built With
@@ -74,13 +74,14 @@ cd desired_folder_path_from_cwd/tree
 
 Because This project is somewhat big and building manually is cumbersome,  
 I Wrote build scripts [build.sh](https://github.com/inonitz/tree/build.sh), [build.ps1](https://github.com/inonitz/tree/build.ps1) for Linux & Windows Respectively  
+
 **By Default, The project will try to build EVERYTHING** - If you do not want that,  
 add the following flags to your cmake invocation (Or If Building with the scripts, disable in your platforms' Script):
 
-* ```sh -DTREELIB_BUILD_TESTS=OFF (Enabled By Default)```
-* ```sh -DENABLE_SANITIZER_ADDRESS=OFF (Enabled By Default)```
-* ```sh -DENABLE_SANITIZER_UNDEFINED=OFF (Enabled By Default)```
-* ```sh -DENABLE_SANITIZER_MEMORY=OFF (Enabled By Default)```
+* ```-DTREELIB_BUILD_TESTS=OFF (Enabled By Default)```
+* ```-DENABLE_SANITIZER_ADDRESS=OFF (Enabled By Default)```
+* ```-DENABLE_SANITIZER_UNDEFINED=OFF (Enabled By Default)```
+* ```-DENABLE_SANITIZER_MEMORY=OFF (Enabled By Default)```
 
 Windows:
 
@@ -112,6 +113,10 @@ In your CMakeLists.txt:
 ```sh
 add_subdirectory(your_directory/tree)
 ```
+Also, Don't forget to link to the library:
+```sh
+target_link_libraries(your_target_executable/library PRIVATE TREELIB::treelib)
+```
 
 ### Out-Of-Source (Submodule/etc...) Build
 
@@ -125,6 +130,10 @@ In your CMakeLists.txt:
 
 ```sh
 add_subdirectory(your_dependency_folder/tree)
+```
+Also, Don't forget to link to the library:
+```sh
+target_link_libraries(your_target_executable/library PRIVATE TREELIB::treelib)
 ```
 
 <br></br>
