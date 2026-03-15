@@ -98,16 +98,23 @@ static uint8_t GenericStackGrow(
     GenericStack* toReAlloc,
     uint32_t      newObjectCount
 ) {
-    uint8_t* newBuffer = (uint8_t*)malloc( (uint64_t)newObjectCount * toReAlloc->m_objSize);
+    uint8_t* newBuffer = (uint8_t*)realloc(toReAlloc->m_buffer, (uint64_t)newObjectCount * toReAlloc->m_objSize);
 
-    if(newBuffer == NULL) {
+    if(newBuffer != NULL) {
+        toReAlloc->m_buffer      = newBuffer;
+        toReAlloc->m_maxObjCount = newObjectCount;
+        return 0;
+    }
+
+    /* Retry with malloc */
+    newBuffer = (uint8_t*)malloc((uint64_t)newObjectCount * toReAlloc->m_objSize);
+    if(newBuffer == NULL) { /* Can't do anything about malloc fail */
         return 1;
     }
 
-
+    /* Copy data from oldBuffer to newBuffer */
     memcpy(newBuffer, toReAlloc->m_buffer, (uint64_t)toReAlloc->m_objCount * toReAlloc->m_objSize);
     free(toReAlloc->m_buffer);
-
     toReAlloc->m_buffer      = newBuffer;
     toReAlloc->m_maxObjCount = newObjectCount;
     return 0;

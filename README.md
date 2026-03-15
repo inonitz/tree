@@ -8,31 +8,35 @@
 <!-- PROJECT LOGO -->
 <div align="center">
 
-<h3 align="center">Kernel Terminal Emulator</h3>
+<h3 align="center">Treelib</h3>
 
   <p align="center">
-    Kernel Terminal Emulator for a freestanding Environment
+    AVL Tree Implementation in C & C++
   </p>
 
 </div>
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-Long ago I wrote up a terminal emulator / mini-graphics library for [primOS](https://github.com/inonitz/primOS) - it was required mostly for debugging the kernel bootup, printing status, etc...  
-Due to many issues caused by hard-to-spot bugs, I decided to move this part of the kernel to its own independant project, that'll be integrated back with testing.  
-  
-This is a terminal emulator written in C, mainly for a free-standing environment  
-More relevant details will be added in the future
+A Long while ago I had to write a Virtual Address Space Manager for [primOS](https://github.com/inonitz/primOS) -  
+At the time, an AVL Tree seemed a fitting Data Structure for searching & managing an address space,  
+since **[the height is kept to a certain minimum](https://en.wikipedia.org/wiki/AVL_tree#Properties)**, which is the most(ly*) common operation in an address space  
+While I Did find a working, open-source implementation online that fit the bill and did its job perfectly (See Acknowledgements Section), I never got into the inner-workings of AVL Trees, as I never had the time for it.  
+
+Finally,  
+This project is a Working, Tested, and Benchmarked Iterative-Only Generic Implementation of AVL Trees in C & C++
+
 <br></br>
 
 ### Project Structure
-The project has the same structure as my other project [cmake_cuda_physics](https://github.com/inonitz/cmake_cuda_physics)
+The project has the same structure as my other project [tree](https://github.com/inonitz/util2), except that I added benchmarks & Proper Testing
 <br></br>
 
-### Built With
-
-[<img width="200" height="100" src="https://cmake.org/wp-content/uploads/2023/08/CMake-Logo.svg">](https://cmake.org)  
-[![SDL3][SDL3.js]][SDL3-url]
+<!-- ### Built With
+[![CMake][CMake.js]][CMake-url]
+[![CMocka][CMocka.js]][CMocka-url]
+[![GoogleTest][GoogleTest.js]][GoogleTest-url]
+[![GoogleBench][GoogleBench.js]][GoogleBench-url] -->
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -40,35 +44,111 @@ The project has the same structure as my other project [cmake_cuda_physics](http
 ### Prerequisites
 
 * CMake
-* Working compiler toolchain, preferably clang
-  * Windows: You should use [llvm](https://github.com/llvm/llvm-project/releases)
-  * Linux:
-      1. [installing-specific-llvm-version](https://askubuntu.com/questions/1508260/how-do-i-install-clang-18-on-ubuntu)
-      2. [configuring-symlinks](https://unix.stackexchange.com/questions/596226/how-to-change-clang-10-llvm-10-etc-to-clang-llvm-etc)
-      3. **You Don't have to use LLVM, gcc works too**
+* Working compiler toolchain, preferably clang  
+  Windows: You should use [llvm](https://github.com/llvm/llvm-project/releases)  
+  Linux:  
+    1. [installing-specific-llvm-version](https://askubuntu.com/questions/1508260/how-do-i-install-clang-18-on-ubuntu)
+    2. [configuring-symlinks](https://unix.stackexchange.com/questions/596226/how-to-change-clang-10-llvm-10-etc-to-clang-llvm-etc)
+    3. **You Don't have to use LLVM, gcc works too**
 
-### Installation
+### Building & (Maybe) Running
+
+#### Downloading  
+
+If you're only interested in the library itself, i.e no Testing/Benchmarking:
 ```sh
-git clone --recurse-submodules https://github.com/inonitz/tree/tree.git
-cd tree
+git clone https://github.com/inonitz/tree/tree.git desired_folder_path_from_cwd
+cd desired_folder_path_from_cwd/tree
 ```
+
+If you want to build Tests/Benchmarks Too:  
+
+```sh
+git clone --recurse-submodules https://github.com/inonitz/tree/tree.git desired_folder_path_from_cwd
+cd desired_folder_path_from_cwd/tree
+```
+
+<br></br>
+
+#### Configuring
+
+Because This project is somewhat big and building manually is cumbersome,  
+I Wrote build scripts [build.sh](https://github.com/inonitz/tree/build.sh), [build.ps1](https://github.com/inonitz/tree/build.ps1) for Linux & Windows Respectively  
+**By Default, The project will try to build EVERYTHING** - If you do not want that,  
+add the following flags to your cmake invocation (Or If Building with the scripts, disable in your platforms' Script):
+
+* ```sh -DTREELIB_BUILD_TESTS=OFF (Enabled By Default)```
+* ```sh -DENABLE_SANITIZER_ADDRESS=OFF (Enabled By Default)```
+* ```sh -DENABLE_SANITIZER_UNDEFINED=OFF (Enabled By Default)```
+* ```sh -DENABLE_SANITIZER_MEMORY=OFF (Enabled By Default)```
+
+Windows:
+
+```sh
+.\build.ps1 -Help
+.\build.ps1 -BuildType release -LinkType shared -Action configure
+.\build.ps1 -BuildType release -LinkType shared -Action build
+.\build.ps1 -BuildType release -LinkType shared -Action runtests/runbench
+```
+
+Linux:
+
+```sh
+./build.sh --help
+./build.sh release static configure
+./build.sh release static build
+./build.sh release static runtests/runbench
+```
+
 <br></br>
 
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-### Build Process
+### In Source Build
+
+In your CMakeLists.txt:
 
 ```sh
-./build.sh debug/release/release_dbginfo static/shared clean/noclean run/norun
+add_subdirectory(your_directory/tree)
+```
+
+### Out-Of-Source (Submodule/etc...) Build
+
+```sh
+git submodule add https://github.com/inonitz/tree your_dependency_folder/tree
+git submodule init
+git submodule update
+```
+
+In your CMakeLists.txt:
+
+```sh
+add_subdirectory(your_dependency_folder/tree)
 ```
 
 <br></br>
 
-<!-- ROADMAP -->
-## Roadmap
 
-* None Yet
+<!-- Benchmarks -->
+## Benchmarks
+
+Benchmarks will be added soon enough, thanks to google benchmarks' Over engineering :)
+
+<br></br>
+
+## Roadmap/TODO
+
+* Run Tests of C implementation on Linux
+* Add Resources Used
+* Add Acknowledgement to the C AVL Tree Implementor Mentioned in the opening paragraph
+* Modularize testing using add_test() with CTest
+* Modularize Benchmarks using something similar to add_test
+* Re-verify Benchmark for C Version
+* Add a No-Bullshit Implementation-Only branch -  
+  For minimal cloning as a git submodule without the code-bloat of the whole workspace.
+
+<br></br>
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -81,29 +161,39 @@ If you have a suggestion, please fork the repo and create a pull request. You ca
 Distributed under the MIT License. See `LICENSE` file for more information.
 
 <!-- ACKNOWLEDGEMENTS -->
-<!-- ## Acknowledgement -->
+## Acknowledgements
+
+* [GoogleBenchmark](https://github.com/google/benchmark)
+* [GoogleTest](https://google.github.io/googletest)
+* [CMocka](https://cmocka.org)
+* [CMake](https://cmake.org/cmake/help/latest/guide/tutorial/index.html)
 
 <!-- References -->
 ## References
 
 * [Modern CMake](https://cliutils.gitlab.io/modern-cmake/README.html)
 * [Best-README](https://github.com/othneildrew/Best-README-Template)
-
+* There are many more to add, will be added soon.
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/inonitz/cmake_cuda_physics?style=for-the-badge&color=blue
-[contributors-url]: https://github.com/inonitz/cmake_cuda_physics/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/inonitz/cmake_cuda_physics?style=for-the-badge&color=blue
-[forks-url]: https://github.com/inonitz/cmake_cuda_physics/network/members
-[stars-shield]: https://img.shields.io/github/stars/inonitz/cmake_cuda_physics?style=for-the-badge&color=blue
-[stars-url]: https://github.com/inonitz/cmake_cuda_physics/stargazers
-[issues-shield]: https://img.shields.io/github/issues/inonitz/cmake_cuda_physics.svg?style=for-the-badge
-[issues-url]: https://github.com/inonitz/cmake_cuda_physics/issues
-[license-shield]: https://img.shields.io/github/license/inonitz/cmake_cuda_physics?style=for-the-badge
-[license-url]: https://github.com/inonitz/cmake_cuda_physics/blob/main/LICENSE
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/linkedin_username
+[contributors-shield]: https://img.shields.io/github/contributors/inonitz/tree?style=for-the-badge&color=blue
+[contributors-url]: https://github.com/inonitz/tree/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/inonitz/tree?style=for-the-badge&color=blue
+[forks-url]: https://github.com/inonitz/tree/network/members
+[stars-shield]: https://img.shields.io/github/stars/inonitz/tree?style=for-the-badge&color=blue
+[stars-url]: https://github.com/inonitz/tree/stargazers
+[license-shield]: https://img.shields.io/github/license/inonitz/tree?style=for-the-badge
+[license-url]: https://github.com/inonitz/tree/blob/main/LICENSE
 
-[SDL3-url]: https://github.com/libsdl-org
-[SDL3.js]: https://libsdl.org/media/SDL_logo.png
+<!-- [CMake-url]: https://cmake.org/cmake/help/latest/guide/tutorial/index.html
+[CMake.js]: https://gitlab.kitware.com/uploads/-/system/project/avatar/541/cmakelogo-centered.png?width=128
+
+[CMocka-url]: https://cmocka.org
+[CMocka.js]: https://avatars.githubusercontent.com/u/5657447?s=128&v=0
+
+[GoogleTest-url]: https://google.github.io/googletest
+[GoogleTest.js]: https://avatars.githubusercontent.com/u/1342004?s=128&v=4
+
+[GoogleBench-url]: https://github.com/google/benchmark
+[GoogleBench.js]: https://avatars.githubusercontent.com/u/1342004?s=128&v=4 -->

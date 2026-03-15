@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <inttypes.h>
-#include <util2/C/debugbreak.h>
 
 
 #ifndef mallocTypeExplicit
@@ -36,7 +35,7 @@ void AVLTreeMaybeRebalance(
     binaryTreeNode* node, 
     binaryTreeNode** maybeNewRootAddr
 );
-void removeNodeAndLinkParentWithChild(binaryTreeNode* nodeToModify);
+binaryTreeNode* removeNodeAndLinkParentWithChild(binaryTreeNode* nodeToModify);
 binaryTreeNode* AVLTreeFindMaxAndPushParents(
     binaryTreeNode* node, 
     GenericStack*   parentQueue
@@ -154,180 +153,11 @@ binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
 
 binaryTreeResult_t AVLTreeRemove(AVLTree* root, void* value)
 {
-    uint8_t         foundNode = BINARY_TREE_BOOL_FALSE;
-    int8_t          cmpResult = 0;
-    binaryTreeNode* currNode  = root->m_root;
-    binaryTreeNode* childNodeIfSingleParent = NULL;
-    GenericStack    nodesTouched;
-    
-    uint8_t         deletedNode  = BINARY_TREE_BOOL_FALSE;
-    binaryTreeNode* maybeNewRoot = NULL;
-    binaryTreeNode* currParent   = NULL;
-    binaryTreeNode  deletedNodeCopy;
-
-
-    /* Step 1. Check for Edge-Cases that can be easily handled */
-    if(currNode == NULL) {
-        return BINARY_TREE_OP_FAILURE;
-    }
-
-
-    if(binaryTreeNodeIsLeaf(currNode)
-        && 
-        root->m_cmp(value, currNode->m_data) == 0
-    ) {
-        binaryTreeNodeDestroy(currNode);
-        free(currNode);
-        root->m_root      = NULL;
-        root->m_nodeCount = 0;
-        return BINARY_TREE_OP_SUCCESS;
-    }
-
-
-    childNodeIfSingleParent = currNode->m_left ? currNode->m_left : currNode->m_right;
-    if(binaryTreeNodeIsSingleNodeParent(currNode) 
-        && root->m_cmp(value, currNode->m_data) == 0
-    ) { 
-        binaryTreeNodeDestroy(currNode);
-        free(currNode);
-        
-        childNodeIfSingleParent->m_parent = NULL;
-        root->m_root = childNodeIfSingleParent;
-        --root->m_nodeCount;
-        return BINARY_TREE_OP_SUCCESS;
-    }
-
-
-    if(binaryTreeNodeIsSingleNodeParent(currNode) 
-        && root->m_cmp(value, childNodeIfSingleParent->m_data) == 0
-    ) { 
-        binaryTreeNodeDestroy(childNodeIfSingleParent);
-        free(childNodeIfSingleParent);
-        
-        currNode->m_left  = (childNodeIfSingleParent == currNode->m_left ) ? 
-            NULL : currNode->m_left;
-        currNode->m_right = (childNodeIfSingleParent == currNode->m_right) ? 
-            NULL : currNode->m_right;
-        --root->m_nodeCount;
-        return BINARY_TREE_OP_SUCCESS;
-    }
-
-
-    GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode*), 2 * AVLTreeHeight(root));
-    for(; !foundNode && currNode != NULL; ) {
-        GenericStackPush(&nodesTouched, (void*)&currNode);
-        
-        cmpResult = root->m_cmp(value, currNode->m_data);
-        foundNode = (cmpResult == 0);
-        currNode  = cmpResult < 0 ? currNode->m_left : currNode->m_right;
-    }
-
-    if(!foundNode) { /* we didn't find value in the tree, so we fail and exit. */
-        GenericStackDestroy(&nodesTouched);
-        return BINARY_TREE_OP_FAILURE;
-    }
-
-
-    /* GenericStackTop(&nodesTouched) will return the element to be deleted, if found == true */
-    GenericStackTop(&nodesTouched, &childNodeIfSingleParent);
-    binaryTreeNodeShallowCopy(childNodeIfSingleParent, &deletedNodeCopy);
-    for(; !GenericStackEmpty(&nodesTouched) ;) 
-    {
-        /* 
-            On Rebalance, the last element of the stack (maybeNewRoot) will be the new root.
-            Otherwise, the last element is just the old root, and nothing will change.
-        */
-        GenericStackTop(&nodesTouched, &currParent);
-        maybeNewRoot = currParent;
-
-
-        /* currentParent is the node to be deleted ; may enter twice if the node has 2 children. */
-        if(!deletedNode) {
-            binaryTreeNode* parent   = currParent->m_parent;
-            binaryTreeNode* getChild = NULL;
-
-            if(binaryTreeNodeIsLeaf(currParent)) {
-                parent->m_left  = (parent->m_left  == currParent) ? getChild : parent->m_left;
-                parent->m_right = (parent->m_right == currParent) ? getChild : parent->m_right;
-                
-                binaryTreeNodeDestroy(currParent);
-                free(currParent);
-                --root->m_nodeCount;
-                deletedNode = BINARY_TREE_BOOL_TRUE;
-            } 
-            else if(binaryTreeNodeIsSingleNodeParent(currParent)) {
-                getChild = currParent->m_left ? currParent->m_left : currParent->m_right;
-                getChild->m_parent = parent;
-                parent->m_left  = (parent->m_left  == currParent) ? getChild : parent->m_left;
-                parent->m_right = (parent->m_right == currParent) ? getChild : parent->m_right;
-                
-                binaryTreeNodeDestroy(currParent);
-                free(currParent);
-                --root->m_nodeCount;
-                deletedNode = BINARY_TREE_BOOL_TRUE;
-            }
-            else {
-                /* 
-                    Instead of doing the hard work
-                        1. Find the successorNode in the currentParent subtree
-                        2. delete(currentParent)
-                        3. dealing with all of the pointer shenanigans required for a 2 child tree
-                            (Which may also have subtrees, not to mention the parent nodes...)
-                    
-                    I'll instead do the following:
-                        1. Find the successorNode in the currentParent subtree.
-                        2. swap_values(successorNode, currentParent)
-                        3. delete(successorNode)
-                            -> deleting the successor will (by design) not get into this else-statement
-                                ever again, because it'll be either: singleChildParent OR leafNode
-                            
-                            -> This works by just pushing the parents of the successorNode to the queue,
-                                and making sure to update all of their heights/balances' accordingly.
-                */
-                /* 1. Find Successor */
-                binaryTreeNode* successorNode = NULL;
-                if(currParent->m_left->m_height < currParent->m_right->m_height) { /* search in the smaller subtree */
-                    successorNode = AVLTreeFindMaxAndPushParents(currParent->m_left, &nodesTouched);
-                } else {
-                    successorNode = AVLTreeFindMinAndPushParents(currParent->m_right, &nodesTouched);
-                }
-
-                /* 2. Swap Values */
-                currParent->m_data = successorNode->m_data;
-                successorNode->m_data = deletedNodeCopy.m_data;
-                /* 
-                    3. delete(successorNode) 
-                    This will happen in the next iteration.
-                    Because GenericStackTop(&nodesTouched) is the successorNode currently, we don't want to pop it just yet
-                    Therefore, we'll continue to the next iteration.
-                */
-                continue;
-            }
-
-
-            /* if a node was deleted we do not want to update any of its values. */
-            /* i.e We don't want to call AVLTreeMaybeRebalance */
-            GenericStackPop(&nodesTouched);
-            continue;
-        }
-
-
-        AVLTreeMaybeRebalance(currParent, &maybeNewRoot);
-        GenericStackPop(&nodesTouched);
-    }
-
-
-    GenericStackDestroy(&nodesTouched);
-    return BINARY_TREE_OP_SUCCESS;
-}
-
-
-binaryTreeResult_t AVLTreeRemove2(AVLTree* root, void* value)
-{
     uint8_t         foundNode    = BINARY_TREE_BOOL_FALSE;
+    uint8_t         fullNode     = BINARY_TREE_BOOL_FALSE;
     int8_t          cmpResult    = 0;
     binaryTreeNode* currNode     = root->m_root;
-    binaryTreeNode* toDelete     = NULL;
+    binaryTreeNode* toDelete     = NULL, *toDeleteData = NULL;
     binaryTreeNode* maybeNewRoot = NULL;
     GenericStack    nodesTouched;
 
@@ -336,7 +166,6 @@ binaryTreeResult_t AVLTreeRemove2(AVLTree* root, void* value)
     for(; !foundNode && currNode != NULL; ) 
     {
         GenericStackPush(&nodesTouched, (void*)&currNode);
-        
         cmpResult = root->m_cmp(value, currNode->m_data);
         foundNode = (cmpResult == 0);
         currNode  = cmpResult < 0 ? currNode->m_left : currNode->m_right;
@@ -349,8 +178,8 @@ binaryTreeResult_t AVLTreeRemove2(AVLTree* root, void* value)
 
     /* GenericStackTop() is the node to be deleted.  */
     GenericStackTop(&nodesTouched, &currNode);
-    uint8_t fullNode = binaryTreeNodeIsFull(currNode);
-    toDelete = currNode;
+    fullNode = binaryTreeNodeIsFull(currNode);
+    toDelete = currNode; /* Better Readability & Debugging */
     if(fullNode)
     {
         binaryTreeNode* successorNode = NULL;
@@ -365,7 +194,6 @@ binaryTreeResult_t AVLTreeRemove2(AVLTree* root, void* value)
         } else {
             successorNode = AVLTreeFindMinAndPushParents(currNode->m_right, &nodesTouched);
         }
-        
         tmp                   = currNode->m_data;
         currNode->m_data      = successorNode->m_data;
         successorNode->m_data = tmp;
@@ -373,16 +201,19 @@ binaryTreeResult_t AVLTreeRemove2(AVLTree* root, void* value)
         // currNode = successorNode;
         toDelete = successorNode;
     }
-    util2_debugbreakif(currNode->m_data == (binaryTreeNode*)0xfeeefeeefeeefeee);
-    removeNodeAndLinkParentWithChild(toDelete); /* Needs to happen whether the node is full/not */
-    GenericStackPop(&nodesTouched);             /* Pop the value we just deleted from the tree. */
+    /*
+        A. Needs to happen whether the node is full/not
+        B. 2-Node Tree Edgecase: getChild(toDelete) will be the new Root,
+            and we won't enter the for loop.
+    */
+    maybeNewRoot = removeNodeAndLinkParentWithChild(toDelete);
+    GenericStackPop(&nodesTouched); /* Pop the value we just deleted from the tree. */
 
 
     /* Check for rebalance/root changes */
     for(; !GenericStackEmpty(&nodesTouched) ;) 
     {
         GenericStackTop(&nodesTouched, &currNode);
-        util2_debugbreakif(currNode->m_data == (binaryTreeNode*)0xfeeefeeefeeefeee);
         maybeNewRoot = currNode;
 
         
@@ -452,6 +283,9 @@ binaryTreeBool_t AVLTreeIsValidBST(AVLTree const* root)
 
 binaryTreeBool_t AVLTreeIsBalanced(AVLTree const* root)
 {
+    if(AVLTreeEmpty(root)) {
+        return BINARY_TREE_BOOL_TRUE;
+    }
     if(!binaryTreeIsValidBST(root->m_root, root->m_nodeCount, root->m_cmp)) {
         return BINARY_TREE_BOOL_FALSE;
     }
@@ -640,7 +474,7 @@ int8_t AVLTreeComputeHeight(binaryTreeNode* node) {
     }
     int8_t rh  = node->m_right ? node->m_right->m_height : -1;
     int8_t lh  = node->m_left  ? node->m_left->m_height  : -1;
-    int8_t res = lh < rh ? rh : lh;
+    int8_t res = lh > rh ? lh : rh;
     return 1 + res;
 }
 
@@ -657,15 +491,15 @@ int8_t AVLTreeComputeBalance(binaryTreeNode* node) {
 /* 
     Before the Rotation:
         X (Root)
-        / \
-    Z   Y
-        / \
-        B   C
+       / \
+      Z   Y
+     / \
+    B   C
     After The Rotation:
         Y (New Root)
-        / \
-        X   C
-        / \
+       / \
+      X   C
+     / \
     Z   B
 */
 binaryTreeNode* rotateLeft(binaryTreeNode* node)
@@ -700,17 +534,17 @@ binaryTreeNode* rotateLeft(binaryTreeNode* node)
 /* 
     Before The Rotation:
         Y (Old Root)
-        / \
-        X   C
-        / \
+       / \
+      X   C
+     / \
     Z   B
 
     After the Rotation:
         X (Root)
-        / \
-    Z   Y
-        / \
-        B   C
+       / \
+      Z   Y
+     / \
+    B   C
 */
 binaryTreeNode* rotateRight(binaryTreeNode* node)
 {
@@ -786,7 +620,7 @@ void AVLTreeMaybeRebalance(
 }
 
 
-void removeNodeAndLinkParentWithChild(binaryTreeNode* nodeToModify) 
+binaryTreeNode* removeNodeAndLinkParentWithChild(binaryTreeNode* nodeToModify) 
 {
     binaryTreeNode* parentNode = nodeToModify->m_parent;
     binaryTreeNode* childNode  = nodeToModify->m_left ? 
@@ -803,8 +637,10 @@ void removeNodeAndLinkParentWithChild(binaryTreeNode* nodeToModify)
         parentNode->m_right = (parentNode->m_right == nodeToModify) ? childNode : parentNode->m_right;
     }
     binaryTreeNodeDestroy(nodeToModify);
-    free(nodeToModify);
-    return;
+    freeTypeExplicit(nodeToModify);
+    // free(nodeToModify);
+
+    return childNode;
 }
 
 
@@ -815,7 +651,7 @@ binaryTreeNode* AVLTreeFindMaxAndPushParents(
     binaryTreeNode* search = node;
     while(search != NULL) {
         node = search;
-        GenericStackPush(parentQueue, node);
+        GenericStackPush(parentQueue, (void*)&node);
         search = search->m_right;
     }
     return node;
@@ -829,7 +665,22 @@ binaryTreeNode* AVLTreeFindMinAndPushParents(
     binaryTreeNode* search = node;
     while(search != NULL) {
         node = search;
-        GenericStackPush(parentQueue, node);
+        GenericStackPush(parentQueue, (void*)&node);
+
+
+        // printf("[AVLTreeFindMinAndPushParents] Pushed Node %llp\n", node);
+        // binaryTreeNode* stackTop = NULL;
+        // GenericStackTop(parentQueue, (void*)&stackTop);
+
+        // printf("[AVLTreeFindMinAndPushParents] StackTop is now %llp\n", stackTop);
+
+        
+        // binaryTreeNode* currStackTop = ((binaryTreeNode**)parentQueue->m_buffer)[parentQueue->m_objCount - 1];
+        // printf("[AVLTreeFindMinAndPushParents] Pushing StackNode[%u]: ( %llp", parentQueue->m_objCount - 1,
+        //     currStackTop
+        // );
+        // printf(", %llp", currStackTop->m_data);
+        // printf(", %u)\n", *((uint32_t*)currStackTop->m_data));
         search = search->m_left;
     }
     return node;

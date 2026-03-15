@@ -13,7 +13,7 @@ private:
     u64   m_massiveBufferCurrIdx = 0;
 
 protected:
-    static constexpr const char* gk_test_report_name   = "avl_test_report"; 
+    static constexpr const char* gk_test_report_name   = "avl_test_report.txt"; 
     static constexpr uint32_t gk_stest_total_ops    = 1 * 1000 * 1000;
     static constexpr uint32_t gk_stest_val_dist_min = 1;
     static constexpr uint32_t gk_stest_val_dist_max = 100000;

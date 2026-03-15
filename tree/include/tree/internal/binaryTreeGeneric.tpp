@@ -235,15 +235,15 @@ binaryTree<T>* binaryTree<T>::getRight(binaryTree<T>* node) noexcept
 /* 
     Before the Rotation:
         X (Root)
-        / \
-    Z   Y
-        / \
-        B   C
+       / \
+      Z   Y
+     / \
+    B   C
     After The Rotation:
         Y (New Root)
-        / \
-        X   C
-        / \
+       / \
+      X   C
+     / \
     Z   B
 */
 template<typename T>
@@ -278,17 +278,17 @@ binaryTree<T>* binaryTree<T>::rotateLeft(binaryTree<T>* node)
 /* 
     Before The Rotation:
         Y (Old Root)
-        / \
-        X   C
-        / \
+       / \
+      X   C
+     / \
     Z   B
 
     After the Rotation:
         X (Root)
-        / \
-    Z   Y
-        / \
-        B   C
+       / \
+      Z   Y
+     / \
+    B   C
 */
 template<typename T>
 binaryTree<T>* binaryTree<T>::rotateRight(binaryTree<T>* node)

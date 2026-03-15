@@ -29,7 +29,6 @@ void TREELIB_API AVLTreeCreate(
 void               TREELIB_API AVLTreeDestroy(AVLTree* root);
 binaryTreeResult_t TREELIB_API AVLTreeInsert(AVLTree* root, void* value);
 binaryTreeResult_t TREELIB_API AVLTreeRemove(AVLTree* root, void* value);
-binaryTreeResult_t TREELIB_API AVLTreeRemove2(AVLTree* root, void* value);
 binaryTreeBool_t   TREELIB_API AVLTreeSearch(AVLTree const* root, void* value);
 binaryTreeBool_t   TREELIB_API AVLTreeIsValidBST(AVLTree const* root);
 binaryTreeBool_t   TREELIB_API AVLTreeIsBalanced(AVLTree const* root);

@@ -54,9 +54,9 @@ add_library(TREELIB::treelib ALIAS ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
 target_sources(${PROJECT_NAME} PRIVATE ${HEADERS})
-target_link_libraries(${PROJECT_NAME} PRIVATE 
-    UTIL2::util2
-)
+# target_link_libraries(${PROJECT_NAME} PRIVATE 
+#     UTIL2::util2
+# )
 
 # The minimum C/C++ versions required for the library
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)

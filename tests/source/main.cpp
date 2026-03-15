@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::GTEST_FLAG(catch_exceptions) = false;
 
-    putenv("CMOCKA_TEST_ABORT=1");
+    putenv("CMOCKA_TEST_ABORT=1"); /* Incase of SIGABRT/SIGSEGV inside c_avl_tree_tests */
     result = run_all_stack_tests();
     result = run_all_queue_tests();
     result = run_all_c_avl_tree_tests();

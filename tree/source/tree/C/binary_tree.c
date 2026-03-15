@@ -1,3 +1,4 @@
+#include <corecrt_math.h>
 #include <tree/C/binary_tree.h>
 #include <tree/C/queue.h>
 #include <string.h>
@@ -231,6 +232,11 @@ binaryTreeBool_t binaryTreeIsValidBST(
     uint32_t                 binaryTreeSizeHint,
     binaryTreeComparatorFunc cmp
 ) {
+    if(node == NULL) {
+        return BINARY_TREE_BOOL_TRUE;
+    }
+
+
     uint8_t         satisfiesCondition = BINARY_TREE_BOOL_TRUE;
     uint8_t         tmpCond            = BINARY_TREE_BOOL_TRUE;
     uint32_t        currLevelSize      = 0;

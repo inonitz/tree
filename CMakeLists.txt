@@ -127,10 +127,9 @@ if(${TREELIB_BUILD_TESTS})
     # enable_testing()
     add_subdirectory(tests)
     add_subdirectory(benchmarks)
+    add_subdirectory(dependencies/util2)
     add_subdirectory(dependencies/googletest)
     add_subdirectory(dependencies/benchmark)
     add_subdirectory(dependencies/cmocka)
 endif()
 
-
-add_subdirectory(dependencies/util2)

@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 
-typedef struct TREELIB_API __linear_stack_definition {
+typedef struct __linear_stack_definition {
     uint8_t* m_buffer;
     uint32_t m_objSize;
     uint32_t m_objCount;
