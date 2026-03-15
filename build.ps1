@@ -8,7 +8,7 @@ param(
     [string]$LinkType,
 
     [Parameter(Mandatory=$true, ParameterSetName="Build")]
-    [ValidateSet("cleanbuild", "configure", "build", "runtests", "runbench")]
+    [ValidateSet("cleanbuild", "configure", "build")]
     [string]$Action,
 
     [Parameter(Mandatory=$false, ParameterSetName="Build")]
@@ -27,7 +27,7 @@ function Show-CustomHelp {
     Write-Host "`nArguments:"
     Write-Host "  -BuildType   : debug, release, release_dbginfo, debug_perf, release_perf"
     Write-Host "  -LinkType    : shared, static"
-    Write-Host "  -Action      : cleanbuild, configure, build, runtests, runbench"
+    Write-Host "  -Action      : cleanbuild, configure, build"
 }
 
 
@@ -63,16 +63,7 @@ $CMAKE_ARGLIST = @(
     "-DCMAKE_COLOR_DIAGNOSTICS=ON",
     "-DENABLE_SANITIZER_ADDRESS=OFF",
     "-DENABLE_SANITIZER_UNDEFINED=OFF",
-    "-DENABLE_SANITIZER_MEMORY=OFF",
-    "-DTREELIB_BUILD_TESTS=ON",
-    "-DBUILD_GMOCK=OFF",
-    "-DBENCHMARK_ENABLE_INSTALL=OFF",
-    "-DBENCHMARK_INSTALL_DOCS=OFF",
-    "-DBENCHMARK_INSTALL_TOOLS=OFF",
-    "-DBENCHMARK_DOWNLOAD_DEPENDENCIES=OFF",
-    "-DBENCHMARK_ENABLE_TESTING=OFF"
-    "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF",
-    "-DBENCHMARK_USE_BUNDLED_GTEST=OFF"
+    "-DENABLE_SANITIZER_MEMORY=OFF"
 )
 
 
@@ -87,13 +78,13 @@ switch ($BuildType) {
 # $CMAKE_ARGLIST += $( If ($LinkType -eq "shared") { "-DBUILD_SHARED_LIBS=1 -DGTEST_LINKED_AS_SHARED_LIBRARY=1" } Else { "-DBUILD_SHARED_LIBS=0 -DGTEST_LINKED_AS_SHARED_LIBRARY=0" } )
 switch ($LinkType) {
     "shared" { 
-        $CMAKE_ARGLIST += "-DGTEST_CREATE_SHARED_LIBRARY=1"
-        $CMAKE_ARGLIST += "-DGTEST_LINKED_AS_SHARED_LIBRARY=1"
+        # $CMAKE_ARGLIST += "-DGTEST_CREATE_SHARED_LIBRARY=1"
+        # $CMAKE_ARGLIST += "-DGTEST_LINKED_AS_SHARED_LIBRARY=1"
         $CMAKE_ARGLIST += "-DBUILD_SHARED_LIBS=1"
     }
     "static" { 
-        $CMAKE_ARGLIST += "-DGTEST_CREATE_SHARED_LIBRARY=0"
-        $CMAKE_ARGLIST += "-DGTEST_LINKED_AS_SHARED_LIBRARY=0"
+        # $CMAKE_ARGLIST += "-DGTEST_CREATE_SHARED_LIBRARY=0"
+        # $CMAKE_ARGLIST += "-DGTEST_LINKED_AS_SHARED_LIBRARY=0"
         $CMAKE_ARGLIST += "-DBUILD_SHARED_LIBS=0"
     }
 }
@@ -142,14 +133,4 @@ if ($Action -eq "build") {
 
 
 # 4. Run
-if ($Action -eq "runtests") {
-    if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
-    Run-Command "Ninja Run" { ninja run_test_treelib }
-    if (-not $DryRun) { Pop-Location }
-}
-
-if ($Action -eq "runbench") {
-    if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
-    Run-Command "Ninja Run" { ninja run_benchmark_treelib }
-    if (-not $DryRun) { Pop-Location }
-}
+# There is no executable target currently, so there is nothing to run.

@@ -139,14 +139,9 @@ Benchmarks will be added soon enough, thanks to google benchmarks' Over engineer
 
 ## Roadmap/TODO
 
-* Run Tests of C implementation on Linux
 * Add Resources Used
 * Add Acknowledgement to the C AVL Tree Implementor Mentioned in the opening paragraph
-* Modularize testing using add_test() with CTest
-* Modularize Benchmarks using something similar to add_test
-* Re-verify Benchmark for C Version
-* Add a No-Bullshit Implementation-Only branch -  
-  For minimal cloning as a git submodule without the code-bloat of the whole workspace.
+* Add Macros/Minimal Headers to allow freestanding projects to use this library
 
 <br></br>
 

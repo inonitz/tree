@@ -1,135 +1,76 @@
-
-cmake_minimum_required (VERSION 3.15..4.0)
-project(
-    workspace
-    VERSION 0.00.1
-    DESCRIPTION "Various Types Of Trees :)"
-    LANGUAGES ASM C
-)
-set(EXECUTABLE_NAME ${PROJECT_NAME})
-
-
-# Taken from: https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
-function(UPDATE_SUBMODULES_ON_CMAKE_CONFIGURE SUBMODULE_CMAKE_TXT_PATH)
-    find_package(Git QUIET)
-    if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-        # Update submodules as needed
-        option(GIT_SUBMODULE "Check submodules during build" ON)
-        if(GIT_SUBMODULE)
-            message(STATUS "Submodule update") # see: https://stackoverflow.com/a/21195182
-            execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --remote
-                            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                            RESULT_VARIABLE GIT_SUBMOD_RESULT
-            )
-            if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-                message(FATAL_ERROR "git submodule update --init --recursive --remote failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
-            endif()
-        endif()
-    endif()
-
-    if(NOT EXISTS ${PROJECT_SOURCE_DIR}/${SUBMODULE_CMAKE_TXT_PATH})
-        message(${PROJECT_SOURCE_DIR}/${SUBMODULE_CMAKE_TXT_PATH})
-        message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
-    endif()
-endfunction() 
-
-
-update_submodules_on_cmake_configure("dependencies/benchmark/CMakeLists.txt")
-update_submodules_on_cmake_configure("dependencies/cmocka/CMakeLists.txt")
-update_submodules_on_cmake_configure("dependencies/googletest/CMakeLists.txt")
-update_submodules_on_cmake_configure("dependencies/util2/CMakeLists.txt")
-
-
-option(ENABLE_SANITIZER_ADDRESS 
-    "Enable AddressSanitizer" 
-    OFF
-)
-
-option(ENABLE_SANITIZER_UNDEFINED 
-    "Enable UndefinedBehaviorSanitizer" 
-    OFF
-)
-
-OPTION(TREELIB_BUILD_TESTS
-    "Create Build, Run Targets for Testing of tree" 
-    OFF
+cmake_minimum_required(VERSION 3.14)
+include(Sanitizers.cmake)
+project(treelib 
+    VERSION 0.0.1
+    DESCRIPTION "Implementation of various Tree Structures"
+    LANGUAGES C CXX
 )
 
 
+set(SOURCES
+    source/tmp/AVLTreeDraft.cpp
+    source/tmp/binaryTreeDraft.cpp
+
+    source/C/avl_tree.c
+    source/C/binary_tree.c
+    source/C/queue.c
+    source/C/stack.c
+)
+
+set(HEADERS
+    include/tmp/AVLTreeDraft.hpp
+    include/tmp/binaryTreeDraft.hpp
+
+    include/tree/C/avl_tree.h
+    include/tree/C/binary_tree.h
+    include/tree/C/compare_func.h
+    include/tree/C/op_result.h
+    include/tree/C/print_func.h
+    include/tree/C/queue.h
+    include/tree/C/stack.h
+    include/tree/C/treelib_api.h
+    include/tree/C/treelib_extern.h
+
+    include/tree/internal/AVLTreeGeneric.hpp
+    include/tree/internal/AVLTreeGeneric.tpp
+    include/tree/internal/AVLTreeRotateState.hpp
+    include/tree/internal/binaryTreeGeneric.hpp
+    include/tree/internal/binaryTreeGeneric.tpp
+    include/tree/internal/treelib_util.hpp
+
+    include/tree/AVLTree.hpp
+    include/tree/AVLTreeImpl.hpp
+)
 
 
-# Using <config> will generate in a multi-generator-dependant way, which is undesirable
-# I'd rather choose it myself using a script.
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>")
-
-# makes sure all dynamic/static/executable objects sit in the same place
-set(CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY})
-
-# prevent installing to system directories. 
-set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE INTERNAL "")
-
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_C_STANDARD_REQUIRED     ON)
-set(CMAKE_CXX_STANDARD_REQUIRED   ON)
-set(CMAKE_CXX_EXTENSIONS          OFF)
-if(NOT DEFINED CMAKE_C_STANDARD)
-    set(CMAKE_C_STANDARD 11)
-endif()
-if(NOT DEFINED CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 17)
-endif()
-
-# default build type unless user defined
-if(NOT DEFINED CMAKE_BUILD_TYPE)
-    # set(cmake_build_type_undefined 1)
-    set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "CMake build type" FORCE)
-endif()
-
-
-find_program(CCACHE_PROGRAM ccache)
-if(CCACHE_PROGRAM)
-    set(CMAKE_ASM_COMPILER_LAUNCHER  "${CCACHE_PROGRAM}")
-    set(CMAKE_C_COMPILER_LAUNCHER    "${CCACHE_PROGRAM}")
-    set(CMAKE_CXX_COMPILER_LAUNCHER  "${CCACHE_PROGRAM}")
-    # set(CMAKE_CUDA_COMPILER_LAUNCHER "${CCACHE_PROGRAM}") # CMake 3.9+
-endif()
-
-
-
-
-add_library(workspace_cfg_sanitizers INTERFACE)
-add_library(WORKSPACE_CONFIG::Sanitizers ALIAS workspace_cfg_sanitizers)
-if(${ENABLE_SANITIZER_ADDRESS})
-    target_compile_options(workspace_cfg_sanitizers INTERFACE -fsanitize=address -fno-omit-frame-pointer)
-    target_link_options(workspace_cfg_sanitizers INTERFACE -fsanitize=address)
-endif()
-if(${ENABLE_SANITIZER_UNDEFINED})
-    target_compile_options(workspace_cfg_sanitizers INTERFACE -fsanitize=undefined)
-    target_link_options(workspace_cfg_sanitizers INTERFACE -fsanitize=undefined)
-endif()
-if(${ENABLE_SANITIZER_MEMORY})
-    target_compile_options(workspace_cfg_sanitizers INTERFACE -fno-omit-frame-pointer -fsanitize=memory)
-    target_link_options(workspace_cfg_sanitizers INTERFACE -fno-omit-frame-pointer -fsanitize=memory)
+if(BUILD_SHARED_LIBS)
+    add_library(${PROJECT_NAME} SHARED)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC TREELIB_EXPORTS)
+else()
+    add_library(${PROJECT_NAME} STATIC)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC TREELIB_STATIC_DEFINE)
 endif()
 
 
+add_library(TREELIB::treelib ALIAS ${PROJECT_NAME})
+target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
+target_sources(${PROJECT_NAME} PRIVATE ${HEADERS})
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    WORKSPACE_CONFIG::Sanitizers
+)
 
 
-add_subdirectory(tree)
-# Thank you to:
-# https://github.com/cld-gh/cpp-with-gtest-example
-# https://stackoverflow.com/questions/50468620/what-does-enable-testing-do-in-cmake
-if(${TREELIB_BUILD_TESTS})
-    # enable_testing()
-    add_subdirectory(tests)
-    add_subdirectory(benchmarks)
-    add_subdirectory(dependencies/util2)
-    add_subdirectory(dependencies/googletest)
-    add_subdirectory(dependencies/benchmark)
-    add_subdirectory(dependencies/cmocka)
+# The minimum C/C++ versions required for the library
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+target_compile_features(${PROJECT_NAME} PUBLIC c_std_11)
+if(BUILD_SHARED_LIBS)
+    set_target_properties(${PROJECT_NAME} PROPERTIES 
+        C_VISIBILITY_PRESET       hidden
+        CXX_VISIBILITY_PRESET     hidden
+
+        VISIBILITY_INLINES_HIDDEN ON
+    )
 endif()
+
 

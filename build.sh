@@ -10,15 +10,6 @@ CMAKE_ARGLIST="\
     -DENABLE_SANITIZER_ADDRESS=ON \
     -DENABLE_SANITIZER_UNDEFINED=ON \
     -DENABLE_SANITIZER_MEMORY=ON \
-    -DTREELIB_BUILD_TESTS=ON \
-    -DBUILD_GMOCK=OFF \
-    -DBENCHMARK_ENABLE_INSTALL=OFF \
-    -DBENCHMARK_INSTALL_DOCS=OFF \
-    -DBENCHMARK_INSTALL_TOOLS=OFF \
-    -DBENCHMARK_DOWNLOAD_DEPENDENCIES=OFF \
-    -DBENCHMARK_ENABLE_TESTING=OFF \
-    -DBENCHMARK_ENABLE_GTEST_TESTS=OFF \
-    -DBENCHMARK_USE_BUNDLED_GTEST=OFF
 "
 
 
@@ -28,8 +19,6 @@ CMAKE_INTRMD_BUILD_DIR=""
 CLEAN_CURRENT_ROOT_BUILD_DIR=true
 CONFIGURE_CMAKE_FLAG=false
 BUILD_BINARIES_FLAG=false
-RUN_TESTS_FLAG=false
-RUN_BENCH_FLAG=false
 
 
 if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "--h" ]; then
@@ -38,7 +27,7 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "--h" ]; then
     echo "Arguments:"
     echo "  build_type   - Type of build: debug, release, release_dbginfo, debug_perf, release_perf"
     echo "  library_type - Type of library: shared (.dll/.so), static (.lib/.a)"
-    echo "  action       - Action to take: cleanbuild, configure, build, runtests, runbench"
+    echo "  action       - Action to take: cleanbuild, configure, build"
     echo ""
     echo "Options:"
     echo "  help         - Display this help message"
@@ -67,7 +56,7 @@ then
 elif [ $1 = "debug_perf" ];
 then
     CMAKE_ARGLIST+=" -DCMAKE_BUILD_TYPE=Debug"
-    CMAKE_ARGLIST+=" -DMEASURE_PERFORMANCE_TIMEOUT=1"
+    # CMAKE_ARGLIST+=" -DMEASURE_PERFORMANCE_TIMEOUT=1"
     CMAKE_INTRMD_BUILD_DIR+="debug_perf/"
 
 elif [ $1 = "release" ];
@@ -83,7 +72,7 @@ then
 elif [ $1 = "release_perf" ];
 then
     CMAKE_ARGLIST+=" -DCMAKE_BUILD_TYPE=Release"
-    CMAKE_ARGLIST+=" -DMEASURE_PERFORMANCE_TIMEOUT=1"
+    # CMAKE_ARGLIST+=" -DMEASURE_PERFORMANCE_TIMEOUT=1"
     CMAKE_INTRMD_BUILD_DIR+="release_perf/"
 
 else
@@ -114,16 +103,12 @@ then
     CLEAN_CURRENT_ROOT_BUILD_DIR=true
     CONFIGURE_CMAKE_FLAG=false
     BUILD_BINARIES_FLAG=false
-    RUN_TESTS_FLAG=false
-    RUN_BENCH_FLAG=false
 
 elif [ $3 = "configure" ];
 then
     CLEAN_CURRENT_ROOT_BUILD_DIR=false
     CONFIGURE_CMAKE_FLAG=true
     BUILD_BINARIES_FLAG=false
-    RUN_TESTS_FLAG=false
-    RUN_BENCH_FLAG=false
     CMAKE_ARGLIST+=" -DGIT_SUBMODULE=ON"
 
 elif [ $3 = "build" ];
@@ -131,25 +116,9 @@ then
     CLEAN_CURRENT_ROOT_BUILD_DIR=false
     CONFIGURE_CMAKE_FLAG=false
     BUILD_BINARIES_FLAG=true
-    RUN_TESTS_FLAG=false
-    RUN_BENCH_FLAG=false
 
-elif [ $3 = "runtests" ];
-then
-    CLEAN_CURRENT_ROOT_BUILD_DIR=false
-    CONFIGURE_CMAKE_FLAG=false
-    BUILD_BINARIES_FLAG=false
-    RUN_TESTS_FLAG=true
-    RUN_BENCH_FLAG=false
-elif [ $3 = "runbench" ];
-then
-    CLEAN_CURRENT_ROOT_BUILD_DIR=false
-    CONFIGURE_CMAKE_FLAG=false
-    BUILD_BINARIES_FLAG=false
-    RUN_TESTS_FLAG=false
-    RUN_BENCH_FLAG=true
 else
-    printf "Unknown Argument %s - valid values are: cleanbuild, configure, build, runtests, runbench\nExiting..." $3
+    printf "Unknown Argument %s - valid values are: cleanbuild, configure, build\nExiting..." $3
     exit
 fi
 
@@ -190,17 +159,17 @@ ninja $PROJECT_NAME
 fi
 
 
-if [ $RUN_TESTS_FLAG = "true" ];
-then
-    cd $CMAKE_FINAL_BUILD_DIR # This assumes we already built
-    ninja run_test_treelib
-fi
+# if [ $RUN_TESTS_FLAG = "true" ];
+# then
+#     cd $CMAKE_FINAL_BUILD_DIR # This assumes we already built
+#     ninja run_test_treelib
+# fi
 
-if [ $RUN_BENCH_FLAG = "true" ];
-then
-    cd $CMAKE_FINAL_BUILD_DIR # This assumes we already built
-    ninja run_benchmark_treelib
-fi
+# if [ $RUN_BENCH_FLAG = "true" ];
+# then
+#     cd $CMAKE_FINAL_BUILD_DIR # This assumes we already built
+#     ninja run_benchmark_treelib
+# fi
 
 
 # cd ../ # leave static/shared
