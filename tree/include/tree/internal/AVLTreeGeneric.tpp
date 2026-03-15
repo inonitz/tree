@@ -31,7 +31,7 @@ bool AVLTree<T>::insert(T const& val) {
 template<typename T>
 bool AVLTree<T>::remove(T const& val) {
     binaryTree<T>* newRootMaybe = nullptr;
-    bool        status       = binaryTree<T>::AVLdeleteIterative(m_root, val, &newRootMaybe);
+    bool           status       = binaryTree<T>::AVLdeleteIterative(m_root, val, &newRootMaybe);
 
 
     if(status == true) {

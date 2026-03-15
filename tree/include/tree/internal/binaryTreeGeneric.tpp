@@ -136,13 +136,7 @@ void binaryTree<T>::destroy(binaryTree<T>* node) noexcept
         currentLevelSize = currentHeightNodes.size();
 
         while(currentLevelSize) {
-            auto* currNode = currentHeightNodes.front();
-            
-            // while(currNode == nullptr && currentLevelSize) {
-            //     currentHeightNodes.pop();
-            //     currNode = currentHeightNodes.front();
-            //     --currentLevelSize;
-            // }
+            binaryTree<T>* currNode = currentHeightNodes.front();
 
             if(currNode->m_left) {
                 currentHeightNodes.push(currNode->m_left);
@@ -150,9 +144,13 @@ void binaryTree<T>::destroy(binaryTree<T>* node) noexcept
             if(currNode->m_right) {
                 currentHeightNodes.push(currNode->m_right);
             }
+
+            currNode->m_data.release();
+            delete currNode; /* calling delete on nullptr is safe */
+
+
             currentHeightNodes.pop();
             --currentLevelSize;
-            delete currNode; /* calling delete on nullptr is safe */
         }
     }
     return;
@@ -579,12 +577,9 @@ bool binaryTree<T>::AVLdeleteIterative(binaryTree<T>* node, T const& value, bina
 
     bool        alreadyDeleted  = false;
     binaryTree<T>* maybeNewRoot    = nullptr;
-    binaryTree<T>  deletedNodeCopy;
 
 
     /* nodesTouched.back() will return the element to be deleted, if found == true. */
-    // binaryTree<T>::shallowCopy(&deletedNodeCopy, nodesTouched.back());
-    binaryTree<T>::shallowCopy(nodesTouched.back(), &deletedNodeCopy);
     for(; !nodesTouched.empty() ;) {
         /* 
             If there was a rebalance, maybeNewRoot would change to the correct root
@@ -652,8 +647,7 @@ bool binaryTree<T>::AVLdeleteIterative(binaryTree<T>* node, T const& value, bina
                 assert(successorNode != nullptr && "There should always be a successor node available\n");
 
                 /* 2. Swap Values */
-                currentParent->m_data = successorNode->m_data;
-                successorNode->m_data = deletedNodeCopy.m_data;
+                std::swap(currentParent->m_data, successorNode->m_data);
 
                 /* 
                     3. delete(successorNode) 

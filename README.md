@@ -154,8 +154,7 @@ Benchmarks will be added soon enough, thanks to google benchmarks' Over engineer
 * Modularize testing using add_test() with CTest
 * Modularize Benchmarks using something similar to add_test
 * Re-verify Benchmark for C Version
-* Add a No-Bullshit Implementation-Only branch -  
-  For minimal cloning as a git submodule without the code-bloat of the whole workspace.
+* [the binaryTreeDeepCopy function](https://github.com/inonitz/tree/blob/master/tree/source/tree/C/binary_tree.c) @Line-102  needs to be finished. Function does nothing right now. Also add test for it
 
 <br></br>
 

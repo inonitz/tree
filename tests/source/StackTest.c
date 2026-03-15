@@ -42,7 +42,6 @@ static inline void verify_stack_creation(
     );
     assert_int_equal(GenericStackEmpty(toCreate), 1);
     assert_int_equal(GenericStackSize(toCreate),  0);
-
     return;
 }
 

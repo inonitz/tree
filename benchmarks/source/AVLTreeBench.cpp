@@ -36,6 +36,8 @@ void constructRandomTree(
         out.insert(val);
         outSet.push_back(val);
     }
+
+    return;
 }
 
 
@@ -105,7 +107,8 @@ static void BM_TreeInsertion(benchmark::State& state) {
         }
     }
 
-    state.SetComplexityN(state.range(0)); 
+    state.SetComplexityN(state.range(0));
+    testTree.clear();
     return;
 }
 
@@ -142,6 +145,7 @@ static void BM_TreeDeletion(benchmark::State& state) {
         }
     }
 
+    testTree.clear();
     state.SetComplexityN(state.range(0)); 
     return;
 }
@@ -185,6 +189,7 @@ static void BM_TreeInsertion2(benchmark::State& state) {
         }
     }
 
+    testTree.clear();
     state.SetComplexityN(state.range(0)); 
     return;
 }
@@ -218,6 +223,7 @@ static void BM_TreeDeletion_Fixed(benchmark::State& state) {
     }
     
     state.SetComplexityN(N);
+    testTree.clear();
     return;
 }
 
@@ -254,6 +260,7 @@ static void BM_TreeInsertion_SeemsSimple(benchmark::State& state) {
     state.counters["Success"] = benchmark::Counter(insertStatus[1]);
     state.counters["Rate"]    = benchmark::Counter(insertStatus[1] + insertStatus[0], benchmark::Counter::kIsRate);
     state.SetComplexityN(N);
+    tree.clear();
     return;
 }
 
@@ -296,6 +303,7 @@ static void BM_TreeDeletion_UniqueTail(benchmark::State& state) {
     --deletionStatus[0];
     state.counters["DeletionRate"] = benchmark::Counter(deletionStatus[0] + deletionStatus[1], benchmark::Counter::kIsRate);
     state.SetComplexityN(N);
+    tree.clear();
     return;
 }
 
@@ -341,6 +349,7 @@ static void BM_TreeDeletion_Rev1(benchmark::State& state) {
     --deletionStatus[0];
     state.counters["DeletionRate"] = benchmark::Counter(deletionStatus[0] + deletionStatus[1], benchmark::Counter::kIsRate);
     state.SetComplexityN(N);
+    tree.clear();
     return;
 }
 
@@ -372,6 +381,7 @@ static void BM_TreeSearch(benchmark::State& state) {
         benchmark::DoNotOptimize(testTree.search(valToSearch));
     }
 
+    testTree.clear();
     state.SetComplexityN(N);
     return;
 }

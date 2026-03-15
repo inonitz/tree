@@ -338,7 +338,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
     std::vector<TypeParam> treeValueSet;
     std::random_device rd;
     std::mt19937 gen;
-    
+
     std::uniform_int_distribution<> op_dist(0, (u8)OpType::MAX_OP);
     
 
@@ -365,7 +365,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
 
     gen.seed(seed);
     for (uint32_t i = 0; i < GenericAVLTreeTest<TypeParam>::gk_stest_total_ops; ++i) {
-        printf("\r\r\r\r\r\r");
+        // printf("\r\r\r\r\r\r");
         val = generateValueForStressTest<TypeParam>();
         op = __scast(OpType, op_dist(gen) );
 
@@ -442,7 +442,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
             ASSERT_TRUE(tree.isValidBST()) << "BST violation at op " << i << " (Seed: " << seed << ")";
             ASSERT_EQ(tree.size(), treeValueSet.size()) << "Size mismatch at op " << i;
         }
-        printf("%06u", i);
+        // printf("%06u", i);
     }
     printf("\n");
 
@@ -454,6 +454,10 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
     this->generic_write_to_test_buffer("             Random   Value Searches (Success, Failure): %06u %06u\n", searchRandomValueSuccess,   searchRandomValueFailure  );
     this->generic_write_to_test_buffer("             Existing Value Searches (Success, Failure): %06u %06u\n", searchExistingValueSuccess, searchExistingValueFailure);
     this->generic_write_to_test_buffer("             Final Size : %" PRIu64 "\n", tree.size());
-    this->generic_write_to_test_buffer("             Tree Height: %u\n", tree.getRoot()->m_height);
+    if(tree.getRoot()) {
+        this->generic_write_to_test_buffer("             Tree Height: %u\n", tree.getRoot()->m_height);
+    }
+
+    tree.clear();
     return;
 }

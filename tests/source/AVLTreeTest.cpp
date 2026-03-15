@@ -227,6 +227,7 @@ TEST_F(AVLTreeTest, ManualVerificationInsertDeleteTest) {
     }
 
 
+    test.clear();
     return;
 }
 
@@ -265,7 +266,7 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
 
     gen.seed(seed);
     for (uint32_t i = 0; i < gk_stest_total_ops; ++i) {
-        printf("\r\r\r\r\r\r");
+        // printf("\r\r\r\r\r\r");
         val = val_dist(gen);
         op = __scast(OpType, op_dist(gen) );
 
@@ -342,7 +343,7 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
             ASSERT_TRUE(testTree.isValidBST()) << "BST violation at op " << i << " (Seed: " << seed << ")";
             ASSERT_EQ(testTree.size(), treeValueSet.size()) << "Size mismatch at op " << i;
         }
-        printf("%06u", i);
+        // printf("%06u", i);
     }
     printf("\n");
 
@@ -355,5 +356,7 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
     write_to_test_buffer("             Existing Value Searches (Success, Failure): %06u %06u\n", searchExistingValueSuccess, searchExistingValueFailure);
     write_to_test_buffer("             Final Size : %" PRIu64 "\n", testTree.size());
     write_to_test_buffer("             Tree Height: %u\n", testTree.getRoot()->m_height);
+    
+    testTree.clear();
     return;
 }

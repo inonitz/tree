@@ -309,7 +309,7 @@ static void StochasticStressTest(void** state) {
 
 
 	for (uint32_t i = 0; i < GK_STEST_TOTAL_OPS; ++i) {
-		printf("\r\r\r\r\r\r");
+		// printf("\r\r\r\r\r\r");
 		val = randomValueBuf[i];
 		op  = (CTestOperationType) (random32u() % CTEST_AVL_OPER_MAX_OP);
 
@@ -372,7 +372,7 @@ static void StochasticStressTest(void** state) {
 			assert_true(AVLTreeIsBalanced(&testTree));
 			assert_int_equal(AVLTreeSize(&testTree), treeValueSet.size);
 		}
-		printf("%06u", i);
+		// printf("%06u", i);
 	}
 
 	printf("\n");

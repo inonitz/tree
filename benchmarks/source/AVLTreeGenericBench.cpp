@@ -94,6 +94,8 @@ template <typename T> static void BM_TreeInsertion_SeemsSimple(benchmark::State&
         benchmark::DoNotOptimize(status = tree.insert(valToInsert));
     }
 
+
+    tree.clear();
     --insertStatus[0];
     state.counters["Failure"] = benchmark::Counter(static_cast<double>(insertStatus[0]));
     state.counters["Success"] = benchmark::Counter(static_cast<double>(insertStatus[1]));
@@ -132,6 +134,7 @@ template <typename T> static void BM_TreeDeletion_UniqueTail(benchmark::State& s
     }
 
 
+    tree.clear();
     state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
     state.SetComplexityN(N);
     return;
@@ -163,6 +166,7 @@ template <typename T> static void BM_TreeDeletion_Rev1(benchmark::State& state) 
     }
 
 
+    tree.clear();
     state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
     state.SetComplexityN(N);
     return;
@@ -171,13 +175,13 @@ template <typename T> static void BM_TreeDeletion_Rev1(benchmark::State& state) 
 
 template <typename T> static void BM_TreeSearch(benchmark::State& state) {
     const uint32_t N = state.range(0);
-    AVLTree<T> testTree;
+    AVLTree<T> tree;
     std::vector<T> testVec;
     
 
     generateUniqueVectorSet(testVec, N);
     for(auto& elem : testVec) {
-        testTree.insert(elem);
+        tree.insert(elem);
     }
 
 
@@ -188,10 +192,11 @@ template <typename T> static void BM_TreeSearch(benchmark::State& state) {
         ++i;
         state.ResumeTiming();
         
-        benchmark::DoNotOptimize(testTree.search(valToSearch));
+        benchmark::DoNotOptimize(tree.search(valToSearch));
     }
 
 
+    tree.clear();
     state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
     state.SetComplexityN(N);
     return;

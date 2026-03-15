@@ -50,6 +50,11 @@ option(ENABLE_SANITIZER_UNDEFINED
     OFF
 )
 
+option(ENABLE_SANITIZER_MEMORY
+    "Enable MemorySanitizer" 
+    OFF
+)
+
 OPTION(TREELIB_BUILD_TESTS
     "Create Build, Run Targets for Testing of tree" 
     OFF
@@ -104,13 +109,33 @@ endif()
 add_library(workspace_cfg_sanitizers INTERFACE)
 add_library(WORKSPACE_CONFIG::Sanitizers ALIAS workspace_cfg_sanitizers)
 if(${ENABLE_SANITIZER_ADDRESS})
+    # Interface-Target Specific
     target_compile_options(workspace_cfg_sanitizers INTERFACE -fsanitize=address -fno-omit-frame-pointer)
     target_link_options(workspace_cfg_sanitizers INTERFACE -fsanitize=address)
+
+    # Whole project Specific
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
+    if(MSVC)
+        add_compile_options(/Zi /fsanitize=address)
+        add_link_options(/INCREMENTAL:NO)
+    endif()
 endif()
+
 if(${ENABLE_SANITIZER_UNDEFINED})
+    # Interface-Target Specific
     target_compile_options(workspace_cfg_sanitizers INTERFACE -fsanitize=undefined)
     target_link_options(workspace_cfg_sanitizers INTERFACE -fsanitize=undefined)
+
+    # Whole project Specific
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
+    if(MSVC)
+        add_compile_options(/Zi /fsanitize=address)
+        add_link_options(/INCREMENTAL:NO)
+    endif()
 endif()
+
 if(${ENABLE_SANITIZER_MEMORY})
     target_compile_options(workspace_cfg_sanitizers INTERFACE -fno-omit-frame-pointer -fsanitize=memory)
     target_link_options(workspace_cfg_sanitizers INTERFACE -fno-omit-frame-pointer -fsanitize=memory)
