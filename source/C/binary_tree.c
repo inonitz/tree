@@ -1,6 +1,6 @@
-#include <corecrt_math.h>
 #include <tree/C/binary_tree.h>
 #include <tree/C/queue.h>
+#include <tree/C/stack.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -18,6 +18,7 @@ binaryTreeResult_t binaryTreeNodeCreate(
 
     rootNode->m_data = malloc(valueSizeBytes);
     if(rootNode->m_data == NULL) {
+        free(rootNode->m_data);
         return BINARY_TREE_OP_FAILURE;
     }
 
@@ -62,44 +63,58 @@ void binaryTreeNodeDestroy(binaryTreeNode* node)
 }
 
 
-void binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTreeSizeHint) 
-{
-    uint32_t        currLevelSize = 0;
-    binaryTreeNode* currNode      = rootNode;
-    GenericQueue    currLevelNodes;
+void binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTreeSizeHint) {
+    if(rootNode == NULL) {
+        return;
+    }
+    /* 
+        Iterative Post-Order Traversal Using a single Stack
+        We traverse the children first, de-allocate them, and then we come back to the parents.
+        Thank you very much to:
+        https://medium.com/@amanjain843/iterative-postorder-traversal-of-a-binary-tree-using-a-single-stack-time-o-n-space-o-h-bb037b9ef28
+    */
+    GenericStack nodeStack;
+    binaryTreeNode* currNode = rootNode;
+    binaryTreeNode* tmpNode  = NULL;
 
 
     binaryTreeSizeHint = (binaryTreeSizeHint == 0) ? gkGenericQueueArbitraryInitialSize : binaryTreeSizeHint;
-    GenericQueueCreate(&currLevelNodes, sizeof(binaryTreeNode*), binaryTreeSizeHint);
-    
-    while(!GenericQueueEmpty(&currLevelNodes) ) 
+    GenericStackCreate(&nodeStack, sizeof(binaryTreeNode*), binaryTreeSizeHint);
+
+    while(currNode != NULL || !GenericStackEmpty(&nodeStack)) 
     {
-        currLevelSize = GenericQueueSize(&currLevelNodes);
+        while(currNode != NULL) {
+            GenericStackPush(&nodeStack, (void*)&currNode);
+            currNode = currNode->m_left;
+        }
 
-        while(currLevelSize) {
-            GenericQueueFront(&currLevelNodes, (void*)&currNode);
-            if(currNode->m_left != NULL) {
-                GenericQueuePush(&currLevelNodes, (void*)&currNode->m_left);
-            }
-            if(currNode->m_right != NULL) {
-                GenericQueuePush(&currLevelNodes, (void*)&currNode->m_right);
-            }
+        GenericStackTop(&nodeStack, (void*)&currNode);
+        if(currNode == NULL) {
+            GenericStackPop(&nodeStack);
 
-            binaryTreeNodeDestroy(currNode);
-            free((void*)currNode);
+            /* These 4-LOC could be replaced by anything - this is just a tree traversal */
+            GenericStackTop(&nodeStack, (void*)&tmpNode);
+            binaryTreeNodeDestroy(tmpNode);
+            free(tmpNode);
+            tmpNode = NULL;
 
-            GenericQueuePop(&currLevelNodes);
-            --currLevelSize;
+            GenericStackPop(&nodeStack);
+        }
+        else {
+            tmpNode = NULL;
+            GenericStackPush(&nodeStack, (void*)&tmpNode);
+            currNode = currNode->m_right;
         }
     }
 
 
-    GenericQueueDestroy(&currLevelNodes);
+    GenericStackDestroy(&nodeStack);
     return;
 }
 
 
-binaryTreeResult_t TREELIB_API binaryTreeDeepCopy(
+/* TODO: FINISH */
+binaryTreeResult_t binaryTreeDeepCopy(
     binaryTreeNode*  treeIn,
     uint32_t         binaryTreeSize,
     binaryTreeNode** treeOut
@@ -156,7 +171,7 @@ binaryTreeResult_t TREELIB_API binaryTreeDeepCopy(
 }
 
 
-void TREELIB_API binaryTreeNodeShallowCopy(
+void binaryTreeNodeShallowCopy(
     binaryTreeNode* nodeIn,
     binaryTreeNode* nodeOut
 ) {
@@ -165,7 +180,7 @@ void TREELIB_API binaryTreeNodeShallowCopy(
 }
 
 
-void TREELIB_API binaryTreeNodeMove(
+void binaryTreeNodeMove(
     binaryTreeNode* toMoveFrom,
     binaryTreeNode* toMoveTo
 ) {

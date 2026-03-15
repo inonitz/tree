@@ -8,8 +8,8 @@ project(treelib
 
 
 set(SOURCES
-    source/tmp/AVLTreeDraft.cpp
-    source/tmp/binaryTreeDraft.cpp
+    # source/tmp/AVLTreeDraft.cpp
+    # source/tmp/binaryTreeDraft.cpp
 
     source/C/avl_tree.c
     source/C/binary_tree.c
@@ -18,8 +18,8 @@ set(SOURCES
 )
 
 set(HEADERS
-    include/tmp/AVLTreeDraft.hpp
-    include/tmp/binaryTreeDraft.hpp
+    # include/tmp/AVLTreeDraft.hpp
+    # include/tmp/binaryTreeDraft.hpp
 
     include/tree/C/avl_tree.h
     include/tree/C/binary_tree.h

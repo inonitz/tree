@@ -116,8 +116,13 @@ binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
 
 
     allocNode = mallocTypeExplicit(binaryTreeNode);
-    binaryTreeNodeCreate(allocNode, value, root->m_dataSizeBytes);
+    inserted = binaryTreeNodeCreate(allocNode, value, root->m_dataSizeBytes);
+    if(inserted == BINARY_TREE_OP_FAILURE) {
+        free(allocNode);
+        return BINARY_TREE_OP_FAILURE;
+    }
 
+    inserted = BINARY_TREE_BOOL_FALSE;
     for(; !GenericStackEmpty(&nodesTouched) ;) {
         
         GenericStackTop(&nodesTouched, (void*)&currParent);
@@ -146,6 +151,7 @@ binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
     }
 
 
+    GenericStackDestroy(&nodesTouched);
     root->m_root = maybeNewRoot;
     return BINARY_TREE_OP_SUCCESS;
 }
@@ -277,6 +283,7 @@ binaryTreeBool_t AVLTreeIsValidBST(AVLTree const* root)
     }
 
 
+    GenericStackDestroy(&nodeStack);
     return satisfiesCondition ? BINARY_TREE_BOOL_TRUE : BINARY_TREE_BOOL_FALSE;
 }
 
