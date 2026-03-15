@@ -192,12 +192,12 @@ static void DeletionRebalancing(void** state) {
 
 
 	/* Remove leaf */
-	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeRemove2(&tree, &val10));
+	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeRemove(&tree, &val10));
 	assert_int_equal(BINARY_TREE_BOOL_FALSE, AVLTreeSearch(&tree, &val10));
 	assert_true(AVLTreeIsBalanced(&tree));
 
 	/* Remove node with two children */
-	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeRemove2(&tree, &val25));
+	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeRemove(&tree, &val25));
 	assert_true(AVLTreeIsBalanced(&tree));
 
 	AVLTreeDestroy(&tree);
@@ -248,7 +248,7 @@ static void ManualVerificationInsertDeleteTest(void** state) {
 		randIdx      = (uint32_t) (random32u() % MANUAL_TREE_SIZE);
 		randValToDel = data[randIdx];
 
-		opStatus = AVLTreeRemove2(&test, &randValToDel);
+		opStatus = AVLTreeRemove(&test, &randValToDel);
 
 		log_test(0, "--- 2D Tree Visualization (Rotate head left) ---\n");
 		log_test(0, "[c=%3u] Deletion Of %3u -> %s\n", c, randValToDel, opStatus ? "SUCCESS" : "FAILURE");
@@ -330,7 +330,7 @@ static void StochasticStressTest(void** state) {
 			if (treeValueSet.size != 0) {
 				tmpValueIdx = random32u() % treeValueSet.size;
 				tmpValue    = treeValueSet.data[tmpValueIdx];
-				status      = AVLTreeRemove2(&testTree, &tmpValue);
+				status      = AVLTreeRemove(&testTree, &tmpValue);
 				array_erase(&treeValueSet, tmpValueIdx);
 				++deletion[status == BINARY_TREE_OP_SUCCESS ? 1 : 0];
 				log_test(0, "%07u: d %06u (%u)\n", i, tmpValue, status);
