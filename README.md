@@ -57,14 +57,14 @@ The project has the same structure as my other project [util2](https://github.co
 
 If you're only interested in the library itself, i.e no Testing/Benchmarking:
 ```sh
-git clone https://github.com/inonitz/tree/tree.git desired_folder_path_from_cwd
+git clone https://github.com/inonitz/tree/tree.git --branch onlylibrary desired_folder_path_from_cwd
 cd desired_folder_path_from_cwd/tree
 ```
 
 If you want to build Tests/Benchmarks Too:  
 
 ```sh
-git clone --recurse-submodules https://github.com/inonitz/tree/tree.git desired_folder_path_from_cwd
+git clone --recurse-submodules https://github.com/inonitz/tree/tree.git --branch master desired_folder_path_from_cwd
 cd desired_folder_path_from_cwd/tree
 ```
 
@@ -148,13 +148,10 @@ Benchmarks will be added soon enough, thanks to google benchmarks' Over engineer
 
 ## Roadmap/TODO
 
-* Run Tests of C implementation on Linux
-* Add Resources Used
-* Add Acknowledgement to the C AVL Tree Implementor Mentioned in the opening paragraph
 * Modularize testing using add_test() with CTest
 * Modularize Benchmarks using something similar to add_test
 * Re-verify Benchmark for C Version
-* [the binaryTreeDeepCopy function](https://github.com/inonitz/tree/blob/master/tree/source/tree/C/binary_tree.c) @Line-102  needs to be finished. Function does nothing right now. Also add test for it
+* [the binaryTreeDeepCopy function](https://github.com/inonitz/tree/blob/master/tree/source/tree/C/binary_tree.c) @Line-102 needs to be finished. Function does nothing right now. Also add test for it
 
 <br></br>
 
@@ -175,12 +172,17 @@ Distributed under the MIT License. See `LICENSE` file for more information.
 * [GoogleTest](https://google.github.io/googletest)
 * [CMocka](https://cmocka.org)
 * [CMake](https://cmake.org/cmake/help/latest/guide/tutorial/index.html)
+* [Intrusive AVL Tree by Eric Biggers](https://github.com/ebiggers/avl_tree)
 
 <!-- References -->
 ## References
 
 * [Modern CMake](https://cliutils.gitlab.io/modern-cmake/README.html)
 * [Best-README](https://github.com/othneildrew/Best-README-Template)
+* [AVL Tree Playlist by William Fiset](https://youtube.com/playlist?list=PLDV1Zeh2NRsD06x59fxczdWLhDDszUHKt&si=N7kZmzkVAIHU4jjc)
+* [Jenny's Data Structures & Algorithm Course](https://youtube.com/playlist?list=PLdo5W4Nhv31bbKJzrsKfMpo_grxuLl8LU&si=UGaS5lt1SiFYFAN-)  
+  - In particular, her videos regarding AVL Tree Rotations
+* [W3Schools AVL Trees](https://www.w3schools.com/dsa/dsa_data_avltrees.php)
 * There are many more to add, will be added soon.
 
 <!-- MARKDOWN LINKS & IMAGES -->
