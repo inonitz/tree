@@ -14,6 +14,10 @@ set(SOURCES
     source/tree/C/binary_tree.c
     source/tree/C/queue.c
     source/tree/C/stack.c
+    source/tree/C/vector.c
+
+
+    source/tree/internal/bitmap.cpp
 )
 
 set(HEADERS
@@ -29,12 +33,22 @@ set(HEADERS
     include/tree/C/stack.h
     include/tree/C/treelib_api.h
     include/tree/C/treelib_extern.h
+    include/tree/C/vector.h
 
     include/tree/internal/AVLTreeGeneric.hpp
     include/tree/internal/AVLTreeGeneric.tpp
     include/tree/internal/AVLTreeRotateState.hpp
+
     include/tree/internal/binaryTreeGeneric.hpp
     include/tree/internal/binaryTreeGeneric.tpp
+    
+
+    include/tree/internal/FlatAVLTreeGeneric.hpp
+    include/tree/internal/FlatAVLTreeGeneric.tpp
+
+    include/tree/internal/FlatBinaryTree.hpp
+    include/tree/internal/FlatBinaryTree.tpp
+
     include/tree/internal/treelib_util.hpp
 
     include/tree/AVLTree.hpp
@@ -54,9 +68,9 @@ add_library(TREELIB::treelib ALIAS ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
 target_sources(${PROJECT_NAME} PRIVATE ${HEADERS})
-# target_link_libraries(${PROJECT_NAME} PRIVATE 
-#     UTIL2::util2
-# )
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    UTIL2::util2
+)
 
 # The minimum C/C++ versions required for the library
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)

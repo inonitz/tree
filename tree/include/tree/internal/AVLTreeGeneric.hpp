@@ -22,12 +22,16 @@ public:
     bool remove(T const& val);
     bool search(T const& val);
 
+    bool insertRecursive(T const& val);
+    bool removeRecursive(T const& val);
+    bool searchRecursive(T const& val);
+
 
     [[nodiscard]] bool isValidBST() const noexcept;
     [[nodiscard]] bool isBalanced() const noexcept;
     [[nodiscard]] bool     empty()  const;
     [[nodiscard]] uint64_t size()   const;
-    [[nodiscard]] uint64_t height() const;
+    [[nodiscard]] int8_t   height() const;
     [[nodiscard]] auto getRoot()       const -> binaryTree<T> const*;
     [[nodiscard]] auto getLeftChild()  const -> binaryTree<T> const*;
     [[nodiscard]] auto getRightChild() const -> binaryTree<T> const*;

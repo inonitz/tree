@@ -3,13 +3,6 @@
 #include <string.h>
 
 
-/* 
-    Thanks to:
-    https://stackoverflow.com/questions/2796639/implementation-of-ceil-function-in-c
-*/
-#define CEIL_POSITIVE(X) ( (X) - ((uint32_t)X) > 0 ? (X + 1) : X  )
-    
-
 static uint8_t GenericStackGrow(
     GenericStack* toReAlloc,
     uint32_t      newObjectCount
@@ -81,7 +74,10 @@ void GenericStackPop(GenericStack* toModify) {
     if(GenericStackEmpty(toModify)) {
         return;
     }
+
+
     --toModify->m_objCount;
+    return;
 }
 
 
@@ -99,23 +95,7 @@ static uint8_t GenericStackGrow(
     uint32_t      newObjectCount
 ) {
     uint8_t* newBuffer = (uint8_t*)realloc(toReAlloc->m_buffer, (uint64_t)newObjectCount * toReAlloc->m_objSize);
-
-    if(newBuffer != NULL) {
-        toReAlloc->m_buffer      = newBuffer;
-        toReAlloc->m_maxObjCount = newObjectCount;
-        return 0;
-    }
-
-    /* Retry with malloc */
-    newBuffer = (uint8_t*)malloc((uint64_t)newObjectCount * toReAlloc->m_objSize);
-    if(newBuffer == NULL) { /* Can't do anything about malloc fail */
-        return 1;
-    }
-
-    /* Copy data from oldBuffer to newBuffer */
-    memcpy(newBuffer, toReAlloc->m_buffer, (uint64_t)toReAlloc->m_objCount * toReAlloc->m_objSize);
-    free(toReAlloc->m_buffer);
-    toReAlloc->m_buffer      = newBuffer;
-    toReAlloc->m_maxObjCount = newObjectCount;
-    return 0;
+    toReAlloc->m_buffer      = (newBuffer != NULL) ? newBuffer      : toReAlloc->m_buffer;
+    toReAlloc->m_maxObjCount = (newBuffer != NULL) ? newObjectCount : toReAlloc->m_maxObjCount;
+    return newBuffer == NULL;
 }

@@ -339,6 +339,52 @@ binaryTree<T>* binaryTree<T>::findMin(binaryTree<T>* node)
     return node;
 }
 
+template<typename T>
+void binaryTree<T>::maybeRebalance(
+    binaryTree<T>*  node, 
+    binaryTree<T>** maybeNewRoot
+) {
+    node->m_height = binaryTree<T>::computeHeight(node);
+    node->m_bf     = binaryTree<T>::computeBalanceFactor(node);
+    auto bfright = computeBalanceFactor(node->m_right);
+    auto bfleft  = computeBalanceFactor(node->m_left);
+
+    AVLTreeRotationState state = AVLTreeRotationState::NONE;
+    state = (node->m_bf == -2 && bfleft  <= 0) ? AVLTreeRotationState::LEFTLEFT   : state;
+    state = (node->m_bf == -2 && bfleft  >  0) ? AVLTreeRotationState::LEFTRIGHT  : state;
+    state = (node->m_bf == +2 && bfright >= 0) ? AVLTreeRotationState::RIGHTRIGHT : state;
+    state = (node->m_bf == +2 && bfright <  0) ? AVLTreeRotationState::RIGHTLEFT  : state;
+    
+    
+    switch(state) {
+        case AVLTreeRotationState::LEFTLEFT:
+        *maybeNewRoot = rotateRight(node);
+        break;
+
+        case AVLTreeRotationState::LEFTRIGHT:
+        node->m_left = rotateLeft(node->m_left);
+        *maybeNewRoot = rotateRight(node);
+        break;
+
+        case AVLTreeRotationState::RIGHTRIGHT:
+        *maybeNewRoot = rotateLeft(node);
+        break;
+
+        case AVLTreeRotationState::RIGHTLEFT:
+        node->m_right = rotateRight(node->m_right);
+        *maybeNewRoot = rotateLeft(node);
+        break;
+
+        case AVLTreeRotationState::NONE:
+        default:
+        break;
+    }
+
+
+    return;
+}
+
+
 
 
 
@@ -390,14 +436,14 @@ void binaryTree<T>::writeBufferRecursive(
 
 
 template<typename T>
-void binaryTree<T>::searchval(T const& value, binaryTree<T>*& foundptr) {
-    bool        foundcond = false;
+binaryTree<T>* binaryTree<T>::searchIterative(binaryTree<T>* node, T const& value) {
+    bool           found = false;
     binaryTree<T>* searchptr = nullptr;
 
-    for(searchptr = foundptr; (searchptr != nullptr) && !foundcond; ) {
-        foundcond = (searchptr->m_data.get() == value);
-        // printf("searchval cmp: %u ==? %u\n", searchptr->m_data, value);
-        if(!foundcond) {
+    for(searchptr = node; (searchptr != nullptr) && !found; ) {
+        found = (searchptr->m_data.get() == value);
+        // printf("searchIterative cmp: %u ==? %u\n", searchptr->m_data, value);
+        if(!found) {
             searchptr = (value < searchptr->m_data.get()) ? 
                 searchptr->m_left : 
                 searchptr->m_right;
@@ -405,16 +451,34 @@ void binaryTree<T>::searchval(T const& value, binaryTree<T>*& foundptr) {
     }
 
     // printf("found %u -> %s\n", value, foundcond ? "SUCCESS" : "FAILURE");
-    foundptr = searchptr;
-    return;
+    return found ? searchptr : nullptr;
+}
+
+
+template<typename T>
+bool binaryTree<T>::searchRecursive(binaryTree* node, T const& value)
+{
+    if(node == nullptr) {
+        return false;
+    }
+
+    auto const& nodeData = node->m_data.get();
+    if(value < nodeData) {
+        return binaryTree<T>::searchRecursive(node->m_left, value);
+    } 
+    else if(value > nodeData) {
+        return binaryTree<T>::searchRecursive(node->m_right, value);
+    }
+
+
+    return true;
 }
 
 
 
 
-/* The rest of the definitions are in AVLTree2.cpp */
 template<typename T>
-bool binaryTree<T>::AVLinsertIterative(binaryTree<T>* node, T const& value, binaryTree<T>** out)
+bool binaryTree<T>::AVLInsertIterative(binaryTree<T>* node, T const& value, binaryTree<T>** out)
 {
     int8_t      bfright, bfleft;
     bool        inserted = false;
@@ -430,7 +494,7 @@ bool binaryTree<T>::AVLinsertIterative(binaryTree<T>* node, T const& value, bina
         return true;
     }
 
-    // binaryTree<T>::searchval(val, search);
+    // binaryTree<T>::searchIterative(val, search);
     // if(search != nullptr) {
     //     *out = node;
     //     return false;
@@ -457,6 +521,12 @@ bool binaryTree<T>::AVLinsertIterative(binaryTree<T>* node, T const& value, bina
     
     
     allocNode = new binaryTree<T>{value};
+    if(allocNode == nullptr) {
+        *out = nullptr;
+        return false;
+    }
+
+
     bfright = bfleft = 0;
     for(; !nodesTouched.empty() ;) {
         auto& currentParent = nodesTouched.back();
@@ -467,6 +537,7 @@ bool binaryTree<T>::AVLinsertIterative(binaryTree<T>* node, T const& value, bina
         maybeNewRoot = currentParent;
 
         /* I don't want to unroll the first-iteration contents of the loop just for insertion. */
+        /* In Hindsight, this was a mistake. See the C Implementation for Insertion/Deletion */
         if(!inserted) {
             // currentParent->m_nodes[ (val < currentParent->m_data) ? 1 : 0] = allocNode;
             if(value < currentParent->m_data.get()) {
@@ -479,40 +550,7 @@ bool binaryTree<T>::AVLinsertIterative(binaryTree<T>* node, T const& value, bina
         }
 
 
-        currentParent->m_height = binaryTree<T>::computeHeight(currentParent);
-        currentParent->m_bf     = binaryTree<T>::computeBalanceFactor(currentParent);
-        auto bfright = computeBalanceFactor(currentParent->m_right);
-        auto bfleft  = computeBalanceFactor(currentParent->m_left);
-        AVLTreeRotationState state = AVLTreeRotationState::NONE;
-        state = (currentParent->m_bf == -2 && bfleft  <= 0) ? AVLTreeRotationState::LEFTLEFT   : state;
-        state = (currentParent->m_bf == -2 && bfleft  >  0) ? AVLTreeRotationState::LEFTRIGHT  : state;
-        state = (currentParent->m_bf == +2 && bfright >= 0) ? AVLTreeRotationState::RIGHTRIGHT : state;
-        state = (currentParent->m_bf == +2 && bfright <  0) ? AVLTreeRotationState::RIGHTLEFT  : state;
-        switch(state) {
-            case AVLTreeRotationState::LEFTLEFT:
-            maybeNewRoot = rotateRight(currentParent);
-            break;
-
-            case AVLTreeRotationState::LEFTRIGHT:
-            currentParent->m_left = rotateLeft(currentParent->m_left);
-            maybeNewRoot = rotateRight(currentParent);
-            break;
-
-            case AVLTreeRotationState::RIGHTRIGHT:
-            maybeNewRoot = rotateLeft(currentParent);
-            break;
-
-            case AVLTreeRotationState::RIGHTLEFT:
-            currentParent->m_right = rotateRight(currentParent->m_right);
-            maybeNewRoot = rotateLeft(currentParent);
-            break;
-
-            case AVLTreeRotationState::NONE:
-            default:
-            break;
-        }
-
-
+        binaryTree<T>::maybeRebalance(currentParent, &maybeNewRoot);
         nodesTouched.pop_back();
     }
 
@@ -523,7 +561,7 @@ bool binaryTree<T>::AVLinsertIterative(binaryTree<T>* node, T const& value, bina
 
 
 template<typename T>
-bool binaryTree<T>::AVLdeleteIterative(binaryTree<T>* node, T const& value, binaryTree<T>** out)
+bool binaryTree<T>::AVLDeleteIterative(binaryTree<T>* node, T const& value, binaryTree<T>** out)
 {
     bool           found     = false;
     binaryTree<T>* search    = nullptr;
@@ -575,8 +613,8 @@ bool binaryTree<T>::AVLdeleteIterative(binaryTree<T>* node, T const& value, bina
     }
 
 
-    bool        alreadyDeleted  = false;
-    binaryTree<T>* maybeNewRoot    = nullptr;
+    bool           alreadyDeleted = false;
+    binaryTree<T>* maybeNewRoot   = nullptr;
 
 
     /* nodesTouched.back() will return the element to be deleted, if found == true. */
@@ -664,46 +702,102 @@ bool binaryTree<T>::AVLdeleteIterative(binaryTree<T>* node, T const& value, bina
         }
         
 
-        currentParent->m_height = computeHeight(currentParent);
-        currentParent->m_bf     = computeBalanceFactor(currentParent);
-        auto bfright = computeBalanceFactor(currentParent->m_right);
-        auto bfleft  = computeBalanceFactor(currentParent->m_left);
-        AVLTreeRotationState state = AVLTreeRotationState::NONE;
-        state = (currentParent->m_bf == -2 && bfleft  <= 0) ? AVLTreeRotationState::LEFTLEFT   : state;
-        state = (currentParent->m_bf == -2 && bfleft  >  0) ? AVLTreeRotationState::LEFTRIGHT  : state;
-        state = (currentParent->m_bf == +2 && bfright >= 0) ? AVLTreeRotationState::RIGHTRIGHT : state;
-        state = (currentParent->m_bf == +2 && bfright <  0) ? AVLTreeRotationState::RIGHTLEFT  : state;
-        switch(state) {
-            case AVLTreeRotationState::LEFTLEFT:
-            maybeNewRoot = rotateRight(currentParent);
-            break;
-
-            case AVLTreeRotationState::LEFTRIGHT:
-            currentParent->m_left = rotateLeft(currentParent->m_left);
-            maybeNewRoot = rotateRight(currentParent);
-            break;
-
-            case AVLTreeRotationState::RIGHTRIGHT:
-            maybeNewRoot = rotateLeft(currentParent);
-            break;
-
-            case AVLTreeRotationState::RIGHTLEFT:
-            currentParent->m_right = rotateRight(currentParent->m_right);
-            maybeNewRoot = rotateLeft(currentParent);
-            break;
-
-            case AVLTreeRotationState::NONE:
-            default:
-            break;
-        }
-
-
+        binaryTree<T>::maybeRebalance(currentParent, &maybeNewRoot);
         nodesTouched.pop_back();
     }
 
 
     *out = maybeNewRoot;
     return true;
+}
+
+
+template<typename T>
+binaryTree<T>* binaryTree<T>::AVLInsertRecursive(binaryTree* node, binaryTree* parent, T const& value)
+{
+    /* First Iteration node=root; If we rebalanced on First iteration maybeNewRoot will contain the updated root */
+    binaryTree* allocNode    = nullptr;
+    binaryTree* maybeNewRoot = node;
+
+    if(node == nullptr) { /* We finished searching */
+        /* 
+            We should notify if this allocation fails, 
+            In which case we don't increment the nodeCount in the original AVL tree 
+        */
+        allocNode = new binaryTree<T>{ nullptr, nullptr, parent, value };
+        return allocNode;
+    }
+
+    if(value < node->m_data.get()) { 
+        /* Search Left-Subtree */
+        node->m_left = binaryTree<T>::AVLInsertRecursive(node->m_left, node, value);
+    } 
+    else {
+        /* Search Right-Subtree */
+        node->m_right = binaryTree<T>::AVLInsertRecursive(node->m_right, node, value);
+    }
+
+
+    binaryTree<T>::maybeRebalance(node, &maybeNewRoot);
+    return maybeNewRoot;
+}
+
+
+
+template<typename T>
+binaryTree<T>* binaryTree<T>::AVLDeleteRecursive(binaryTree* node, binaryTree* parent, T const& value)
+{
+    binaryTree* allocNode    = nullptr;
+    binaryTree* maybeNewRoot = node;
+
+
+    if(value < node->m_data.get()) { 
+        /* Search Left-Subtree */
+        node->m_left = binaryTree<T>::AVLDeleteRecursive(node->m_left, node, value);
+    
+    } else if(value > node->m_data.get()) {
+        /* Search Right-Subtree */
+        node->m_right = binaryTree<T>::AVLDeleteRecursive(node->m_right, node, value);
+
+    } else {
+        /* Node was found */
+        if(binaryTree<T>::isLeaf(node)) {
+            node->m_data.release();
+            delete node;
+            return nullptr;
+        }
+        else if(binaryTree<T>::isSingleChildParent(node)) {
+            auto* childNode = node->m_left ? node->m_left : node->m_right;
+            childNode->m_parent = parent;
+
+            node->m_data.release();
+            delete node;
+            return childNode;
+        }
+        else {
+            /* Node is full. need to find a successor */
+            bool leftSubTreeSmaller = node->m_left->m_height < node->m_right->m_height;
+            binaryTree<T>* successor = nullptr;
+
+            if(leftSubTreeSmaller) {
+                successor = findMax(node->m_left);
+                T const& successorData = successor->m_data.get();
+
+                node->m_data.set(successorData);
+                node->m_left = binaryTree<T>::AVLDeleteRecursive(node->m_left, node, successorData);
+            } else {
+                successor = findMin(node->m_right);
+                T const& successorData = successor->m_data.get();
+
+                node->m_data.set(successorData);
+                node->m_right = binaryTree<T>::AVLDeleteRecursive(node->m_right, node, successorData);
+            }
+        }
+    }
+
+
+    binaryTree<T>::maybeRebalance(node, &maybeNewRoot);
+    return maybeNewRoot;
 }
 
 

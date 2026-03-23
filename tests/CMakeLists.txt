@@ -9,20 +9,24 @@ project(test_treelib
 set(SOURCES
     source/AVLTreeCTest.c
     source/AVLTreeTest.cpp
+    source/AVLTreeGenericRecursiveTest.cpp
     source/AVLTreeGenericTest.cpp
     source/AVLTreeTest.cpp
     source/main.cpp
-    source/StackTest.c
     source/QueueTest.c
+    source/StackTest.c
+    source/VectorTest.c
 )
 
 
 set(HEADERS
     include/AVLTreeCTest.h
     include/AVLTreeTest.hpp
+    include/AVLTreeGenericRecursiveTest.hpp
     include/AVLTreeGenericTest.hpp
-    include/StackTest.h
     include/QueueTest.h
+    include/StackTest.h
+    include/VectorTest.h
 )
 
 
@@ -44,6 +48,10 @@ target_link_libraries(
 )
 # gtest_discover_tests(${PROJECT_NAME})
 # add_test(NAME ${PROJECT_NAME} command ${PROJECT_NAME})
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    _CRT_SECURE_NO_WARNINGS=1
+)
 
 # target_compile_definitions(${PROJECT_NAME} PRIVATE 
 #     $<$<BOOL:${BUILD_SHARED_LIBS}>:GTEST_LINKED_AS_SHARED_LIBRARY=1>

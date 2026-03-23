@@ -6,20 +6,18 @@
 #include <random>
 
 
-
-
 struct DummyRecord {
     DummyRecord() : m_id{0} {}
-    DummyRecord(uint64_t id) : m_id{id} {}
+    DummyRecord(u64 id) : m_id{id} {}
 
     bool operator<(const DummyRecord& other) const { return m_id < other.m_id; }
     bool operator>(const DummyRecord& other) const { return m_id > other.m_id; }
     bool operator==(const DummyRecord& other) const { return m_id == other.m_id; }
 
 private:
-    uint64_t m_id;
-    double   m_values[8]{0};
-    char     m_metadata[32]{0};
+    u64 m_id;
+    double m_values[8]{0};
+    char   m_metadata[32]{0};
 };
 
 
@@ -28,22 +26,27 @@ struct DataGen {
     static T make(size_t i) {
         if constexpr (std::is_arithmetic_v<T>) {
             return static_cast<T>(i);
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            return std::to_string(i);
         } else {
-            return T{static_cast<uint64_t>(i)};
+            // Assume DummyRecord has a constructor taking a numeric value
+            return T{static_cast<u64>(i)};
         }
     }
 
+
     static T random_val() {
         static std::mt19937 gen(std::random_device{}());
+
 
         if constexpr (std::is_floating_point_v<T>) {
             std::uniform_real_distribution<T> dist(0, 1e9);
             return dist(gen);
         } else if constexpr (std::is_integral_v<T>) {
-            std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
+            std::uniform_int_distribution<u64> dist(0, UINT64_MAX);
             return static_cast<T>(dist(gen));
         } else {
-            std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
+            std::uniform_int_distribution<u64> dist(0, UINT64_MAX);
             return make(dist(gen));
         }
     }
@@ -51,8 +54,8 @@ struct DataGen {
 
 
 template <typename T>
-void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
-    static std::mt19937 generator(42);
+static void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
+    static std::mt19937 generator(std::random_device{}());
     vec.clear();
     vec.reserve(size);
     for (size_t i = 0; i < size; ++i) {
@@ -66,7 +69,7 @@ void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
 // C++ Wrapper for the C AVL Tree Implementation
 // ----------------------------------------------------------------------------
 template <typename T>
-int GenericComparator(const void* a, const void* b) {
+static int GenericComparator(const void* a, const void* b) {
     const T& arg1 = *__scast(const T*, a);
     const T& arg2 = *__scast(const T*, b);
     if (arg1 < arg2) return -1;
@@ -116,12 +119,13 @@ public:
 // ----------------------------------------------------------------------------
 // Benchmarks
 // ----------------------------------------------------------------------------
-template <typename T> static void BM_AVLTreeCInsertion(benchmark::State& state) {
-    const uint64_t N = state.range(0);
+template <typename T> 
+static void BM_CAVLTreeInsertion(benchmark::State& state) {
+    const u64 N = state.range(0);
     C_AVLTreeWrapper<T> tree;
     T valToInsert;
     bool status = false;
-    uint64_t insertStatus[2] = { 0, 0 };
+    u64 insertStatus[2] = { 0, 0 };
 
     for (auto _ : state) {
         state.PauseTiming();
@@ -135,13 +139,15 @@ template <typename T> static void BM_AVLTreeCInsertion(benchmark::State& state) 
     --insertStatus[0];
     state.counters["Failure"] = benchmark::Counter(static_cast<double>(insertStatus[0]));
     state.counters["Success"] = benchmark::Counter(static_cast<double>(insertStatus[1]));
-    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
+    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
     state.SetComplexityN(N);
+    return;
 }
 
 
-template <typename T> static void BM_AVLTreeCDeletion(benchmark::State& state) {
-    const uint64_t N = state.range(0);
+template <typename T> 
+static void BM_CAVLTreeDeletion(benchmark::State& state) {
+    const u64 N = state.range(0);
     bool status = false;
     std::mt19937 gen(0);
     std::vector<T> original_data, working_set;
@@ -167,42 +173,44 @@ template <typename T> static void BM_AVLTreeCDeletion(benchmark::State& state) {
         benchmark::DoNotOptimize(status = tree.remove(valToDelete));
     }
 
-    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
+    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
     state.SetComplexityN(N);
+    return;
 }
 
 
-template <typename T> static void BM_AVLTreeCSearch(benchmark::State& state) {
+template <typename T> 
+static void BM_CAVLTreeSearch(benchmark::State& state) {
     const uint32_t N = state.range(0);
-    C_AVLTreeWrapper<T> testTree;
-    std::vector<T> testVec;
+    C_AVLTreeWrapper<T> tree;
+    std::vector<T> dataSet;
     
-    generateUniqueVectorSet(testVec, N);
-    for(auto& elem : testVec) {
-        testTree.insert(elem);
+    generateUniqueVectorSet(dataSet, N);
+    for(auto& elem : dataSet) {
+        tree.insert(elem);
     }
 
     uint32_t i = 0;
     for (auto _ : state) {
         state.PauseTiming();
-        const T& valToSearch = testVec[i % N];
+        const T& valToSearch = dataSet[i % N];
         ++i;
         state.ResumeTiming();
         
-        benchmark::DoNotOptimize(testTree.search(valToSearch));
+        benchmark::DoNotOptimize(tree.search(valToSearch));
     }
 
-    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
+    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
     state.SetComplexityN(N);
+    return;
 }
 
 
-#define REGISTER_TYPED_AVL_TREE_BENCH(T) \
-    BENCHMARK_TEMPLATE(BM_AVLTreeCInsertion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_AVLTreeCDeletion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_AVLTreeCSearch, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->Complexity();
+#define REGISTER_TYPED_AVL_TREE_C_BENCH(T) \
+    BENCHMARK_TEMPLATE(BM_CAVLTreeInsertion, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_CAVLTreeDeletion, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_CAVLTreeSearch, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
 
-REGISTER_TYPED_AVL_TREE_BENCH(u64)
-REGISTER_TYPED_AVL_TREE_BENCH(u32)
-REGISTER_TYPED_AVL_TREE_BENCH(double)
-REGISTER_TYPED_AVL_TREE_BENCH(DummyRecord)
+REGISTER_TYPED_AVL_TREE_C_BENCH(u64)
+REGISTER_TYPED_AVL_TREE_C_BENCH(std::string)
+REGISTER_TYPED_AVL_TREE_C_BENCH(DummyRecord)

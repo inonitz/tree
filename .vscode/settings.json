@@ -122,8 +122,9 @@
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",
     "lldb.dereferencePointers": false,
-    "lldb.consoleMode": "commands"
+    "lldb.consoleMode": "commands",
     
+    "python.analysis.typeCheckingMode": "standard"
     // If you'll ever need to use fallback flags, use the config below
     //
     // "clangd.fallbackFlags": [

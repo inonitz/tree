@@ -12,7 +12,7 @@
 struct DummyRecord 
 {
     DummyRecord() : m_id{DEFAULT64} {}
-    DummyRecord(uint64_t id) : m_id{id} {}
+    DummyRecord(u64 id) : m_id{id} {}
 
     bool operator<(const DummyRecord& other) const {
         return m_id < other.m_id;
@@ -25,11 +25,10 @@ struct DummyRecord
     }
 
 private:
-    uint64_t m_id;
+    u64 m_id;
     double   m_values[8]{0};
     char     m_metadata[32]{0};
 };
-
 
 
 template <typename T>
@@ -41,7 +40,7 @@ struct DataGen {
             return std::to_string(i);
         } else {
             // Assume DummyRecord has a constructor taking a numeric value
-            return T{static_cast<uint64_t>(i)};
+            return T{static_cast<u64>(i)};
         }
     }
 
@@ -54,10 +53,10 @@ struct DataGen {
             std::uniform_real_distribution<T> dist(0, 1e9);
             return dist(gen);
         } else if constexpr (std::is_integral_v<T>) {
-            std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
+            std::uniform_int_distribution<u64> dist(0, UINT64_MAX);
             return static_cast<T>(dist(gen));
         } else {
-            std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
+            std::uniform_int_distribution<u64> dist(0, UINT64_MAX);
             return make(dist(gen));
         }
     }
@@ -65,8 +64,8 @@ struct DataGen {
 
 
 template <typename T>
-void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
-    static std::mt19937 generator(42);
+static void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
+    static std::mt19937 generator(std::random_device{}());
     vec.clear();
     vec.reserve(size);
     for (size_t i = 0; i < size; ++i) {
@@ -77,12 +76,15 @@ void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
 }
 
 
-template <typename T> static void BM_TreeInsertion_SeemsSimple(benchmark::State& state) {
-    const uint64_t N = state.range(0);
+
+
+template <typename T> 
+static void BM_GenericAVLTreeInsertion(benchmark::State& state) {
+    const u64 N = state.range(0);
     AVLTree<T> tree;
     T valToInsert;
     bool status = false;
-    uint64_t insertStatus[2] = { 0, 0 };
+    u64 insertStatus[2] = { 0, 0 };
 
 
     for (auto _ : state) {
@@ -105,8 +107,9 @@ template <typename T> static void BM_TreeInsertion_SeemsSimple(benchmark::State&
 }
 
 
-template <typename T> static void BM_TreeDeletion_UniqueTail(benchmark::State& state) {
-    const uint64_t N = state.range(0);
+template <typename T>
+static void BM_GenericAVLTreeDeletion(benchmark::State& state) {
+    const u64 N = state.range(0);
     bool status = false;
     std::mt19937 gen(0);
     std::vector<T> original_data, working_set;
@@ -141,39 +144,8 @@ template <typename T> static void BM_TreeDeletion_UniqueTail(benchmark::State& s
 }
 
 
-template <typename T> static void BM_TreeDeletion_Rev1(benchmark::State& state) {
-    const uint64_t N = state.range(0);
-    std::mt19937 gen(0);
-    std::vector<T> original_data, working_set;
-    AVLTree<T> tree;
-
-    generateUniqueVectorSet(original_data, N);
-    working_set.reserve(N);
-
-    for (auto _ : state) {
-        state.PauseTiming();
-        if (working_set.empty()) {
-            tree.clear();
-            working_set = original_data;
-            std::shuffle(working_set.begin(), working_set.end(), gen);
-            for(auto& val : working_set) tree.insert(val);
-        }
-        T valToDelete = working_set.back();
-        working_set.pop_back();
-        state.ResumeTiming();
-
-        benchmark::DoNotOptimize(tree.remove(valToDelete));
-    }
-
-
-    tree.clear();
-    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
-    state.SetComplexityN(N);
-    return;
-}
-
-
-template <typename T> static void BM_TreeSearch(benchmark::State& state) {
+template <typename T> 
+static void BM_GenericAVLTreeSearch(benchmark::State& state) {
     const uint32_t N = state.range(0);
     AVLTree<T> tree;
     std::vector<T> testVec;
@@ -204,20 +176,17 @@ template <typename T> static void BM_TreeSearch(benchmark::State& state) {
 
 
 #define REGISTER_TYPED_AVL_TREE_BENCH(T) \
-    BENCHMARK_TEMPLATE(BM_TreeInsertion_SeemsSimple, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_TreeDeletion_UniqueTail, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_TreeSearch, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->Complexity();
+    BENCHMARK_TEMPLATE(BM_GenericAVLTreeInsertion, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_GenericAVLTreeDeletion, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_GenericAVLTreeSearch, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
 
 
 REGISTER_TYPED_AVL_TREE_BENCH(u64)
-REGISTER_TYPED_AVL_TREE_BENCH(u32)
 // REGISTER_TYPED_AVL_TREE_BENCH(u16)
 // REGISTER_TYPED_AVL_TREE_BENCH(u8)
 // REGISTER_TYPED_AVL_TREE_BENCH(int64_t)
 // REGISTER_TYPED_AVL_TREE_BENCH(int32_t)
 // REGISTER_TYPED_AVL_TREE_BENCH(int16_t)
 // REGISTER_TYPED_AVL_TREE_BENCH(int8_t)
-// REGISTER_TYPED_AVL_TREE_BENCH(float)
-REGISTER_TYPED_AVL_TREE_BENCH(double)
 REGISTER_TYPED_AVL_TREE_BENCH(std::string)
 REGISTER_TYPED_AVL_TREE_BENCH(DummyRecord)

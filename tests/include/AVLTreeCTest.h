@@ -2,7 +2,9 @@
 #define __AVL_TREE_C_VERSION_TESTING_DEFINITION_HEADER__
 #include <tree/C/treelib_extern.h>
 #ifdef _MSC_VER
-#   define _CRT_SECURE_NO_WARNINGS
+#   ifndef _CRT_SECURE_NO_WARNINGS
+#       define _CRT_SECURE_NO_WARNINGS
+#   endif /* _CRT_SECURE_NO_WARNINGS */
 #endif
 
 

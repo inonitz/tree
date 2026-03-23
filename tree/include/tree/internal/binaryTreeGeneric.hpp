@@ -72,7 +72,7 @@ public:
         binaryTree* toMoveTo
     );
 
-    /* Utillity Functions */
+    /* Utility Functions */
     static bool        isLeaf(binaryTree* node)              noexcept;
     static bool        isSingleChildParent(binaryTree* node) noexcept;
     static binaryTree* getLeft(binaryTree* node)             noexcept;
@@ -84,6 +84,10 @@ public:
     static binaryTree* rotateRight(binaryTree* node);
     static binaryTree* findMax(binaryTree* node);
     static binaryTree* findMin(binaryTree* node);
+    static void maybeRebalance(
+        binaryTree*  node, 
+        binaryTree** maybeNewRoot
+    );
 
     /* Sanity Checks for testing */
     static bool isValidBSTRecursive(binaryTree* node);
@@ -96,10 +100,12 @@ public:
     );
 
     /* Regular BST Search With AVLTree Insertion & Deletion */
-    static void searchval(T const& value, binaryTree*& foundptr);
-    static bool AVLinsertIterative(binaryTree* node, T const& value, binaryTree** out);
-    static bool AVLdeleteIterative(binaryTree* node, T const& value, binaryTree** out);
-
+    static binaryTree<T>* searchIterative(binaryTree* node, T const& value);
+    static bool searchRecursive(binaryTree* node, T const& value);
+    static bool AVLInsertIterative(binaryTree* node, T const& value, binaryTree** out);
+    static bool AVLDeleteIterative(binaryTree* node, T const& value, binaryTree** out);
+    static binaryTree<T>* AVLInsertRecursive(binaryTree* node, binaryTree* parent, T const& value);
+    static binaryTree<T>* AVLDeleteRecursive(binaryTree* node, binaryTree* parent, T const& value);
 
 public:
     union

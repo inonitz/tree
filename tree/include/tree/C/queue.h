@@ -1,7 +1,11 @@
 #ifndef __SIMPLE_LINEAR_CIRCULAR_QUEUE_C_DEFINITION_HEADER__
 #define __SIMPLE_LINEAR_CIRCULAR_QUEUE_C_DEFINITION_HEADER__
+#include <tree/C/treelib_extern.h>
 #include <tree/C/treelib_api.h>
 #include <stdint.h>
+
+
+TREELIB_EXTERNC_DECL_BEGIN
 
 
 typedef struct {
@@ -25,6 +29,9 @@ uint8_t  TREELIB_API GenericQueueFront  (GenericQueue const* toRead,   void* obj
 void     TREELIB_API GenericQueuePop    (GenericQueue*       toModify);
 uint8_t  TREELIB_API GenericQueueEmpty  (GenericQueue const* toRead);
 uint32_t TREELIB_API GenericQueueSize   (GenericQueue const* toRead);
+
+
+TREELIB_EXTERNC_DECL_END
 
 
 #endif /* __SIMPLE_LINEAR_CIRCULAR_QUEUE_C_DEFINITION_HEADER__ */

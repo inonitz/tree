@@ -199,7 +199,7 @@ fi
 if [ $RUN_BENCH_FLAG = "true" ];
 then
     cd $CMAKE_FINAL_BUILD_DIR # This assumes we already built
-    ninja run_benchmark_treelib
+    ctest --progress
 fi
 
 

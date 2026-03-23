@@ -65,7 +65,7 @@ public:
         binaryTree* toMoveTo
     );
 
-    /* Utillity Functions */
+    /* Utility Functions */
     static bool        isLeaf(binaryTree* node)              noexcept;
     static bool        isSingleChildParent(binaryTree* node) noexcept;
     static binaryTree* getLeft(binaryTree* node)             noexcept;

@@ -69,7 +69,7 @@ void GenericAVLTreeTest<T>::printTreeToMassiveBuf(void const* root, int space) {
 
 
 template<typename T>
-T generateRandomNumericalValue(
+static T generateRandomNumericalValue(
     uint32_t min = 0,
     uint32_t max = UINT32_MAX
 ) {
@@ -85,7 +85,7 @@ T generateRandomNumericalValue(
     return generatedVal;
 }
 
-std::string generateRandomString(size_t length) {
+static std::string generateRandomString(size_t length) {
     static const std::string charset = 
         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
@@ -106,7 +106,7 @@ std::string generateRandomString(size_t length) {
 
 
 template<typename T>
-std::array<T, 4> generateDataForSimpleTypedTests() {
+static std::array<T, 4> generateDataForSimpleTypedTests() {
     return { 10, 20, 30, 40 };
 }
 template<> std::array<f32, 4> generateDataForSimpleTypedTests<>() {
@@ -140,7 +140,8 @@ template<> std::array<std::string, 4> generateDataForSimpleTypedTests<>() {
 
 
 
-template<typename T> std::array<T, 7> generateDataForRebalanceTest() {
+template<typename T> 
+static std::array<T, 7> generateDataForRebalanceTest() {
     return { 
         __scast(T, 50), 
         __scast(T, 25), 
@@ -202,7 +203,8 @@ template<> std::array<std::string, 7> generateDataForRebalanceTest<>() {
 //     }
 //     return;
 // }
-template<typename T> T generateValueForStressTest() {
+template<typename T> 
+static T generateValueForStressTest() {
     return generateRandomNumericalValue<T>();
 }
 template<> std::string generateValueForStressTest() {
@@ -274,8 +276,6 @@ TYPED_TEST(GenericAVLTreeTest, SingleRotationsRightRight) {
     return;
 }
 
-
-
 TYPED_TEST(GenericAVLTreeTest, DoubleRotationsLeftRight) {
     /* Rebalancing will rotate Left then Right */
     AVLTree<TypeParam> testTree;
@@ -290,7 +290,6 @@ TYPED_TEST(GenericAVLTreeTest, DoubleRotationsLeftRight) {
     testTree.clear();
     return;
 }
-
 
 TYPED_TEST(GenericAVLTreeTest, DoubleRotationsRightLeft) {
     /* Rebalancing will rotate Right then Left */
@@ -326,8 +325,6 @@ TYPED_TEST(GenericAVLTreeTest, DeletionRebalancing) {
     EXPECT_TRUE(tree.isValidBST());
     tree.clear();
 }
-
-
 
 
 /* RANDOMIZED STRESS TEST */

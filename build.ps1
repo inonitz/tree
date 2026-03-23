@@ -8,7 +8,7 @@ param(
     [string]$LinkType,
 
     [Parameter(Mandatory=$true, ParameterSetName="Build")]
-    [ValidateSet("cleanbuild", "configure", "build", "runtests", "runbench")]
+    [ValidateSet("cleanbuild", "configure", "build", "runtests", "runbench", "concurrentbench")]
     [string]$Action,
 
     [Parameter(Mandatory=$false, ParameterSetName="Build")]
@@ -150,6 +150,15 @@ if ($Action -eq "runtests") {
 
 if ($Action -eq "runbench") {
     if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
-    Run-Command "Ninja Run" { ninja run_benchmark_treelib }
+    Run-Command "ctest --progress" { ctest --progress }
+    if (-not $DryRun) { Pop-Location }
+}
+if($Action -eq "concurrentbench") {
+    $RUN_BENCHMARK_PARALLEL_SCRIPT = "..\..\..\scripts\benchmark_parallel.ps1"
+    
+    if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
+    Run-Command ".\scripts\benchmark_parallel.ps1" { 
+        & $RUN_BENCHMARK_PARALLEL_SCRIPT
+    }
     if (-not $DryRun) { Pop-Location }
 }

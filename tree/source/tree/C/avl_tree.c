@@ -73,7 +73,7 @@ void AVLTreeDestroy(AVLTree* root)
 }
 
 
-binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
+binaryTreeResult_t AVLTreeInsertOld(AVLTree* root, void* value)
 {
     binaryTreeBool_t inserted    = BINARY_TREE_BOOL_FALSE;
     binaryTreeBool_t foundNode   = BINARY_TREE_BOOL_FALSE;
@@ -156,6 +156,76 @@ binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
     return BINARY_TREE_OP_SUCCESS;
 }
 
+binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
+{
+    binaryTreeBool_t inserted    = BINARY_TREE_BOOL_FALSE;
+    binaryTreeBool_t foundNode   = BINARY_TREE_BOOL_FALSE;
+    int8_t          cmpResult    = 0;
+    int8_t          bfLeft       = 0;
+    int8_t          bfRight      = 0;
+    binaryTreeNode* search       = NULL;
+    binaryTreeNode* maybeNewRoot = NULL;
+    binaryTreeNode* allocNode    = NULL;
+    binaryTreeNode* currParent   = NULL;
+    GenericStack    nodesTouched;
+
+
+    /* Initial Tree Empty case */
+    if(root->m_root == NULL) {
+        
+        root->m_root = mallocTypeExplicit(binaryTreeNode);
+        binaryTreeNodeCreate(root->m_root, value, root->m_dataSizeBytes);
+        ++root->m_nodeCount;
+
+        return BINARY_TREE_OP_SUCCESS;
+    }
+
+
+    /* Tree isn't empty, we may find the node in the tree */
+    GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode*), 2 * AVLTreeHeight(root));
+    for(search = root->m_root; !foundNode && search != NULL; ) {
+        GenericStackPush(&nodesTouched, (void*)&search);
+        
+        cmpResult = root->m_cmp(value, search->m_data);
+        foundNode = (cmpResult == 0);
+        search    = cmpResult < 0 ? search->m_left : search->m_right;
+    }
+
+
+    if(foundNode) {
+        GenericStackDestroy(&nodesTouched);
+        return BINARY_TREE_OP_FAILURE;
+    }
+
+
+    allocNode = mallocTypeExplicit(binaryTreeNode);
+    inserted = binaryTreeNodeCreate(allocNode, value, root->m_dataSizeBytes);
+    if(inserted == BINARY_TREE_OP_FAILURE) {
+        free(allocNode);
+        return BINARY_TREE_OP_FAILURE;
+    }
+
+
+    GenericStackTop(&nodesTouched, (void*)&currParent);
+    maybeNewRoot = currParent;
+    currParent->m_left  = (cmpResult < 0)  ? allocNode : currParent->m_left;
+    currParent->m_right = !(cmpResult < 0) ? allocNode : currParent->m_right;
+    allocNode->m_parent = currParent;
+
+    for(; !GenericStackEmpty(&nodesTouched) ;) {
+        GenericStackTop(&nodesTouched, (void*)&currParent);
+        maybeNewRoot = currParent; /* maybeNewRoot's only relevant for the last stack Node, i.e the Root */
+        AVLTreeMaybeRebalance(currParent, &maybeNewRoot);
+        GenericStackPop(&nodesTouched);
+    }
+
+
+    GenericStackDestroy(&nodesTouched);
+    root->m_root = maybeNewRoot;
+    ++root->m_nodeCount;
+    return BINARY_TREE_OP_SUCCESS;
+}
+
 
 binaryTreeResult_t AVLTreeRemove(AVLTree* root, void* value)
 {
@@ -182,7 +252,7 @@ binaryTreeResult_t AVLTreeRemove(AVLTree* root, void* value)
     }
 
 
-    /* GenericStackTop() is the node to be deleted.  */
+    /* GenericStackTop() is the node to be deleted. */
     GenericStackTop(&nodesTouched, &currNode);
     fullNode = binaryTreeNodeIsFull(currNode);
     toDelete = currNode; /* Better Readability & Debugging */
@@ -255,36 +325,7 @@ binaryTreeBool_t AVLTreeSearch(AVLTree const* root, void* value)
 
 binaryTreeBool_t AVLTreeIsValidBST(AVLTree const* root)
 {
-    uint8_t               satisfiesCondition = 1;
-    uint8_t               tmpCond = 0;
-    GenericStack          nodeStack;
-    const binaryTreeNode* currNode = root->m_root;
-
-
-    /* Iterative Reverse-In-Order Tree Traversal (Visit right, then root, then left) */
-    GenericStackCreate(&nodeStack, sizeof(binaryTreeNode*), root->m_nodeCount);
-    while (  satisfiesCondition && ( currNode != NULL || !GenericStackEmpty(&nodeStack) )  ) 
-    {
-        while (currNode != NULL) {
-            GenericStackPush(&nodeStack, (void*)&currNode);
-            currNode = currNode->m_right;
-        }
-
-        GenericStackTop(&nodeStack, (void*)&currNode);
-        GenericStackPop(&nodeStack);
-
-        tmpCond = 
-            (currNode->m_balance ==  0) || 
-            (currNode->m_balance == -1) || 
-            (currNode->m_balance == +1);
-        satisfiesCondition = satisfiesCondition && tmpCond;
-
-        currNode = currNode->m_left;
-    }
-
-
-    GenericStackDestroy(&nodeStack);
-    return satisfiesCondition ? BINARY_TREE_BOOL_TRUE : BINARY_TREE_BOOL_FALSE;
+    return binaryTreeIsValidBST(root->m_root, root->m_nodeCount, root->m_cmp);
 }
 
 

@@ -149,7 +149,7 @@ add_subdirectory(tree)
 # https://github.com/cld-gh/cpp-with-gtest-example
 # https://stackoverflow.com/questions/50468620/what-does-enable-testing-do-in-cmake
 if(${TREELIB_BUILD_TESTS})
-    # enable_testing()
+    enable_testing()
     add_subdirectory(tests)
     add_subdirectory(benchmarks)
     add_subdirectory(dependencies/util2)

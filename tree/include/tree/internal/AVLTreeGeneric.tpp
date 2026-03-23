@@ -21,7 +21,7 @@ void AVLTree<T>::clear() noexcept {
 template<typename T>
 bool AVLTree<T>::insert(T const& val) {
     binaryTree<T>* newRootMaybe = nullptr;
-    bool           status       = binaryTree<T>::AVLinsertIterative(m_root, val, &newRootMaybe);
+    bool           status       = binaryTree<T>::AVLInsertIterative(m_root, val, &newRootMaybe);
     
     m_root       = newRootMaybe != nullptr ? newRootMaybe : m_root;
     m_nodeCount += status;
@@ -31,7 +31,7 @@ bool AVLTree<T>::insert(T const& val) {
 template<typename T>
 bool AVLTree<T>::remove(T const& val) {
     binaryTree<T>* newRootMaybe = nullptr;
-    bool           status       = binaryTree<T>::AVLdeleteIterative(m_root, val, &newRootMaybe);
+    bool           status       = binaryTree<T>::AVLDeleteIterative(m_root, val, &newRootMaybe);
 
 
     if(status == true) {
@@ -47,10 +47,38 @@ bool AVLTree<T>::search(T const& val) {
     if(empty()) {
         return false;
     }
-    binaryTree<T>* found = m_root;
-    binaryTree<T>::searchval(val, found);
-    return found ? true : false;
+    return (binaryTree<T>::searchIterative(m_root, val) != nullptr);
 }
+
+
+template<typename T>
+bool AVLTree<T>::insertRecursive(T const& val)
+{
+    if(searchRecursive(val) == true) {
+        return false;
+    }
+    m_root = binaryTree<T>::AVLInsertRecursive(m_root, nullptr, val);
+    ++m_nodeCount;
+    return true;
+}
+
+template<typename T>
+bool AVLTree<T>::removeRecursive(T const& val)
+{
+    if(searchRecursive(val) == false) {
+        return false;
+    }
+    m_root = binaryTree<T>::AVLDeleteRecursive(m_root, nullptr, val);
+    --m_nodeCount;
+    return true;
+}
+
+template<typename T>
+bool AVLTree<T>::searchRecursive(T const& val)
+{
+    return binaryTree<T>::searchRecursive(m_root, val);
+}
+
 
 
 
@@ -65,10 +93,10 @@ template<typename T> [[nodiscard]] bool AVLTree<T>::isBalanced() const noexcept 
 template<typename T> [[nodiscard]] bool AVLTree<T>::empty() const {
     return m_nodeCount == 0;
 }
-template<typename T> [[nodiscard]] size_t AVLTree<T>::size() const {
+template<typename T> [[nodiscard]] uint64_t AVLTree<T>::size() const {
     return m_nodeCount;
 }
-template<typename T> [[nodiscard]] size_t AVLTree<T>::height() const {
+template<typename T> [[nodiscard]] int8_t AVLTree<T>::height() const {
     return m_root->m_height;
 }
 template<typename T> [[nodiscard]] auto AVLTree<T>::getRoot() const -> binaryTree<T> const* {

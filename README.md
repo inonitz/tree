@@ -149,9 +149,10 @@ Benchmarks will be added soon enough, thanks to google benchmarks' Over engineer
 ## Roadmap/TODO
 
 * Modularize testing using add_test() with CTest
-* Modularize Benchmarks using something similar to add_test
-* Re-verify Benchmark for C Version
 * [the binaryTreeDeepCopy function](https://github.com/inonitz/tree/blob/master/tree/source/tree/C/binary_tree.c) @Line-102 needs to be finished. Function does nothing right now. Also add test for it
+* add Iterative & Recursive TreeCompare functions to binaryTree
+* AVLTreeIterativeInsert & AVLTreeIterativeDelete Need to be optimized, similarly to avl_tree.c
+* Write multiple fuzzing tests for AVLTreeIsBalanced & AVLTreeIsValidBST in the C, C++ & Templated C++ versions
 
 <br></br>
 

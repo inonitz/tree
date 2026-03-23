@@ -27,6 +27,7 @@ void TREELIB_API AVLTreeCreate(
     uint32_t                 valueSizeInBytes
 );
 void               TREELIB_API AVLTreeDestroy(AVLTree* root);
+binaryTreeResult_t TREELIB_API AVLTreeInsertOld(AVLTree* root, void* value);
 binaryTreeResult_t TREELIB_API AVLTreeInsert(AVLTree* root, void* value);
 binaryTreeResult_t TREELIB_API AVLTreeRemove(AVLTree* root, void* value);
 binaryTreeBool_t   TREELIB_API AVLTreeSearch(AVLTree const* root, void* value);
