@@ -28,8 +28,11 @@ CMAKE_INTRMD_BUILD_DIR=""
 CLEAN_CURRENT_ROOT_BUILD_DIR=true
 CONFIGURE_CMAKE_FLAG=false
 BUILD_BINARIES_FLAG=false
-RUN_TESTS_FLAG=false
+RUN_TEST_SUITE_FLAG=false
+DEBUG_TEST_SUITE_CXX_FLAG=false
+DEBUG_TEST_SUITE_C_FLAG=false
 RUN_BENCH_FLAG=false
+DEBUG_BENCH_FLAG=false
 
 
 if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "--h" ]; then
@@ -38,7 +41,7 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "--h" ]; then
     echo "Arguments:"
     echo "  build_type   - Type of build: debug, release, release_dbginfo, debug_perf, release_perf"
     echo "  library_type - Type of library: shared (.dll/.so), static (.lib/.a)"
-    echo "  action       - Action to take: cleanbuild, configure, build, runtests, runbench"
+    echo "  action       - Action to take: cleanbuild, configure, build, test, debugcxxtests, debugctests, benchmark, debugbenchmark"
     echo ""
     echo "Options:"
     echo "  help         - Display this help message"
@@ -48,7 +51,14 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "--h" ]; then
     echo "  ./build.sh release shared build"
     exit 0
 fi
-
+cleanbuild
+configure
+build
+test
+debugcxxtests
+debugctests
+benchmark
+debugbenchmark
 
 
 
@@ -112,44 +122,38 @@ fi
 if [ $3 = "cleanbuild" ];
 then
     CLEAN_CURRENT_ROOT_BUILD_DIR=true
-    CONFIGURE_CMAKE_FLAG=false
-    BUILD_BINARIES_FLAG=false
-    RUN_TESTS_FLAG=false
-    RUN_BENCH_FLAG=false
 
 elif [ $3 = "configure" ];
 then
-    CLEAN_CURRENT_ROOT_BUILD_DIR=false
     CONFIGURE_CMAKE_FLAG=true
-    BUILD_BINARIES_FLAG=false
-    RUN_TESTS_FLAG=false
-    RUN_BENCH_FLAG=false
     CMAKE_ARGLIST+=" -DGIT_SUBMODULE=ON"
 
 elif [ $3 = "build" ];
 then
-    CLEAN_CURRENT_ROOT_BUILD_DIR=false
-    CONFIGURE_CMAKE_FLAG=false
     BUILD_BINARIES_FLAG=true
-    RUN_TESTS_FLAG=false
-    RUN_BENCH_FLAG=false
 
-elif [ $3 = "runtests" ];
+elif [ $3 = "test" ];
 then
-    CLEAN_CURRENT_ROOT_BUILD_DIR=false
-    CONFIGURE_CMAKE_FLAG=false
-    BUILD_BINARIES_FLAG=false
-    RUN_TESTS_FLAG=true
-    RUN_BENCH_FLAG=false
-elif [ $3 = "runbench" ];
+    RUN_TEST_SUITE_FLAG=true
+
+elif [ $3 = "debugcxxtests" ];
 then
-    CLEAN_CURRENT_ROOT_BUILD_DIR=false
-    CONFIGURE_CMAKE_FLAG=false
-    BUILD_BINARIES_FLAG=false
-    RUN_TESTS_FLAG=false
+    DEBUG_TEST_SUITE_CXX_FLAG=true
+
+elif [ $3 = "debugctests" ];
+then
+    DEBUG_TEST_SUITE_C_FLAG=true
+
+elif [ $3 = "benchmark" ];
+then
     RUN_BENCH_FLAG=true
+
+elif [ $3 = "debugbenchmark" ];
+then
+    DEBUG_BENCH_FLAG=true
+
 else
-    printf "Unknown Argument %s - valid values are: cleanbuild, configure, build, runtests, runbench\nExiting..." $3
+    printf "Unknown Argument %s - valid values are: cleanbuild, configure, build, test, debugcxxtests, debugctests, benchmark, debugbenchmark\nExiting..." $3
     exit
 fi
 
@@ -190,18 +194,39 @@ ninja $PROJECT_NAME
 fi
 
 
-if [ $RUN_TESTS_FLAG = "true" ];
+# Running any of these targets Assumes that we've already built it.
+# Otherwise, we need to run the configure & build options beforehand.
+if [ $RUN_TEST_SUITE_FLAG = "true" ];
 then
-    cd $CMAKE_FINAL_BUILD_DIR # This assumes we already built
-    ninja run_test_treelib
+    cd $CMAKE_FINAL_BUILD_DIR
+    ninja test_treelib_run_all
 fi
+
+
+if [ $DEBUG_TEST_SUITE_CXX_FLAG = "true" ];
+then
+    cd $CMAKE_FINAL_BUILD_DIR
+    ninja debug_test_treelib_gtest_serial
+fi
+
+if [ $DEBUG_TEST_SUITE_C_FLAG = "true" ];
+then
+    cd $CMAKE_FINAL_BUILD_DIR
+    ninja debug_test_treelib_cmocka
+fi
+
 
 if [ $RUN_BENCH_FLAG = "true" ];
 then
-    cd $CMAKE_FINAL_BUILD_DIR # This assumes we already built
-    ctest --progress
+    cd $CMAKE_FINAL_BUILD_DIR
+    ninja run_benchmark_treelib
 fi
 
+if [ $DEBUG_BENCH_FLAG = "true" ];
+then
+    cd $CMAKE_FINAL_BUILD_DIR
+    ninja debug_benchmark_treelib
+fi
 
 # cd ../ # leave static/shared
 # cd ../ # leave debug/release/etc...

@@ -80,11 +80,11 @@ static void array_destroy(UIntArray* arr) {
 
 
 
-static void BasicInsertionAndSearch(void** state) {
+static void AVLTreeBasicInsertionAndSearch(void** state) {
 	(void)state;
 	AVLTree tree;
 	uint32_t vals[] = {50, 30, 70, 100};
-	
+
 	AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
 	assert_true(AVLTreeEmpty(&tree));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[0]));
@@ -99,7 +99,7 @@ static void BasicInsertionAndSearch(void** state) {
 }
 
 
-static void SingleRotationsLeftLeft(void** state) {
+static void AVLTreeSingleRotationsLeftLeft(void** state) {
 	(void) state;
 	AVLTree tree;
 	AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
@@ -122,7 +122,7 @@ static void SingleRotationsLeftLeft(void** state) {
 }
 
 
-static void SingleRotationsRightRight(void** state) {
+static void AVLTreeSingleRotationsRightRight(void** state) {
 	(void) state;
 	AVLTree tree;
 	AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
@@ -144,7 +144,7 @@ static void SingleRotationsRightRight(void** state) {
 }
 
 
-static void DoubleRotationsLeftRight(void** state) {
+static void AVLTreeDoubleRotationsLeftRight(void** state) {
 	(void) state;
 	AVLTree  tree;
 	uint32_t vals[] = {30, 10, 20};
@@ -160,7 +160,7 @@ static void DoubleRotationsLeftRight(void** state) {
 }
 
 
-static void DoubleRotationsRightLeft(void** state) {
+static void AVLTreeDoubleRotationsRightLeft(void** state) {
 	(void) state;
 	AVLTree  tree;
 	uint32_t vals[] = {10, 30, 20};
@@ -176,15 +176,15 @@ static void DoubleRotationsRightLeft(void** state) {
 }
 
 
-static void DeletionRebalancing(void** state) {
+static void AVLTreeDeletionRebalancing(void** state) {
 	(void) state;
 	AVLTree tree;
 	uint32_t vals[]   = {50, 25, 75, 10, 35, 60, 90};
 	size_t   num_vals = sizeof(vals) / sizeof(vals[0]);
 	uint32_t val10 = 10;
 	uint32_t val25 = 25;
-    
-	
+
+
     AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
 	for (size_t i = 0; i < num_vals; ++i) {
 		assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[i]));
@@ -205,7 +205,7 @@ static void DeletionRebalancing(void** state) {
 }
 
 
-static void ManualVerificationInsertDeleteTest(void** state) {
+static void AVLTreeManualVerificationInsertDeleteTest(void** state) {
 	(void)state;
 	AVLTree  test;
 	uint32_t data[MANUAL_TREE_SIZE];
@@ -213,7 +213,7 @@ static void ManualVerificationInsertDeleteTest(void** state) {
 	uint32_t randValToDel = 0;
     bool     opStatus = false;
 	int      c        = 0;
-    
+
 
 	AVLTreeCreate(&test, uint32_cmp, sizeof(uint32_t));
 	for (size_t i = 0; i < MANUAL_TREE_SIZE; ++i) {
@@ -243,7 +243,7 @@ static void ManualVerificationInsertDeleteTest(void** state) {
 	fflush(g_reportFile);
 
 
-	for (size_t i = 1; i < MANUAL_TREE_SIZE; ++i) 
+	for (size_t i = 1; i < MANUAL_TREE_SIZE; ++i)
 	{
 		randIdx      = (uint32_t) (random32u() % MANUAL_TREE_SIZE);
 		randValToDel = data[randIdx];
@@ -269,7 +269,7 @@ static void ManualVerificationInsertDeleteTest(void** state) {
 }
 
 
-static void StochasticStressTest(void** state) {
+static void AVLTreeRandomOperationsFuzzStressTest(void** state) {
 	(void) state;
 	AVLTree testTree;
 	AVLTreeCreate(&testTree, uint32_cmp, sizeof(uint32_t));
@@ -313,7 +313,7 @@ static void StochasticStressTest(void** state) {
 		val = randomValueBuf[i];
 		op  = (CTestOperationType) (random32u() % CTEST_AVL_OPER_MAX_OP);
 
-		switch (op) 
+		switch (op)
 		{
 		case CTEST_AVL_OPER_INSERT_OP:
 			if (AVLTreeSearch(&testTree, &val) == BINARY_TREE_BOOL_FALSE) {
@@ -394,17 +394,17 @@ static void StochasticStressTest(void** state) {
 
 int run_all_c_avl_tree_tests() {
 	const struct CMUnitTest tests[] = {
-	    cmocka_unit_test(BasicInsertionAndSearch),
-	    cmocka_unit_test(SingleRotationsLeftLeft),
-	    cmocka_unit_test(SingleRotationsRightRight),
-	    cmocka_unit_test(DoubleRotationsLeftRight),
-	    cmocka_unit_test(DoubleRotationsRightLeft),
-	    cmocka_unit_test(DeletionRebalancing),
-	    cmocka_unit_test(ManualVerificationInsertDeleteTest),
-	    cmocka_unit_test(StochasticStressTest)
+	    cmocka_unit_test(AVLTreeBasicInsertionAndSearch),
+	    cmocka_unit_test(AVLTreeSingleRotationsLeftLeft),
+	    cmocka_unit_test(AVLTreeSingleRotationsRightRight),
+	    cmocka_unit_test(AVLTreeDoubleRotationsLeftRight),
+	    cmocka_unit_test(AVLTreeDoubleRotationsRightLeft),
+	    cmocka_unit_test(AVLTreeDeletionRebalancing),
+	    cmocka_unit_test(AVLTreeManualVerificationInsertDeleteTest),
+	    cmocka_unit_test(AVLTreeRandomOperationsFuzzStressTest)
 	};
 
-	return cmocka_run_group_tests(tests, setup_c_report_buffer, teardown_c_report_buffer);
+	return cmocka_run_group_tests_name("AVLTree", tests, setup_c_report_buffer, teardown_c_report_buffer);
 }
 
 
@@ -422,17 +422,17 @@ void log_test(uint8_t directlyToFile, const char* formatstr, ...) {
 
 
     u64 bytesWritten = vsnprintf(
-		&g_massiveBuffer[g_massiveBufferCurrIdx], 
-		GK_MASSIVE_BUFFER_SIZE - g_massiveBufferCurrIdx, 
-		formatstr, 
+		&g_massiveBuffer[g_massiveBufferCurrIdx],
+		GK_MASSIVE_BUFFER_SIZE - g_massiveBufferCurrIdx,
+		formatstr,
 		args
 	);
     va_end(args);
 
     g_massiveBufferCurrIdx += (bytesWritten > 0) ? bytesWritten : 0;
-    ifcrashfmt(g_massiveBufferCurrIdx >= GK_MASSIVE_BUFFER_SIZE, 
-        "Report Buffer Index Reached %" PRIu64 "/%" PRIu64 " Bytes\n", 
-        g_massiveBufferCurrIdx, 
+    ifcrashfmt(g_massiveBufferCurrIdx >= GK_MASSIVE_BUFFER_SIZE,
+        "Report Buffer Index Reached %" PRIu64 "/%" PRIu64 " Bytes\n",
+        g_massiveBufferCurrIdx,
         GK_MASSIVE_BUFFER_SIZE
     );
 	return;
@@ -465,9 +465,9 @@ void printTreeDataMember(
 
 
 	int bytesWritten = snprintf(
-		(char*)ctx->m_buf + ctx->m_bufOffset, 
-		ctx->m_bufSize - ctx->m_bufOffset, 
-		formatString, 
+		(char*)ctx->m_buf + ctx->m_bufOffset,
+		ctx->m_bufSize - ctx->m_bufOffset,
+		formatString,
 		actualVal
 	);
 	ctx->m_bufOffset += (bytesWritten > 0) ? bytesWritten : 0;

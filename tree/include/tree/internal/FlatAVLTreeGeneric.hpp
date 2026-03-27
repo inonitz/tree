@@ -1,16 +1,28 @@
 #ifndef __FLAT_AVL_TREE_GENERIC_DEFINITION_HEADER__
 #define __FLAT_AVL_TREE_GENERIC_DEFINITION_HEADER__
 #include <tree/C/treelib_api.h>
-#include <tree/C/dynamic_pool.h>
-#include <tree/internal/bitmap.hpp>
 #include <tree/internal/nodeMetadata.hpp>
+#include <vector>
 #include <stack>
+
+
+namespace flat_avl_tree_internal {
+    template<typename T, bool IsConst> class PreOrderIterator;
+    template<typename T, bool IsConst> class InOrderIterator;
+    template<typename T, bool IsConst> class PostOrderIterator;
+    template<typename T, bool IsConst> class LevelOrderIterator;
+}
 
 
 template<typename T>
 class TREELIB_API FlatAVLTree 
 {
 private:
+    template<typename U, bool IsConst> friend class flat_avl_tree_internal::PreOrderIterator;
+    template<typename U, bool IsConst> friend class flat_avl_tree_internal::InOrderIterator;
+    template<typename U, bool IsConst> friend class flat_avl_tree_internal::PostOrderIterator;
+    template<typename U, bool IsConst> friend class flat_avl_tree_internal::LevelOrderIterator;
+
     /* Utility Types */
     using u8 = uint8_t;
     using i8 = int8_t;
@@ -20,48 +32,46 @@ private:
         INVALID = 2
     };
     using nodeMetadata = flat_avl_tree_internal::Metadata;
-    using nodeBitmap   = flat_avl_tree_internal::Bitmap;
 
 
-    /* Utility Functions */
-    constexpr uint32_t leftNodeIndex(uint32_t currNodeIndex) {
-        return 2 * currNodeIndex + 1;
-    }
-    constexpr uint32_t rightNodeIndex(uint32_t currNodeIndex) {
-        return 2 * currNodeIndex + 2;
-    }
-    constexpr uint32_t pickChildIndex(uint32_t currNodeIndex, bool valueLessThanCurrNode) {
-        return 2 * currNodeIndex + !valueLessThanCurrNode;
-    }
-    constexpr uint32_t rootNodeIndex() {
-        return 0;
-    }
-
-
-    T const&  getNodeValue(uint32_t index);
-    void      setNode(uint32_t index, T const& val);
-    bool      nodeExists(uint32_t index) const;
-    NodeState nodeState(uint32_t index) const;
+    T&            getNodeValue(uint32_t index);
     nodeMetadata& getNodeMetadata(uint32_t index);
-
-    int8_t   getNodeHeight(uint32_t nodeIndex) noexcept;
-    int8_t   getNodeBalanceFactor(uint32_t nodeIndex) noexcept;
+    T const&            readValue(uint32_t index) const;
+    nodeMetadata const& readMetadata(uint32_t index) const;
+    bool          nodeExists(uint32_t nodeIndex) const noexcept;
+    bool          nodeIsFull(uint32_t nodeIndex) const noexcept;
+    int8_t        computeHeight(uint32_t nodeIndex) const noexcept;
+    int8_t        computeBalanceFactor(uint32_t nodeIndex) const noexcept;
     
     bool searchAndPushParents(
         uint32_t nodeIndex, 
         T const& valueToSearch, 
         std::stack<uint32_t>& nodeIdxStack
     );
-    void rebalance(uint32_t nodeIndex, uint32_t* newRootIndex);
-    void resize_on_demand();
+    uint32_t findMaxAndPushParents(
+        uint32_t nodeIdx,
+        std::stack<uint32_t>& nodeIdxStack
+    );
+    uint32_t findMinAndPushParents(
+        uint32_t nodeIdx,
+        std::stack<uint32_t>& nodeIdxStack
+    );
+    uint32_t removeNodeAndLinkParentWithChild(uint32_t nodeIdx, uint32_t nodeParentIdx);
+
+    uint32_t rotateLeft(uint32_t nodeIdx, uint32_t parentIdx);
+    uint32_t rotateRight(uint32_t nodeIdx, uint32_t parentIdx);
+    void     rebalance(uint32_t nodeIdx, uint32_t nodeParentIdx, uint32_t* newRootIndex);
     
+    void     resize();
+    uint32_t allocateNode();
+    void     freeNode(uint32_t nodeIdx);
+
 public:
     FlatAVLTree()  = default;
     ~FlatAVLTree() = default;
 
 
     void clear() noexcept;
-    bool insertOld(T const& val);
     bool insert(T const& val);
     bool remove(T const& val);
     bool search(T const& val);
@@ -70,23 +80,31 @@ public:
     // bool removeRecursive(T const& val);
     // bool searchRecursive(T const& val);
 
+    auto pre_order_range() noexcept;
+    auto pre_order_range() const noexcept;
+    auto in_order_range() noexcept;
+    auto in_order_range() const noexcept;
+    auto post_order_range() noexcept;
+    auto post_order_range() const noexcept;
+    auto level_order_range() noexcept;
+    auto level_order_range() const noexcept;
 
     [[nodiscard]] bool isValidBST() const noexcept;
     [[nodiscard]] bool isBalanced() const noexcept;
-    [[nodiscard]] bool     empty()  const;
-    [[nodiscard]] uint32_t size()   const;
+    [[nodiscard]] bool     empty()  const noexcept;
+    [[nodiscard]] uint32_t size()   const noexcept;
     [[nodiscard]] int8_t   height() const;
-    template<typename Functor> void print(
-        uint32_t       space, 
-        Functor const& printTypename
+    template<typename OutputStream> OutputStream& print(
+        uint32_t      space, 
+        OutputStream& outputBuf
     ) const;
 
 private:
     std::vector<T>            m_nodeVal;
-    genericDynamicPool        m_metadataPool;
-    nodeBitmap                m_activeNodes; /* Bitmap can be incorported into m_nodeMeta (using a single-bit inside m_height) */
-    uint32_t                  m_nodeCount = 0;
-    uint8_t                   m_reserved[4]{0};
+    std::vector<nodeMetadata> m_nodeMetadata;
+    std::stack<uint32_t>      m_freedNodes;
+    uint32_t                  m_freeNodeIdx = 0;
+    uint32_t                  m_rootIdx     = nodeMetadata::k_nullIndex;
 };
 
 

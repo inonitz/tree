@@ -1,40 +1,32 @@
 #include <benchmark/benchmark.h>
-#include <util2/C/base_type.h>
-#include <unordered_map>
 #include <vector>
 #include <random>
 #include <string>
+#include <util2/C/macro.h>
+#include <util2/C/base_type.h>
+#include <tree/FlatAVLTreeImpl.hpp>
 
 
-struct DummyRecord 
+struct DummyRecord
 {
-    DummyRecord() : m_id{0} {}
+    DummyRecord() : m_id{DEFAULT64} {}
     DummyRecord(u64 id) : m_id{id} {}
 
     bool operator<(const DummyRecord& other) const {
         return m_id < other.m_id;
     }
+    bool operator>(const DummyRecord& other) const {
+        return m_id > other.m_id;
+    }
     bool operator==(const DummyRecord& other) const {
         return m_id == other.m_id;
     }
-
-    u64 id() const { return m_id; }
 
 private:
     u64 m_id;
     double   m_values[8]{0};
     char     m_metadata[32]{0};
 };
-
-// Inject hash specialization for DummyRecord into std namespace
-namespace std {
-    template <>
-    struct hash<DummyRecord> {
-        size_t operator()(const DummyRecord& r) const {
-            return std::hash<u64>{}(r.id());
-        }
-    };
-}
 
 
 template <typename T>
@@ -45,12 +37,16 @@ struct DataGen {
         } else if constexpr (std::is_same_v<T, std::string>) {
             return std::to_string(i);
         } else {
+            // Assume DummyRecord has a constructor taking a numeric value
             return T{static_cast<u64>(i)};
         }
     }
 
+
     static T random_val() {
         static std::mt19937 gen(std::random_device{}());
+
+
         if constexpr (std::is_floating_point_v<T>) {
             std::uniform_real_distribution<T> dist(0, 1e9);
             return dist(gen);
@@ -74,82 +70,87 @@ static void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
         vec.push_back(DataGen<T>::make(i));
     }
     std::shuffle(vec.begin(), vec.end(), generator);
+    return;
 }
 
 
 
 
-// ----------------------------------------------------------------------------
-// Benchmarks
-// ----------------------------------------------------------------------------
-template <typename T> 
-static void BM_StdUnorderedMapInsertion(benchmark::State& state) {
+template <typename T> static void BM_FlatAVLTreeGenericBenchInsertion(benchmark::State& state) {
     const u64 N = state.range(0);
-    std::unordered_map<T, T> map;
+    FlatAVLTree<T> tree;
     T valToInsert;
-    bool inserted = false;
+    bool status = false;
     u64 insertStatus[2] = { 0, 0 };
+
 
     for (auto _ : state) {
         state.PauseTiming();
         valToInsert = DataGen<T>::random_val();
-        insertStatus[inserted]++;
+        ++insertStatus[status];
         state.ResumeTiming();
-        
-        // emplace returns a pair<iterator, bool>
-        auto result = map.emplace(valToInsert, valToInsert);
-        inserted = result.second;
-        benchmark::DoNotOptimize(result);
+
+        benchmark::DoNotOptimize(status = tree.insert(valToInsert));
     }
 
+
+    tree.clear();
+    --insertStatus[0];
     state.counters["Failure"] = benchmark::Counter(static_cast<double>(insertStatus[0]));
     state.counters["Success"] = benchmark::Counter(static_cast<double>(insertStatus[1]));
-    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T) * 2);
+    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
     state.SetComplexityN(N);
     return;
 }
 
 
-template <typename T> 
-static void BM_StdUnorderedMapDeletion(benchmark::State& state) {
+template <typename T> static void BM_FlatAVLTreeGenericBenchDeletion(benchmark::State& state) {
     const u64 N = state.range(0);
+    bool status = false;
     std::mt19937 gen(0);
     std::vector<T> original_data, working_set;
-    std::unordered_map<T, T> map;
+    FlatAVLTree<T> tree;
+    T valToDelete{};
 
     generateUniqueVectorSet(original_data, N);
-    
+
     for (auto _ : state) {
         state.PauseTiming();
+
         if (working_set.empty()) {
-            map.clear();
+            tree.clear();
             working_set = original_data;
             std::shuffle(working_set.begin(), working_set.end(), gen);
-            for(auto& val : working_set) map.emplace(val, val);
+            for(auto& val : working_set) tree.insert(val);
         }
-        T valToDelete = working_set.back();
+        valToDelete = working_set.back();
         working_set.pop_back();
+
         state.ResumeTiming();
 
-        benchmark::DoNotOptimize(map.erase(valToDelete));
+
+        benchmark::DoNotOptimize(status = tree.remove(valToDelete));
     }
 
-    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
+
+    tree.clear();
+    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
     state.SetComplexityN(N);
     return;
 }
 
 
-template <typename T> 
-static void BM_StdUnorderedMapSearch(benchmark::State& state) {
+template <typename T> static void BM_FlatAVLTreeGenericBenchSearch(benchmark::State& state) {
     const uint32_t N = state.range(0);
-    std::unordered_map<T, T> map;
+    FlatAVLTree<T> tree;
     std::vector<T> testVec;
-    
+
+
     generateUniqueVectorSet(testVec, N);
     for(auto& elem : testVec) {
-        map.emplace(elem, elem);
+        tree.insert(elem);
     }
+
 
     uint32_t i = 0;
     for (auto _ : state) {
@@ -157,23 +158,30 @@ static void BM_StdUnorderedMapSearch(benchmark::State& state) {
         const T& valToSearch = testVec[i % N];
         ++i;
         state.ResumeTiming();
-        
-        benchmark::DoNotOptimize(map.find(valToSearch));
+
+        benchmark::DoNotOptimize(tree.search(valToSearch));
     }
 
-    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
+
+    tree.clear();
+    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
     state.SetComplexityN(N);
     return;
 }
 
 
+#define REGISTER_TYPED_AVL_TREE_BENCH(T) \
+    BENCHMARK_TEMPLATE(BM_FlatAVLTreeGenericBenchInsertion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_FlatAVLTreeGenericBenchDeletion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_FlatAVLTreeGenericBenchSearch, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
 
 
-#define REGISTER_TYPED_MAP_BENCH(T) \
-    BENCHMARK_TEMPLATE(BM_StdUnorderedMapInsertion, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_StdUnorderedMapDeletion, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_StdUnorderedMapSearch, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
-
-REGISTER_TYPED_MAP_BENCH(u64)
-REGISTER_TYPED_MAP_BENCH(std::string)
-REGISTER_TYPED_MAP_BENCH(DummyRecord)
+REGISTER_TYPED_AVL_TREE_BENCH(u64)
+// REGISTER_TYPED_AVL_TREE_BENCH(u16)
+// REGISTER_TYPED_AVL_TREE_BENCH(u8)
+// REGISTER_TYPED_AVL_TREE_BENCH(int64_t)
+// REGISTER_TYPED_AVL_TREE_BENCH(int32_t)
+// REGISTER_TYPED_AVL_TREE_BENCH(int16_t)
+// REGISTER_TYPED_AVL_TREE_BENCH(int8_t)
+REGISTER_TYPED_AVL_TREE_BENCH(std::string)
+REGISTER_TYPED_AVL_TREE_BENCH(DummyRecord)

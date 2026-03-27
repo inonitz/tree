@@ -46,9 +46,6 @@ set(HEADERS
     include/tree/internal/FlatAVLTreeGeneric.hpp
     include/tree/internal/FlatAVLTreeGeneric.tpp
 
-    include/tree/internal/FlatBinaryTree.hpp
-    include/tree/internal/FlatBinaryTree.tpp
-
     include/tree/internal/treelib_util.hpp
 
     include/tree/AVLTree.hpp

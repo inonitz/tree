@@ -16,8 +16,8 @@ static uint32_t generateRandomNumber() {
 
 
 static void constructRandomTree(
-    AVLTree& out, 
-    std::vector<uint32_t>& outSet, 
+    AVLTree& out,
+    std::vector<uint32_t>& outSet,
     uint32_t nodeCount
 ) {
     std::random_device rd;
@@ -25,7 +25,7 @@ static void constructRandomTree(
     std::uniform_int_distribution<> val_dist(0, 100000);
 
 
-    uint32_t      seed = rd(); 
+    uint32_t      seed = rd();
     uint32_t      val = 0;
     for(uint32_t i = 0; i < nodeCount; ++i) {
         val = val_dist(gen);
@@ -42,16 +42,16 @@ static void constructRandomTree(
 
 static void generateUniqueVectorSet(std::vector<uint32_t>& vec, size_t size) {
     static std::mt19937 generator(std::random_device{}());
-    
+
     vec.resize(size);
-    std::iota(vec.begin(), vec.end(), 0); 
+    std::iota(vec.begin(), vec.end(), 0);
     std::shuffle(vec.begin(), vec.end(), generator);
     return;
 }
 
 
 static void generateIndexBufferFromVector(
-    std::vector<uint32_t> const& vecIn, 
+    std::vector<uint32_t> const& vecIn,
     std::vector<uint32_t>&       vecOut
 ) {
     u64 i = 0;
@@ -72,7 +72,7 @@ static void generateIndexBufferFromVector(
 // ----------------------------------------------------------------------------
 // Benchmarks
 // ----------------------------------------------------------------------------
-static void BM_AVLTreeInsertion(benchmark::State& state) {
+static void BM_AVLTreeBenchInsertion(benchmark::State& state) {
     const u64 N = state.range(0);
     AVLTree tree;
     uint32_t valToInsert;
@@ -84,7 +84,7 @@ static void BM_AVLTreeInsertion(benchmark::State& state) {
         valToInsert = generateRandomNumber();
         ++insertStatus[status];
         state.ResumeTiming();
-        
+
         benchmark::DoNotOptimize(status = tree.insert(valToInsert));
     }
 
@@ -97,7 +97,7 @@ static void BM_AVLTreeInsertion(benchmark::State& state) {
 }
 
 
-static void BM_AVLTreeDeletion(benchmark::State& state) {
+static void BM_AVLTreeBenchDeletion(benchmark::State& state) {
     const u64 N = state.range(0);
     bool status = false;
     std::mt19937 gen(0);
@@ -106,7 +106,7 @@ static void BM_AVLTreeDeletion(benchmark::State& state) {
     uint32_t valToDelete{};
 
     generateUniqueVectorSet(original_data, N);
-    
+
     for (auto _ : state) {
         state.PauseTiming();
 
@@ -130,11 +130,11 @@ static void BM_AVLTreeDeletion(benchmark::State& state) {
 }
 
 
-static void BM_AVLTreeSearch(benchmark::State& state) {
+static void BM_AVLTreeBenchSearch(benchmark::State& state) {
     const uint32_t N = state.range(0);
     std::vector<uint32_t> dataSet;
     AVLTree tree;
-    
+
     generateUniqueVectorSet(dataSet, N);
     for(auto& elem : dataSet) {
         tree.insert(elem);
@@ -146,7 +146,7 @@ static void BM_AVLTreeSearch(benchmark::State& state) {
         const uint32_t& valToSearch = dataSet[i % N];
         ++i;
         state.ResumeTiming();
-        
+
         benchmark::DoNotOptimize(tree.search(valToSearch));
     }
 
@@ -158,9 +158,9 @@ static void BM_AVLTreeSearch(benchmark::State& state) {
 
 
 #define REGISTER_AVL_TREE_BENCH() \
-    BENCHMARK(BM_AVLTreeInsertion)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK(BM_AVLTreeDeletion)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK(BM_AVLTreeSearch)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
+    BENCHMARK(BM_AVLTreeBenchInsertion)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK(BM_AVLTreeBenchDeletion)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK(BM_AVLTreeBenchSearch)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
 
 
 REGISTER_AVL_TREE_BENCH()

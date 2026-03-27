@@ -1,4 +1,3 @@
-
 cmake_minimum_required (VERSION 3.15..4.0)
 project(
     workspace
@@ -31,7 +30,7 @@ function(UPDATE_SUBMODULES_ON_CMAKE_CONFIGURE SUBMODULE_CMAKE_TXT_PATH)
         message(${PROJECT_SOURCE_DIR}/${SUBMODULE_CMAKE_TXT_PATH})
         message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
     endif()
-endfunction() 
+endfunction()
 
 
 update_submodules_on_cmake_configure("dependencies/benchmark/CMakeLists.txt")
@@ -40,23 +39,23 @@ update_submodules_on_cmake_configure("dependencies/googletest/CMakeLists.txt")
 update_submodules_on_cmake_configure("dependencies/util2/CMakeLists.txt")
 
 
-option(ENABLE_SANITIZER_ADDRESS 
-    "Enable AddressSanitizer" 
+option(ENABLE_SANITIZER_ADDRESS
+    "Enable AddressSanitizer"
     OFF
 )
 
-option(ENABLE_SANITIZER_UNDEFINED 
-    "Enable UndefinedBehaviorSanitizer" 
+option(ENABLE_SANITIZER_UNDEFINED
+    "Enable UndefinedBehaviorSanitizer"
     OFF
 )
 
 option(ENABLE_SANITIZER_MEMORY
-    "Enable MemorySanitizer" 
+    "Enable MemorySanitizer"
     OFF
 )
 
 OPTION(TREELIB_BUILD_TESTS
-    "Create Build, Run Targets for Testing of tree" 
+    "Create Build, Run Targets for Testing of tree"
     OFF
 )
 
@@ -73,7 +72,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY})
 
-# prevent installing to system directories. 
+# prevent installing to system directories.
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE INTERNAL "")
 
 
@@ -150,11 +149,10 @@ add_subdirectory(tree)
 # https://stackoverflow.com/questions/50468620/what-does-enable-testing-do-in-cmake
 if(${TREELIB_BUILD_TESTS})
     enable_testing()
-    add_subdirectory(tests)
-    add_subdirectory(benchmarks)
     add_subdirectory(dependencies/util2)
     add_subdirectory(dependencies/googletest)
     add_subdirectory(dependencies/benchmark)
     add_subdirectory(dependencies/cmocka)
+    add_subdirectory(benchmarks)
+    add_subdirectory(tests)
 endif()
-

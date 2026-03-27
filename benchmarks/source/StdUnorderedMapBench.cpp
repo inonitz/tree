@@ -1,23 +1,40 @@
 #include <benchmark/benchmark.h>
 #include <util2/C/base_type.h>
-#include <random>
+#include <unordered_map>
 #include <vector>
-#include <set>
+#include <random>
+#include <string>
 
 
-struct DummyRecord {
+struct DummyRecord 
+{
     DummyRecord() : m_id{0} {}
     DummyRecord(u64 id) : m_id{id} {}
 
-    bool operator<(const DummyRecord& other) const { return m_id < other.m_id; }
-    bool operator>(const DummyRecord& other) const { return m_id > other.m_id; }
-    bool operator==(const DummyRecord& other) const { return m_id == other.m_id; }
+    bool operator<(const DummyRecord& other) const {
+        return m_id < other.m_id;
+    }
+    bool operator==(const DummyRecord& other) const {
+        return m_id == other.m_id;
+    }
+
+    u64 id() const { return m_id; }
 
 private:
     u64 m_id;
     double   m_values[8]{0};
     char     m_metadata[32]{0};
 };
+
+// Inject hash specialization for DummyRecord into std namespace
+namespace std {
+    template <>
+    struct hash<DummyRecord> {
+        size_t operator()(const DummyRecord& r) const {
+            return std::hash<u64>{}(r.id());
+        }
+    };
+}
 
 
 template <typename T>
@@ -32,10 +49,8 @@ struct DataGen {
         }
     }
 
-
     static T random_val() {
         static std::mt19937 gen(std::random_device{}());
-
         if constexpr (std::is_floating_point_v<T>) {
             std::uniform_real_distribution<T> dist(0, 1e9);
             return dist(gen);
@@ -68,58 +83,55 @@ static void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
 // Benchmarks
 // ----------------------------------------------------------------------------
 template <typename T> 
-static void BM_StdSetBenchInsertion(benchmark::State& state) {
+static void BM_StdUnorderedMapBenchInsertion(benchmark::State& state) {
     const u64 N = state.range(0);
-    std::set<T> tree;
+    std::unordered_map<T, T> map;
     T valToInsert;
-    
-    // Track success/failure similarly to the original code
-    u64 success = 0;
-    u64 failure = 0;
+    bool inserted = false;
+    u64 insertStatus[2] = { 0, 0 };
+
     for (auto _ : state) {
         state.PauseTiming();
-
         valToInsert = DataGen<T>::random_val();
-        auto result = tree.insert(valToInsert);
-        success += (result.second) ? 1 : 0;
-        failure += !(result.second) ? 1 : 0;
+        insertStatus[inserted]++;
         state.ResumeTiming();
         
+        // emplace returns a pair<iterator, bool>
+        auto result = map.emplace(valToInsert, valToInsert);
+        inserted = result.second;
         benchmark::DoNotOptimize(result);
     }
 
-    state.counters["Failure"] = benchmark::Counter(static_cast<double>(failure));
-    state.counters["Success"] = benchmark::Counter(static_cast<double>(success));
-    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
+    state.counters["Failure"] = benchmark::Counter(static_cast<double>(insertStatus[0]));
+    state.counters["Success"] = benchmark::Counter(static_cast<double>(insertStatus[1]));
+    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T) * 2);
     state.SetComplexityN(N);
     return;
 }
 
 
 template <typename T> 
-static void BM_StdSetBenchDeletion(benchmark::State& state) {
+static void BM_StdUnorderedMapBenchDeletion(benchmark::State& state) {
     const u64 N = state.range(0);
     std::mt19937 gen(0);
     std::vector<T> original_data, working_set;
-    std::set<T> tree;
+    std::unordered_map<T, T> map;
 
     generateUniqueVectorSet(original_data, N);
     
     for (auto _ : state) {
         state.PauseTiming();
-        // If the working set is empty, refill the set and the vector
         if (working_set.empty()) {
-            tree.clear();
+            map.clear();
             working_set = original_data;
             std::shuffle(working_set.begin(), working_set.end(), gen);
-            for(auto& val : working_set) tree.insert(val);
+            for(auto& val : working_set) map.emplace(val, val);
         }
         T valToDelete = working_set.back();
         working_set.pop_back();
         state.ResumeTiming();
 
-        // std::set::erase returns 1 if element was found and removed
-        benchmark::DoNotOptimize(tree.erase(valToDelete));
+        benchmark::DoNotOptimize(map.erase(valToDelete));
     }
 
     state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
@@ -129,24 +141,24 @@ static void BM_StdSetBenchDeletion(benchmark::State& state) {
 
 
 template <typename T> 
-static void BM_StdSetBenchSearch(benchmark::State& state) {
+static void BM_StdUnorderedMapBenchSearch(benchmark::State& state) {
     const uint32_t N = state.range(0);
-    std::set<T> tree;
-    std::vector<T> dataSet;
+    std::unordered_map<T, T> map;
+    std::vector<T> testVec;
     
-    generateUniqueVectorSet(dataSet, N);
-    for(auto& elem : dataSet) {
-        tree.insert(elem);
+    generateUniqueVectorSet(testVec, N);
+    for(auto& elem : testVec) {
+        map.emplace(elem, elem);
     }
 
     uint32_t i = 0;
     for (auto _ : state) {
         state.PauseTiming();
-        const T& valToSearch = dataSet[i % N];
+        const T& valToSearch = testVec[i % N];
         ++i;
         state.ResumeTiming();
         
-        benchmark::DoNotOptimize(tree.find(valToSearch));
+        benchmark::DoNotOptimize(map.find(valToSearch));
     }
 
     state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
@@ -155,12 +167,13 @@ static void BM_StdSetBenchSearch(benchmark::State& state) {
 }
 
 
-#define REGISTER_TYPED_SET_BENCH(T) \
-    BENCHMARK_TEMPLATE(BM_StdSetBenchInsertion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_StdSetBenchDeletion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_StdSetBenchSearch, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
 
 
-REGISTER_TYPED_SET_BENCH(u64)
-REGISTER_TYPED_SET_BENCH(std::string)
-REGISTER_TYPED_SET_BENCH(DummyRecord)
+#define REGISTER_TYPED_MAP_BENCH(T) \
+    BENCHMARK_TEMPLATE(BM_StdUnorderedMapBenchInsertion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_StdUnorderedMapBenchDeletion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_StdUnorderedMapBenchSearch, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
+
+REGISTER_TYPED_MAP_BENCH(u64)
+REGISTER_TYPED_MAP_BENCH(std::string)
+REGISTER_TYPED_MAP_BENCH(DummyRecord)

@@ -76,7 +76,7 @@ static void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
 
 
 
-template <typename T> static void BM_GenericRecursiveAVLTreeInsertion(benchmark::State& state) {
+template <typename T> static void BM_AVLTreeGenericRecursiveBenchInsertion(benchmark::State& state) {
     const u64 N = state.range(0);
     AVLTree<T> tree;
     T valToInsert;
@@ -104,7 +104,7 @@ template <typename T> static void BM_GenericRecursiveAVLTreeInsertion(benchmark:
 }
 
 
-template <typename T> static void BM_GenericRecursiveAVLTreeDeletion(benchmark::State& state) {
+template <typename T> static void BM_AVLTreeGenericRecursiveBenchDeletion(benchmark::State& state) {
     const u64 N = state.range(0);
     bool status = false;
     std::mt19937 gen(0);
@@ -140,7 +140,7 @@ template <typename T> static void BM_GenericRecursiveAVLTreeDeletion(benchmark::
 }
 
 
-template <typename T> static void BM_GenericRecursiveAVLTreeSearch(benchmark::State& state) {
+template <typename T> static void BM_AVLTreeGenericRecursiveBenchSearch(benchmark::State& state) {
     const uint32_t N = state.range(0);
     AVLTree<T> tree;
     std::vector<T> testVec;
@@ -171,9 +171,9 @@ template <typename T> static void BM_GenericRecursiveAVLTreeSearch(benchmark::St
 
 
 #define REGISTER_TYPED_AVL_TREE_BENCH(T) \
-    BENCHMARK_TEMPLATE(BM_GenericRecursiveAVLTreeInsertion, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_GenericRecursiveAVLTreeDeletion, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_GenericRecursiveAVLTreeSearch, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
+    BENCHMARK_TEMPLATE(BM_AVLTreeGenericRecursiveBenchInsertion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_AVLTreeGenericRecursiveBenchDeletion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_AVLTreeGenericRecursiveBenchSearch, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
 
 
 REGISTER_TYPED_AVL_TREE_BENCH(u64)

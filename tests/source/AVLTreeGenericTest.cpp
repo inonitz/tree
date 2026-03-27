@@ -94,7 +94,7 @@ static std::string generateRandomString(size_t length) {
     static std::uniform_int_distribution<size_t> dis(0, charset.size() - 1);
 
     std::string result;
-    result.reserve(length); // Critical for performance
+    result.reserve(length);
 
     for (size_t i = 0; i < length; ++i) {
         result += charset[dis(gen)];

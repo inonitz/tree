@@ -45,7 +45,7 @@ const char* vectorOpToString(VectorOperation op) {
 
 
 
-static void test_create_and_destroy(void** state) {
+static void Vector_test_create_and_destroy(void** state) {
 	(void) state;
 	GenericVector vec;
 
@@ -60,7 +60,7 @@ static void test_create_and_destroy(void** state) {
 }
 
 
-static void test_create_with_capacity(void** state) {
+static void Vector_test_create_with_capacity(void** state) {
 	(void) state;
 	GenericVector vec;
 
@@ -77,7 +77,7 @@ static void test_create_with_capacity(void** state) {
 }
 
 
-static void test_create_with_size_default_value_null(void** state) {
+static void Vector_test_create_with_size_default_value_null(void** state) {
 	(void) state;
 	GenericVector vec;
 
@@ -99,7 +99,7 @@ static void test_create_with_size_default_value_null(void** state) {
 }
 
 
-static void test_create_with_size_default_value_nonnull(void** state) {
+static void Vector_test_create_with_size_default_value_nonnull(void** state) {
 	(void) state;
 	GenericVector vec;
     int32_t defaultVal = 5;
@@ -122,7 +122,7 @@ static void test_create_with_size_default_value_nonnull(void** state) {
 }
 
 
-static void test_getters_and_setters(void** state) {
+static void Vector_test_getters_and_setters(void** state) {
     (void)state;
 	GenericVector vec, vec1;
     uint32_t vectorSize = 20;
@@ -168,7 +168,7 @@ static void test_getters_and_setters(void** state) {
 }
 
 
-static void test_push_back_and_access(void** state) {
+static void Vector_test_push_back_and_access(void** state) {
 	(void) state;
 	GenericVector vec;
     int32_t* front = NULL;
@@ -204,7 +204,7 @@ static void test_push_back_and_access(void** state) {
 }
 
 
-static void test_pop_back(void** state) {
+static void Vector_test_pop_back(void** state) {
 	(void) state;
     int32_t  val1 = 10;
     int32_t  val2 = 20;
@@ -212,7 +212,7 @@ static void test_pop_back(void** state) {
     bool     err  = 0;
 	GenericVector vec;
 
-	
+
     GenericVectorCreate(&vec, sizeof(int32_t));
 	err = GenericVectorPushBack(&vec, &val1);
     assert_false(err);
@@ -237,7 +237,7 @@ static void test_pop_back(void** state) {
 }
 
 
-static void test_insert(void** state) {
+static void Vector_test_insert(void** state) {
 	(void) state;
 	GenericVector vec;
 	int32_t  val0[] = {1, 2, 3};
@@ -256,9 +256,9 @@ static void test_insert(void** state) {
 	assert_int_equal(GenericVectorSize(&vec), 3);
 
     /* Insert in the middle (index 1) */
-	err = GenericVectorInsert(&vec, 
-        1, 
-        2, 
+	err = GenericVectorInsert(&vec,
+        1,
+        2,
         val1
     );
     assert_false(err);
@@ -270,7 +270,7 @@ static void test_insert(void** state) {
 	}
 
     /* Insert in the end */
-	err = GenericVectorInsert(&vec, 
+	err = GenericVectorInsert(&vec,
         ( GenericVectorEnd(&vec) - GenericVectorBegin(&vec) ) / sizeof(int32_t),
         2,
         val2
@@ -288,7 +288,7 @@ static void test_insert(void** state) {
 }
 
 
-static void test_erase(void** state) {
+static void Vector_test_erase(void** state) {
 	(void) state;
 	int32_t  valA[]     = { 10, 20, 30, 40, 50 };
 	int32_t  expected[] = { valA[0], valA[3], valA[4] };
@@ -334,7 +334,7 @@ static void test_erase(void** state) {
 }
 
 
-static void test_swap(void** state) {
+static void Vector_test_swap(void** state) {
 	(void) state;
 	int32_t  valA   = 100;
 	int32_t  valB[] = {1, 2, 3};
@@ -367,7 +367,7 @@ static void test_swap(void** state) {
 }
 
 
-static void test_reserve_and_shrink(void** state) {
+static void Vector_test_reserve_and_shrink(void** state) {
 	(void)state;
     const uint32_t vectorCapacity      = 100;
     const uint32_t vectorCapacityBytes = vectorCapacity * sizeof(int32_t);
@@ -389,7 +389,7 @@ static void test_reserve_and_shrink(void** state) {
     assert_false(err);
 	err = GenericVectorShrinkToFit(&vec);
     assert_false(err);
-    
+
 	/* Capacity drops to size, which is 1 */
 	assert_int_equal(GenericVectorCapacity(&vec), 1);
 	assert_int_equal(GenericVectorSize(&vec),     1);
@@ -399,7 +399,7 @@ static void test_reserve_and_shrink(void** state) {
 }
 
 
-static void test_clear_and_resize(void** state) {
+static void Vector_test_clear_and_resize(void** state) {
 	(void) state;
     bool          err      = 0;
     int32_t*      valptr   = NULL;
@@ -407,9 +407,9 @@ static void test_clear_and_resize(void** state) {
     uint32_t      valsSize = ( sizeof(vals) / sizeof(vals[0]) );
     uint32_t      vecSize  = 5;
 	GenericVector vec;
-    
-	
-    
+
+
+
     GenericVectorCreate(&vec, sizeof(int32_t));
 	err = GenericVectorInsert(&vec, 0, valsSize, vals);
 	assert_false(err);
@@ -442,7 +442,7 @@ static void test_clear_and_resize(void** state) {
 	for (uint32_t i = 0; i < vecSize; ++i) {
 		valptr = (int32_t*)GenericVectorAt(&vec, i);
         if(i < 2) {
-            assert_int_equal(*valptr, vals[i]);    
+            assert_int_equal(*valptr, vals[i]);
         } else {
             assert_int_equal(*valptr, 0);
         }
@@ -456,19 +456,19 @@ static void test_clear_and_resize(void** state) {
 
 
 static void VerifyInnerVectorState(
-    GenericVector* vec, 
+    GenericVector* vec,
     FuzzState*     state
 ) {
     /* Verify Data Members, Iterators & sum of data members. */
     assert_int_equal(GenericVectorSize(vec), state->expected_size);
     assert_true(GenericVectorCapacity(vec) >= state->expected_size);
-    
+
 
     if (state->expected_size > 0) {
         assert_non_null(GenericVectorData(vec));
         assert_non_null(GenericVectorFront(vec));
         assert_non_null(GenericVectorBack(vec));
-        
+
         int64_t  sum = 0;
         int32_t* val = NULL;
         for (uint32_t i = 0; i < state->expected_size; ++i) {
@@ -486,7 +486,7 @@ static void VerifyInnerVectorState(
     return;
 }
 
-static void test_fuzz_generic_vector(void **state_ptr) {
+static void Vector_test_fuzz_generic_vector(void **state_ptr) {
     (void)state_ptr;
     const uint32_t num_operations = 1000000;
     const uint32_t randSeed       = 42;
@@ -500,9 +500,9 @@ static void test_fuzz_generic_vector(void **state_ptr) {
     for (int32_t i = 0; i < num_operations; ++i) {
         // printf("\r\r\r\r\r\r");
         VectorOperation op = (VectorOperation)(random8u() % VECTOR_OP_COUNT_MAX);
-        
 
-        switch (op) 
+
+        switch (op)
         {
             case VECTOR_OP_PUSH_BACK:
             int32_t val = random32i();
@@ -527,7 +527,7 @@ static void test_fuzz_generic_vector(void **state_ptr) {
             int32_t* valueBuf      = malloc(valCount * sizeof(int32_t));
             int64_t  valToInsertSum = 0;
 
-            if (valueBuf) 
+            if (valueBuf)
             {
                 for(uint32_t j = 0; j < valCount; ++j) {
                     valueBuf[j] = random32i();
@@ -540,9 +540,9 @@ static void test_fuzz_generic_vector(void **state_ptr) {
                 free(valueBuf);
             }
             break;
-            
+
             case VECTOR_OP_ERASE:
-            if (state.expected_size > 0) 
+            if (state.expected_size > 0)
             {
                 uint32_t randIdx  = random32u() % state.expected_size;
                 uint32_t valCount = (random32u() % (state.expected_size - randIdx)) + 1;
@@ -553,7 +553,7 @@ static void test_fuzz_generic_vector(void **state_ptr) {
                     currVal = (int32_t*)GenericVectorGet(&vec, randIdx + j);
                     valToEraseSum += *currVal;
                 }
-                
+
                 GenericVectorErase(&vec, randIdx, valCount);
                 state.expected_size -= valCount;
                 state.expected_sum -= valToEraseSum;
@@ -562,7 +562,7 @@ static void test_fuzz_generic_vector(void **state_ptr) {
 
             case VECTOR_OP_RESIZE:
             uint32_t updatedSize = random16u();
-            if (!GenericVectorResize(&vec, updatedSize)) 
+            if (!GenericVectorResize(&vec, updatedSize))
             {
                 if (updatedSize < state.expected_size) {
                     /* Vector shrank: recalculate sum of remaining elements */
@@ -613,7 +613,7 @@ static void test_fuzz_generic_vector(void **state_ptr) {
                 state.expected_sum = state.expected_sum - valueOld + valueToSet;
             }
             break;
-            
+
             default:
             break;
         }
@@ -633,19 +633,19 @@ static void test_fuzz_generic_vector(void **state_ptr) {
 int run_all_vector_tests(void)
 {
 	const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_create_and_destroy),
-        cmocka_unit_test(test_create_with_capacity),
-        cmocka_unit_test(test_create_with_size_default_value_null),
-        cmocka_unit_test(test_create_with_size_default_value_nonnull),
-        cmocka_unit_test(test_getters_and_setters),
-        cmocka_unit_test(test_push_back_and_access),
-        cmocka_unit_test(test_pop_back),
-        cmocka_unit_test(test_insert),
-        cmocka_unit_test(test_erase),
-        cmocka_unit_test(test_swap),
-        cmocka_unit_test(test_reserve_and_shrink),
-        cmocka_unit_test(test_clear_and_resize),
-        cmocka_unit_test(test_fuzz_generic_vector)
+        cmocka_unit_test(Vector_test_create_and_destroy),
+        cmocka_unit_test(Vector_test_create_with_capacity),
+        cmocka_unit_test(Vector_test_create_with_size_default_value_null),
+        cmocka_unit_test(Vector_test_create_with_size_default_value_nonnull),
+        cmocka_unit_test(Vector_test_getters_and_setters),
+        cmocka_unit_test(Vector_test_push_back_and_access),
+        cmocka_unit_test(Vector_test_pop_back),
+        cmocka_unit_test(Vector_test_insert),
+        cmocka_unit_test(Vector_test_erase),
+        cmocka_unit_test(Vector_test_swap),
+        cmocka_unit_test(Vector_test_reserve_and_shrink),
+        cmocka_unit_test(Vector_test_clear_and_resize),
+        cmocka_unit_test(Vector_test_fuzz_generic_vector)
 	};
-	return cmocka_run_group_tests(tests, NULL, NULL);
+	return cmocka_run_group_tests_name("Vector", tests, NULL, NULL);
 }

@@ -28,23 +28,23 @@ typedef struct __dynamic_vector_like_pool_allocator_type_v0 {
     uint32_t m_elemSize;
     uint32_t m_elemCount;
     uint32_t m_elemCountMax;
-} genericDynamicPool;
+} GenericDynamicPool;
 
 
 bool TREELIB_API GenericDynamicPoolCreate(
-    genericDynamicPool* toCreate, 
+    GenericDynamicPool* toCreate, 
     uint32_t            objSizeBytes, 
     uint32_t            initialAmountOfObjects
 );
-void TREELIB_API GenericDynamicPoolDestroy(genericDynamicPool* toDestroy);
+void TREELIB_API GenericDynamicPoolDestroy(GenericDynamicPool* toDestroy);
 
-void* TREELIB_API GenericDynamicPoolAllocate(genericDynamicPool* toModify);
-void  TREELIB_API GenericDynamicPoolFree(genericDynamicPool* toModify, void* blockToFree);
+void* TREELIB_API GenericDynamicPoolAllocate(GenericDynamicPool* toModify);
+void  TREELIB_API GenericDynamicPoolFree(GenericDynamicPool* toModify, void* blockToFree);
 
-uint32_t TREELIB_API GenericDynamicPoolBlockSize(genericDynamicPool const* toRead);
-uint32_t TREELIB_API GenericDynamicPoolFreeBlocks(genericDynamicPool const* toRead);
-uint32_t TREELIB_API GenericDynamicPoolTotalBlocks(genericDynamicPool const* toRead);
-uint64_t TREELIB_API GenericDynamicPoolTotalBytes(genericDynamicPool const* toRead);
+uint32_t TREELIB_API GenericDynamicPoolBlockSize(GenericDynamicPool const* toRead);
+uint32_t TREELIB_API GenericDynamicPoolFreeBlocks(GenericDynamicPool const* toRead);
+uint32_t TREELIB_API GenericDynamicPoolTotalBlocks(GenericDynamicPool const* toRead);
+uint64_t TREELIB_API GenericDynamicPoolTotalBytes(GenericDynamicPool const* toRead);
 
 
 TREELIB_EXTERNC_DECL_END

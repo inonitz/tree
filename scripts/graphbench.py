@@ -85,14 +85,21 @@ def plot_results(df: pd.DataFrame):
 
 
 if __name__ == "__main__":
-    fileList = [
-        'results_avltree_c_generic.json',
-        'results_avltree_cpp_generic_recursive.json',
-        'results_avltree_cpp_generic.json',
-        'results_avltree_cpp.json',
-        'results_std_set_generic.json',
-        'results_std_unordered_set.json'
-    ]
+    # fileList = [
+    #     'results_avltree_c_generic.json',
+    #     'results_avltree_cpp_generic_recursive.json',
+    #     'results_avltree_cpp_generic.json',
+    #     'results_avltree_cpp.json',
+    #     'results_std_set_generic.json',
+    #     'results_std_unordered_set.json'
+    # ]
+    fileList = []
+    
+    JsonDirToScan = Path('data')
+    for file in JsonDirToScan.iterdir():
+        if file.is_file():
+            fileList.append(file)
+
     df = parse_benchmark_files(fileList)
 
     if df is None:

@@ -3,6 +3,7 @@
 #include <util2/C/macro.h>
 #include <util2/C/base_type.h>
 #include <string>
+#include <fstream>
 #ifdef _MSC_VER
 #   ifndef _CRT_SECURE_NO_WARNINGS
 #       define _CRT_SECURE_NO_WARNINGS
@@ -10,7 +11,7 @@
 #endif
 
 
-struct DummyRecord 
+struct DummyRecord
 {
     DummyRecord() : m_id{DEFAULT64} {}
     DummyRecord(uint64_t id) : m_id{id} {}
@@ -25,13 +26,15 @@ struct DummyRecord
         return m_id == other.m_id;
     }
 
+    friend std::ostream& operator<<(std::ostream& os, const DummyRecord& obj) {
+        os << "DummyRecord ID=[" << obj.m_id << "]\n";
+        return os;
+    }
 private:
     uint64_t m_id;
     double   m_values[8]{0};
     char     m_metadata[32]{0};
 };
-
-
 
 
 using Implementations = ::testing::Types<
@@ -50,24 +53,24 @@ using Implementations = ::testing::Types<
 >;
 
 
+class AtomicLogger;
+
+
 template<typename T>
-class GenericAVLTreeTest : public ::testing::Test {
+class FlatAVLTreeGenericTest : public ::testing::Test {
 private:
-    FILE* m_reportFile           = nullptr;
-    char* m_massiveBuffer        = nullptr;
-    u64   m_massiveBufferCurrIdx = 0;
+    std::unique_ptr<AtomicLogger> m_reportFile;
 
 protected:
-    static constexpr const char* gk_test_report_name   = "generic_avl_test_report.txt"; 
+    static constexpr const char* gk_test_report_name   = "flat_generic_avl_tree_report.txt";
     static constexpr uint32_t    gk_stest_total_ops    = 1 * 1000 * 1000;
     static constexpr uint32_t    gk_stest_val_dist_min = 1;
     static constexpr uint32_t    gk_stest_val_dist_max = 100000;
-    static constexpr u64         gk_massiveBufferSize  = 128ull * 1024 * 1024;
-    
+    static constexpr u64         gk_massiveBufferSize  = 128ull * 1024;
+
     virtual void SetUp();
     virtual void TearDown();
 public:
-
     enum class OperationType : u8 {
         INSERT_OP,
         DELETE_OP,
@@ -76,13 +79,10 @@ public:
         MAX_OP
     };
 
-    void generic_write_to_test_buffer(const char* formatstr, ...);
-    void printTreeToMassiveBuf(void const* root, int space);
+
+    auto log();
+    
 };
 
 
-TYPED_TEST_SUITE(GenericAVLTreeTest, Implementations);
-
-
-
-
+TYPED_TEST_SUITE(FlatAVLTreeGenericTest, Implementations);

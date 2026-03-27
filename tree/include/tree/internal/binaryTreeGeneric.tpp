@@ -249,7 +249,7 @@ binaryTree<T>* binaryTree<T>::rotateLeft(binaryTree<T>* node)
 {
     auto* root_parent = node->m_parent;
     auto* x = node;
-    auto* y = node->m_right;
+    auto* y = x->m_right;
     auto* b = y->m_left;
 
     x->m_right = b;

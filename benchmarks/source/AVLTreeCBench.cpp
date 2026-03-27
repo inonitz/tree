@@ -77,7 +77,6 @@ static int GenericComparator(const void* a, const void* b) {
     return 0;
 }
 
-
 template <typename T>
 class C_AVLTreeWrapper {
 private:
@@ -116,11 +115,13 @@ public:
 };
 
 
+
+
 // ----------------------------------------------------------------------------
 // Benchmarks
 // ----------------------------------------------------------------------------
 template <typename T> 
-static void BM_CAVLTreeInsertion(benchmark::State& state) {
+static void BM_AVLTreeCBenchInsertion(benchmark::State& state) {
     const u64 N = state.range(0);
     C_AVLTreeWrapper<T> tree;
     T valToInsert;
@@ -146,7 +147,7 @@ static void BM_CAVLTreeInsertion(benchmark::State& state) {
 
 
 template <typename T> 
-static void BM_CAVLTreeDeletion(benchmark::State& state) {
+static void BM_AVLTreeCBenchDeletion(benchmark::State& state) {
     const u64 N = state.range(0);
     bool status = false;
     std::mt19937 gen(0);
@@ -180,7 +181,7 @@ static void BM_CAVLTreeDeletion(benchmark::State& state) {
 
 
 template <typename T> 
-static void BM_CAVLTreeSearch(benchmark::State& state) {
+static void BM_AVLTreeCBenchSearch(benchmark::State& state) {
     const uint32_t N = state.range(0);
     C_AVLTreeWrapper<T> tree;
     std::vector<T> dataSet;
@@ -207,9 +208,9 @@ static void BM_CAVLTreeSearch(benchmark::State& state) {
 
 
 #define REGISTER_TYPED_AVL_TREE_C_BENCH(T) \
-    BENCHMARK_TEMPLATE(BM_CAVLTreeInsertion, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_CAVLTreeDeletion, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
-    BENCHMARK_TEMPLATE(BM_CAVLTreeSearch, T)->RangeMultiplier(4)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
+    BENCHMARK_TEMPLATE(BM_AVLTreeCBenchInsertion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_AVLTreeCBenchDeletion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_AVLTreeCBenchSearch, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
 
 REGISTER_TYPED_AVL_TREE_C_BENCH(u64)
 REGISTER_TYPED_AVL_TREE_C_BENCH(std::string)

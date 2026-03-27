@@ -13,13 +13,13 @@ void AVLTreeTest::write_to_test_buffer(const char* formatstr, ...) {
     va_start(args, formatstr);
 
     u64 bytesWritten = vsnprintf(&m_massiveBuffer[m_massiveBufferCurrIdx], gk_massiveBufferSize - m_massiveBufferCurrIdx, formatstr, args);
-    
+
     va_end(args);
 
     m_massiveBufferCurrIdx += (bytesWritten > 0) ? bytesWritten : 0;
-    ifcrashfmt(m_massiveBufferCurrIdx >= gk_massiveBufferSize, 
-        "Report Buffer Index Reached %" PRIu64 "/%" PRIu64 " Bytes\n", 
-        m_massiveBufferCurrIdx, 
+    ifcrashfmt(m_massiveBufferCurrIdx >= gk_massiveBufferSize,
+        "Report Buffer Index Reached %" PRIu64 "/%" PRIu64 " Bytes\n",
+        m_massiveBufferCurrIdx,
         gk_massiveBufferSize
     );
 }
@@ -29,13 +29,13 @@ void AVLTreeTest::SetUp() {
     m_massiveBuffer = __rcast(char*, util2_aligned_malloc(gk_massiveBufferSize, CACHE_LINE_BYTES));
     m_reportFile    = fopen(gk_test_report_name, "w");
     ifcrash(m_reportFile == nullptr || m_massiveBuffer == nullptr);
-    
+
     m_massiveBuffer[gk_massiveBufferSize - 1] = '\0';
     return;
 }
 
 void AVLTreeTest::TearDown() {
-    write_to_test_buffer("g_massiveBuffer Consumed %" PRIu64 "/%" PRIu64 " Bytes for %u Operations\n",  
+    write_to_test_buffer("g_massiveBuffer Consumed %" PRIu64 "/%" PRIu64 " Bytes for %u Operations\n",
         m_massiveBufferCurrIdx,
         gk_massiveBufferSize,
         gk_stest_total_ops
@@ -49,17 +49,17 @@ void AVLTreeTest::TearDown() {
 
 void AVLTreeTest::printTreeToMassiveBuf(void const* root, int space) {
     constexpr auto kCOUNT = 5;
-    
+
     if (root == NULL) {
         return;
     }
     space += kCOUNT;
-    
+
     binaryTree* _root = (binaryTree*)root;
     printTreeToMassiveBuf(_root->m_right, space);
-    write_to_test_buffer("\n\n\n%*s%d (%u, %d)\n", space - kCOUNT, "", 
-        _root->m_data, 
-        _root->m_height, 
+    write_to_test_buffer("\n\n\n%*s%d (%u, %d)\n", space - kCOUNT, "",
+        _root->m_data,
+        _root->m_height,
         _root->m_bf
     );
     printTreeToMassiveBuf(_root->m_left, space);
@@ -76,7 +76,7 @@ TEST_F(AVLTreeTest, BasicInsertionAndSearch) {
     tree.insert(50);
     tree.insert(30);
     tree.insert(70);
-    
+
     EXPECT_EQ(tree.size(), 3);
     EXPECT_TRUE(tree.search(50));
     EXPECT_TRUE(tree.search(30));
@@ -127,8 +127,8 @@ TEST_F(AVLTreeTest, DoubleRotationsLeftRight) {
     AVLTree tree;
 
     /* Rebalancing will rotate Left then Right */
-    EXPECT_TRUE(tree.insert(30)); 
-    EXPECT_TRUE(tree.insert(10)); 
+    EXPECT_TRUE(tree.insert(30));
+    EXPECT_TRUE(tree.insert(10));
     EXPECT_TRUE(tree.insert(20));
     EXPECT_EQ(tree.getRoot()->m_data, 20);
     EXPECT_TRUE(tree.isBalanced());
@@ -213,7 +213,7 @@ TEST_F(AVLTreeTest, ManualVerificationInsertDeleteTest) {
     for (auto& val : data) {
         auto& randValToDel = data[ distribIndices(gen) ];
         opStatus = test.remove(randValToDel);
-        
+
         write_to_test_buffer("--- 2D Tree Visualization (Rotate head left) ---\n");
         write_to_test_buffer("[c=%3u] Deletion Of %3u -> %s\n", c, randValToDel, opStatus ? "SUCCESS" : "FAILURE");
         printTreeToMassiveBuf(test.getRoot(), 0);
@@ -235,15 +235,15 @@ TEST_F(AVLTreeTest, ManualVerificationInsertDeleteTest) {
 /* RANDOMIZED STRESS TEST */
 TEST_F(AVLTreeTest, StochasticStressTest) {
     AVLTree               testTree;
-    std::vector<uint32_t> treeValueSet; 
+    std::vector<uint32_t> treeValueSet;
     std::random_device rd;
     std::mt19937 gen;
-    
+
     std::uniform_int_distribution<> val_dist(gk_stest_val_dist_min, gk_stest_val_dist_max);
     std::uniform_int_distribution<> op_dist(0, (u8)OpType::MAX_OP);
-    
 
-    uint32_t      seed = rd(); 
+
+    uint32_t      seed = rd();
     uint32_t      val = 0;
     OpType op  = OpType::MAX_OP;
     uint32_t tmpValue    = 0;
@@ -356,7 +356,7 @@ TEST_F(AVLTreeTest, StochasticStressTest) {
     write_to_test_buffer("             Existing Value Searches (Success, Failure): %06u %06u\n", searchExistingValueSuccess, searchExistingValueFailure);
     write_to_test_buffer("             Final Size : %" PRIu64 "\n", testTree.size());
     write_to_test_buffer("             Tree Height: %u\n", testTree.getRoot()->m_height);
-    
+
     testTree.clear();
     return;
 }
