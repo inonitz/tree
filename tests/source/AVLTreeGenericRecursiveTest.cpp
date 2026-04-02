@@ -1,6 +1,7 @@
 #include "AVLTreeGenericRecursiveTest.hpp"
 #include <util2/C/aligned_malloc.h>
 #include <util2/C/ifcrash2.h>
+#include <util2/random.hpp>
 #include <tree/AVLTreeImpl.hpp>
 #include <cinttypes>
 #include <iomanip>
@@ -94,7 +95,7 @@ static std::string generateRandomString(size_t length) {
     static std::uniform_int_distribution<size_t> dis(0, charset.size() - 1);
 
     std::string result;
-    result.reserve(length); // Critical for performance
+    result.reserve(length);
 
     for (size_t i = 0; i < length; ++i) {
         result += charset[dis(gen)];
@@ -177,31 +178,43 @@ template<> std::array<std::string, 7> generateDataForRebalanceTest<>() {
 }
 
 
+template<typename T> static std::array<T, 5> generateDataForValidBSTTest() {
+    return { 
+        __scast(T, 50), 
+        __scast(T, 25), 
+        __scast(T, 75),
+        __scast(T, 60), 
+        __scast(T, 10) 
+    };
+}
+template<> std::array<DummyRecord, 5> generateDataForValidBSTTest<>() {
+    return { 
+        DummyRecord{50}, 
+        DummyRecord{25}, 
+        DummyRecord{75},
+        DummyRecord{60}, 
+        DummyRecord{10} 
+    };
+}
+template<> std::array<std::string, 5> generateDataForValidBSTTest<>() {
+    auto to_padded_str = [](int val) {
+        std::ostringstream oss;
+        oss << std::setw(2) << std::setfill('0') << val;
+        return oss.str();
+    };
 
-// template<typename T> void generateDataForStressTest(std::vector<T>& out, uint32_t size) {
-//     out.clear();
-//     out.reserve(size);
-//     for(; --size ;) {
-//         out.push_back(generateRandomNumericalValue<T>());
-//     }
-//     return;
-// }
-// template<> void generateDataForStressTest(std::vector<std::string>& out, uint32_t size) {
-//     out.clear();
-//     out.reserve(size);
-//     for(; --size ;) {
-//         out.push_back(generateRandomString(10));
-//     }
-//     return;
-// }
-// template<> void generateDataForStressTest(std::vector<DummyRecord>& out, uint32_t size) {
-//     out.clear();
-//     out.reserve(size);
-//     for(; --size ;) {
-//         out.push_back(DummyRecord{ generateRandomNumericalValue<uint64_t>() });
-//     }
-//     return;
-// }
+
+    return {
+        to_padded_str(50), 
+        to_padded_str(25), 
+        to_padded_str(75),
+        to_padded_str(60), 
+        to_padded_str(10) 
+    };
+}
+
+
+
 template<typename T> static T generateValueForStressTest() {
     return generateRandomNumericalValue<T>();
 }
@@ -326,6 +339,153 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, DeletionRebalancing) {
 }
 
 
+TYPED_TEST(GenericRecursiveAVLTreeTest, CompareEqualSameAndCopyConstruct) {
+    AVLTree<TypeParam> treeA;
+	AVLTree<TypeParam> treeB;
+    AVLTree<TypeParam> treeC;
+    auto               testData = generateDataForRebalanceTest<TypeParam>();
+
+
+	for (auto& val : testData) {
+		EXPECT_TRUE(treeA.insertRecursive(val));
+		EXPECT_TRUE(treeB.insertRecursive(val));
+	}
+    treeC.copy(treeB);
+    EXPECT_TRUE(treeA.compareRecursive(treeC));
+	EXPECT_TRUE(treeA.compareRecursive(treeB));
+
+
+    treeA.clear();
+    treeB.clear();
+    treeC.clear();
+	return;
+}
+
+
+TYPED_TEST(GenericRecursiveAVLTreeTest, CompareInequalEdgeCaseAndFull) {
+    AVLTree<TypeParam>  treeA;
+	AVLTree<TypeParam>  treeB;
+    auto                testData = generateDataForRebalanceTest<TypeParam>();
+
+    /* Check Inequality for empty compare */
+    treeA.insertRecursive(testData[0]);
+	EXPECT_FALSE(treeA.compareRecursive(treeB));
+
+    /* Check inequality between 2 trees that are almost identical */
+    treeA.clear();
+	for (auto& val : testData) {
+		EXPECT_TRUE(treeA.insertRecursive(val));
+	}
+	for (uint64_t i = 0; i < testData.size() - 1; ++i) {
+		EXPECT_TRUE(treeB.insertRecursive(testData[i]));
+	}
+
+    EXPECT_FALSE(treeA.compareRecursive(treeB));
+    treeA.clear();
+    treeB.clear();
+	return;
+}
+
+
+TYPED_TEST(GenericRecursiveAVLTreeTest, VerifyIsValidBST) {
+    AVLTree<TypeParam> tree;
+    binaryTree<TypeParam>* oopsyNode = nullptr;
+    auto testData = generateDataForValidBSTTest<TypeParam>();
+
+
+    /* 
+		Construct a small tree:
+            50
+           /  \
+          25   75
+    */
+    tree.insertRecursive(testData[0]);
+    tree.insertRecursive(testData[1]);
+    tree.insertRecursive(testData[2]);
+
+    /* Attach 60 (testData[3]) as the right child of 25, which doesn't satisfy the BST requirement */
+    oopsyNode = new binaryTree<TypeParam>(testData[3]);
+    tree.getRoot()->m_left->m_right = oopsyNode;
+
+    /* [NOTE]: the heights/balance factors of 25 & 50 aren't modified since balancing isn't tested here. */
+    EXPECT_FALSE(tree.isValidBST());
+
+    tree.getRoot()->m_left->m_right = nullptr;
+    delete oopsyNode;
+    tree.clear();
+    return;
+}
+
+
+TYPED_TEST(GenericRecursiveAVLTreeTest, VerifyIsValidBSTEmpty) {
+    AVLTree<TypeParam> tree;
+    EXPECT_TRUE(tree.isValidBST());
+	return;
+}
+
+
+TYPED_TEST(GenericRecursiveAVLTreeTest, VerifyIsValidBSTDuplicateCheck) {
+    AVLTree<TypeParam>     tree;
+    binaryTree<TypeParam>* dupNode = nullptr;
+    auto testData = generateDataForValidBSTTest<TypeParam>();
+
+
+    EXPECT_TRUE(tree.insertRecursive(testData[0]));
+
+    /* Manually force a duplicate node into the tree */
+    dupNode = new binaryTree<TypeParam>(testData[0]);
+    ((binaryTree<TypeParam>*)(tree.getRoot()))->m_left = dupNode;
+
+    /* BSTs must be strictly increasing; duplicates fail the > check */
+    /* [NOTE]: see comment on first test of VerifyIsValidBST */
+    EXPECT_FALSE(tree.isValidBST());
+
+    ((binaryTree<TypeParam>*)(tree.getRoot()))->m_left = nullptr;
+    delete dupNode;
+    tree.clear();
+	return;
+}
+
+
+TYPED_TEST(GenericRecursiveAVLTreeTest, VerifyBalanceFactor) {
+    AVLTree<TypeParam>     tree;
+    binaryTree<TypeParam>* parent     = nullptr;
+    int8_t                 oldBalance = 0;
+    auto testData = generateDataForRebalanceTest<TypeParam>();
+
+
+	for (auto& val : testData) {
+        EXPECT_TRUE(tree.insertRecursive(val));
+	}
+
+	/* Tree of Height 2 with 2 full nodes per parent. balance factor is 0 across all nodes */
+    EXPECT_TRUE(tree.isBalanced());
+
+
+	/* Randomly choose a node to mess up, check that it's being detected */
+	for(uint32_t i = 0; i < 10; ++i) {
+		for(binaryTree<TypeParam> const* currNode = tree.getRoot(); currNode != NULL; ) {
+			parent = (binaryTree<TypeParam>*)currNode;
+			currNode = (util2::random32i() > (INT32_MAX / 2)) ? 
+                currNode->m_left 
+                : 
+                currNode->m_right;
+		}
+		
+		oldBalance = parent->m_bf;
+		parent->m_bf = 2;
+        EXPECT_FALSE(tree.isBalanced());
+		parent->m_bf = oldBalance;
+	}
+
+
+    tree.clear();
+    return;
+}
+
+
+
+
 /* RANDOMIZED STRESS TEST */
 TYPED_TEST(GenericRecursiveAVLTreeTest, StochasticStressTest) {
     using OpType = typename GenericRecursiveAVLTreeTest<TypeParam>::OperationType;
@@ -360,6 +520,7 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, StochasticStressTest) {
 
 
     gen.seed(seed);
+    printf("AVLTreeGenericRecursiveTest Begin\n");
     for (uint32_t i = 0; i < GenericRecursiveAVLTreeTest<TypeParam>::gk_stest_total_ops; ++i) {
         // printf("\r\r\r\r\r\r");
         val = generateValueForStressTest<TypeParam>();
@@ -440,8 +601,9 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, StochasticStressTest) {
         }
         // printf("%06u", i);
     }
-    printf("\n");
 
+
+    printf("AVLTreeGenericRecursiveTest End\n");
     this->generic_write_to_test_buffer("\n[==========] Stochastic Stress Diagnostics\n");
     this->generic_write_to_test_buffer("             Seed:                                       %u\n", seed);
     this->generic_write_to_test_buffer("             Insertions              (Success, Failure): %06u %06u\n", insertion[1], insertion[0]);

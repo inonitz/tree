@@ -20,16 +20,19 @@
 ## About The Project
 A Long while ago I had to write a Virtual Address Space Manager for [primOS](https://github.com/inonitz/primOS) -  
 At the time, an AVL Tree seemed like a fitting data structure for searching & managing an address space,  
-since **[its height is kept to a certain minimum boundary](https://en.wikipedia.org/wiki/AVL_tree#Properties)**, which is a very common operation   
+since **[its height is kept to a certain minimum boundary](https://en.wikipedia.org/wiki/AVL_tree#Properties)** and it is a very common operation  
 
 I did eventually find a working, open-source implementation online that fit the bill (See Acknowledgements Section),  
-I never had the time to research the inner-workings of AVL Trees.  
-This project is a Working, Tested, and Benchmarked Iterative-Only Generic Implementation of AVL Trees in C & C++
+But I never had the time to research the inner-workings of AVL Trees.  
+
+This project Implements Generic AVL Trees in C & C++, with recursive & iterative implementations available.  
+Specifically, the C++ interface offers both Iterative & recursive versions, while C only offers an iterative version  
+All relevant data structures in this project are fully working & tested
 
 <br></br>
 
 ### Project Structure
-The project has the same structure as my other project [util2](https://github.com/inonitz/util2), except that I added benchmarks & Proper Testing
+The project has the same structure as my other project [util2](https://github.com/inonitz/util2), except that I added benchmarks & Proper Unit Testing
 <br></br>
 
 <!-- ### Built With
@@ -148,11 +151,7 @@ Benchmarks will be added soon enough, thanks to google benchmarks' Over engineer
 
 ## Roadmap/TODO
 
-* Modularize testing using add_test() with CTest
-* [the binaryTreeDeepCopy function](https://github.com/inonitz/tree/blob/master/tree/source/tree/C/binary_tree.c) @Line-102 needs to be finished. Function does nothing right now. Also add test for it
-* add Iterative & Recursive TreeCompare functions to binaryTree
-* AVLTreeIterativeInsert & AVLTreeIterativeDelete Need to be optimized, similarly to avl_tree.c
-* Write multiple fuzzing tests for AVLTreeIsBalanced & AVLTreeIsValidBST in the C, C++ & Templated C++ versions
+* Optimize AVLDeleteIterative in AVLTreeGeneric.tpp, similarly to AVLInsertIterative
 
 <br></br>
 
@@ -184,7 +183,7 @@ Distributed under the MIT License. See `LICENSE` file for more information.
 * [Jenny's Data Structures & Algorithm Course](https://youtube.com/playlist?list=PLdo5W4Nhv31bbKJzrsKfMpo_grxuLl8LU&si=UGaS5lt1SiFYFAN-)  
   - In particular, her videos regarding AVL Tree Rotations
 * [W3Schools AVL Trees](https://www.w3schools.com/dsa/dsa_data_avltrees.php)
-* There are many more to add, will be added soon.
+
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->

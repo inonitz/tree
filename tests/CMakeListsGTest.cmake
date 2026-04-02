@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.24)
 include(GoogleTest)
 
 set(GOOGLE_TEST_TARGET_NAME
@@ -11,17 +11,14 @@ set(GOOGLE_TEST_DEBUG_TARGET_NAME
 
 
 set(GTEST_SOURCES
-    source/AVLTreeTest.cpp
     source/AVLTreeGenericRecursiveTest.cpp
     source/AVLTreeGenericTest.cpp
-    source/AVLTreeTest.cpp
     source/FlatAVLTreeGenericTest.cpp
 )
 
 set(GTEST_HEADERS
     include/AVLTreeGenericRecursiveTest.hpp
     include/AVLTreeGenericTest.hpp
-    include/AVLTreeTest.hpp
     include/FlatAVLTreeGenericTest.hpp
 )
 
@@ -89,7 +86,7 @@ gtest_discover_tests(${GOOGLE_TEST_TARGET_NAME}
 )
 
 # Add a Serially running Debug Target Incase I need to debug specific/newly registered tests
-add_custom_target(debug_${PROJECT_NAME}
+add_custom_target(debug_${GOOGLE_TEST_DEBUG_TARGET_NAME}
     COMMAND ./${GOOGLE_TEST_DEBUG_TARGET_NAME}
     DEPENDS ${GOOGLE_TEST_DEBUG_TARGET_NAME}
     WORKING_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY}

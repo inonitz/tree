@@ -10,7 +10,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "LLDB (Windows-x86_64-Static-Debug-cxx)",
-            "program": "${workspaceFolder}\\build\\debug\\static\\bin\\debug_test_treelib_gtest_serial.exe",
+            "program": "${workspaceFolder}\\build\\debug\\static\\bin\\test_treelib_gtest_serial.exe",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false,

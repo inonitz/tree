@@ -1,5 +1,5 @@
-#ifndef __BINARY_TREE_OPERATION_RETURN_STATUS_DEFINITION_HEADER__
-#define __BINARY_TREE_OPERATION_RETURN_STATUS_DEFINITION_HEADER__
+#ifndef __TREELIB_BINARY_TREE_OPERATION_RETURN_STATUS_DEFINITION_HEADER__
+#define __TREELIB_BINARY_TREE_OPERATION_RETURN_STATUS_DEFINITION_HEADER__
 #include <stdint.h>
 
 #ifdef BINARY_TREE_OP_RESULT_TYPE
@@ -27,6 +27,10 @@
 #   define BINARY_TREE_OP_RESULT_TYPE
     typedef uint8_t binaryTreeResult_t;
     typedef uint8_t binaryTreeBool_t;
+    typedef struct __operation_status_with_bool_status_pair {
+        binaryTreeResult_t m_op;
+        binaryTreeBool_t   m_bool;
+    } binaryTreeStatusPair_t;
 #endif /* BINARY_TREE_OP_RESULT_TYPE */
 
 #define BINARY_TREE_OP_SUCCESS (0)

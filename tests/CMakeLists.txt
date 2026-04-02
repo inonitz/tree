@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.24)
 project(test_treelib
     VERSION 0.0.1
     DESCRIPTION "C/C++ Programs to Test Functionality of tree"

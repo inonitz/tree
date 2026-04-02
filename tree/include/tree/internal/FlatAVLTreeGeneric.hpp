@@ -11,6 +11,7 @@ namespace flat_avl_tree_internal {
     template<typename T, bool IsConst> class InOrderIterator;
     template<typename T, bool IsConst> class PostOrderIterator;
     template<typename T, bool IsConst> class LevelOrderIterator;
+    template<typename T> class FlatAVLTreeTestingMemberAccess;
 }
 
 
@@ -22,6 +23,7 @@ private:
     template<typename U, bool IsConst> friend class flat_avl_tree_internal::InOrderIterator;
     template<typename U, bool IsConst> friend class flat_avl_tree_internal::PostOrderIterator;
     template<typename U, bool IsConst> friend class flat_avl_tree_internal::LevelOrderIterator;
+    friend class flat_avl_tree_internal::FlatAVLTreeTestingMemberAccess<T>;
 
     /* Utility Types */
     using u8 = uint8_t;
@@ -75,6 +77,7 @@ public:
     bool insert(T const& val);
     bool remove(T const& val);
     bool search(T const& val);
+    bool compare(FlatAVLTree const& other) const;
 
     // bool insertRecursive(T const& val);
     // bool removeRecursive(T const& val);

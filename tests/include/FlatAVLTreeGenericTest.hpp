@@ -19,8 +19,14 @@ struct DummyRecord
     bool operator<(const DummyRecord& other) const {
         return m_id < other.m_id;
     }
+    bool operator<=(const DummyRecord& other) const {
+        return m_id <= other.m_id;
+    }
     bool operator>(const DummyRecord& other) const {
         return m_id > other.m_id;
+    }
+    bool operator>=(const DummyRecord& other) const {
+        return m_id >= other.m_id;
     }
     bool operator==(const DummyRecord& other) const {
         return m_id == other.m_id;

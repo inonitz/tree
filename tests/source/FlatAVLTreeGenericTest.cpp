@@ -1,4 +1,7 @@
 #include "FlatAVLTreeGenericTest.hpp"
+#include "tree/internal/nodeMetadata.hpp"
+#include <util2/random.hpp>
+#include <tree/internal/FlatAVLGenericAccessor.hpp>
 #include <tree/FlatAVLTreeImpl.hpp>
 #include <shared_mutex>
 #include <utility>
@@ -213,8 +216,6 @@ static std::string generateRandomString(size_t length) {
 }
 
 
-
-
 template<typename T>
 static std::array<T, 4> generateDataForSimpleTypedTests() {
     return { 10, 20, 30, 40 };
@@ -247,7 +248,6 @@ template<> std::array<std::string, 4> generateDataForSimpleTypedTests<>() {
         to_padded_str(40)
     };
 }
-
 
 
 template<typename T>
@@ -284,6 +284,42 @@ template<> std::array<std::string, 7> generateDataForRebalanceTest<>() {
         to_padded_str(50), to_padded_str(25), to_padded_str(75),
         to_padded_str(10), to_padded_str(35), to_padded_str(60),
         to_padded_str(90)
+    };
+}
+
+
+template<typename T> static std::array<T, 5> generateDataForValidBSTTest() {
+    return { 
+        __scast(T, 50), 
+        __scast(T, 25), 
+        __scast(T, 75),
+        __scast(T, 60), 
+        __scast(T, 10) 
+    };
+}
+template<> std::array<DummyRecord, 5> generateDataForValidBSTTest<>() {
+    return { 
+        DummyRecord{50}, 
+        DummyRecord{25}, 
+        DummyRecord{75},
+        DummyRecord{60}, 
+        DummyRecord{10} 
+    };
+}
+template<> std::array<std::string, 5> generateDataForValidBSTTest<>() {
+    auto to_padded_str = [](int val) {
+        std::ostringstream oss;
+        oss << std::setw(2) << std::setfill('0') << val;
+        return oss.str();
+    };
+
+
+    return {
+        to_padded_str(50), 
+        to_padded_str(25), 
+        to_padded_str(75),
+        to_padded_str(60), 
+        to_padded_str(10) 
     };
 }
 
@@ -439,6 +475,169 @@ TYPED_TEST(FlatAVLTreeGenericTest, DeletionRebalancing) {
 }
 
 
+TYPED_TEST(FlatAVLTreeGenericTest, CompareEqualSame) {
+    FlatAVLTree<TypeParam> treeA;
+	FlatAVLTree<TypeParam> treeB;
+    auto                testData = generateDataForRebalanceTest<TypeParam>();
+
+
+	for (auto& val : testData) {
+		EXPECT_TRUE(treeA.insert(val));
+		EXPECT_TRUE(treeB.insert(val));
+	}
+	EXPECT_TRUE(treeA.compare(treeB));
+
+
+    treeA.clear();
+    treeB.clear();
+	return;
+}
+
+
+TYPED_TEST(FlatAVLTreeGenericTest, CompareInequalEdgeCaseAndFull) {
+    FlatAVLTree<TypeParam> treeA;
+	FlatAVLTree<TypeParam> treeB;
+    auto                   testData = generateDataForRebalanceTest<TypeParam>();
+
+    /* Check Inequality for empty compare */
+    treeA.insert(testData[0]);
+	EXPECT_FALSE(treeA.compare(treeB));
+
+    /* Check inequality between 2 trees that are almost identical */
+    treeA.clear();
+	for (auto& val : testData) {
+		EXPECT_TRUE(treeA.insert(val));
+	}
+	for (uint64_t i = 0; i < testData.size() - 1; ++i) {
+		EXPECT_TRUE(treeB.insert(testData[i]));
+	}
+
+    EXPECT_FALSE(treeA.compare(treeB));
+    treeA.clear();
+    treeB.clear();
+	return;
+}
+
+
+TYPED_TEST(FlatAVLTreeGenericTest, VerifyIsValidBST) {
+    FlatAVLTree<TypeParam> tree;
+    uint32_t oopsyNodeIdx = flat_avl_tree_internal::Metadata::k_nullIndex;
+    auto testData = generateDataForValidBSTTest<TypeParam>();
+    auto accessor = flat_avl_tree_internal::FlatAVLTreeTestingMemberAccess{tree};
+
+    /* 
+		Construct a small tree:
+            50
+           /  \
+          25   75
+    */
+    tree.insert(testData[0]);
+    tree.insert(testData[1]);
+    tree.insert(testData[2]);
+
+    /* Attach 60 as the right child of 25, which doesn't satisfy the BST */
+    oopsyNodeIdx = accessor.allocateNode();
+    accessor.valueRW(oopsyNodeIdx) = testData[3];
+
+    auto idx = accessor.rootIndex();
+    idx = accessor.metadataRO(idx).getLeftChild();
+    
+    accessor.metadataRW(idx).setRightChild(oopsyNodeIdx);
+    /* [NOTE]: I dont change the height of 25 & 50 respectively since balancing isn't tested here. */
+    EXPECT_FALSE(tree.isValidBST());
+    accessor.metadataRW(idx).setRightChild(flat_avl_tree_internal::Metadata::k_nullIndex);
+
+
+    accessor.freeNode(oopsyNodeIdx);
+    tree.clear();
+    return;
+}
+
+
+TYPED_TEST(FlatAVLTreeGenericTest, VerifyIsValidBSTEmpty) {
+    FlatAVLTree<TypeParam> tree;
+    EXPECT_TRUE(tree.isValidBST());
+	return;
+}
+
+
+TYPED_TEST(FlatAVLTreeGenericTest, VerifyIsValidBSTDuplicateCheck) {
+    FlatAVLTree<TypeParam> tree;
+    uint32_t dupNodeIdx = flat_avl_tree_internal::Metadata::k_nullIndex;
+    auto     testData   = generateDataForValidBSTTest<TypeParam>();
+    auto     accessor   = flat_avl_tree_internal::FlatAVLTreeTestingMemberAccess{tree};
+
+    /* Single Node Tree with data[0] */
+    EXPECT_TRUE(tree.insert(testData[0]));
+
+    /* Duplicate the node manually and insert it as the left child */
+    dupNodeIdx = accessor.allocateNode();
+    accessor.valueRW(dupNodeIdx) = testData[0];
+    accessor.metadataRW(dupNodeIdx) = flat_avl_tree_internal::Metadata{};
+
+    /* Set the Left Child as dupNode */
+    auto idx = accessor.rootIndex();
+    accessor.metadataRW(idx).setLeftChild(dupNodeIdx);
+    accessor.metadataRW(idx).setHeight(1);
+
+    /* BSTs must be strictly increasing; duplicates fail the > check */
+    EXPECT_FALSE(tree.isValidBST());
+
+    /* Revert manual changes and free the tree */
+    accessor.metadataRW(idx).setLeftChild(flat_avl_tree_internal::Metadata::k_nullIndex);
+    accessor.metadataRW(idx).setHeight(0);
+    accessor.freeNode(dupNodeIdx);
+    tree.clear();
+	return;
+}
+
+
+TYPED_TEST(FlatAVLTreeGenericTest, VerifyBalanceFactor) {
+    FlatAVLTree<TypeParam> tree;
+    uint32_t allocNode  = flat_avl_tree_internal::Metadata::k_nullIndex;
+    int8_t   oldBalance = 0;
+    auto     testAData  = generateDataForRebalanceTest<TypeParam>();
+    auto     testBData  = generateDataForSimpleTypedTests<TypeParam>();
+    auto     accessor   = flat_avl_tree_internal::FlatAVLTreeTestingMemberAccess{tree};
+
+
+	for (auto& val : testAData) {
+        EXPECT_TRUE(tree.insert(val));
+	}
+	/* Tree of Height 2 with 2 full nodes per parent. balance factor is 0 across all nodes */
+    EXPECT_TRUE(tree.isBalanced());
+
+
+    /* Clear the Tree for the next Test*/
+    tree.clear();
+
+
+    /* insert root s.t m_rootIdx != null */
+    tree.insert(testBData[0]);
+    /* testBData[1] > testBData[0], will be the right child. */
+    tree.insert(testBData[1]);
+
+    /* Get root->right, s.t we insert testBData[2] manually to its right without rotations */
+    uint32_t idx = accessor.rootIndex();
+    idx = accessor.metadataRO(idx).getRightChild();
+
+    allocNode = accessor.allocateNode();
+    accessor.valueRW(allocNode) = testBData[2];
+    accessor.metadataRW(allocNode) = flat_avl_tree_internal::Metadata{};
+    
+    /* set root->right->right */
+    accessor.metadataRW(idx).setRightChild(allocNode);
+    accessor.metadataRW(idx).setHeight(1);
+    accessor.metadataRW(accessor.rootIndex()).setHeight(2);
+
+    EXPECT_TRUE(tree.isValidBST());
+    EXPECT_FALSE(tree.isBalanced());
+
+    tree.clear();
+    return;
+}
+
+
 
 
 TYPED_TEST(FlatAVLTreeGenericTest, StochasticStressTest) {
@@ -470,9 +669,10 @@ TYPED_TEST(FlatAVLTreeGenericTest, StochasticStressTest) {
     uint32_t& searchExistingValueFailure = searchInSet[1];
 
 
+    printf("FlatAVLTreeGenericTest End\n");
     gen.seed(g_testSeed);
     for (uint32_t i = 0; i < FlatAVLTreeGenericTest<TypeParam>::gk_stest_total_ops; ++i) {
-        printf("\r\r\r\r\r\r");
+        // printf("\r\r\r\r\r\r");
         /* Debug breakpoints for different scenarios for commented out seed in SetUp() */
         // util2_debugbreakif(i == 2);
         // util2_debugbreakif(i == 41);
@@ -589,12 +789,12 @@ TYPED_TEST(FlatAVLTreeGenericTest, StochasticStressTest) {
         ASSERT_TRUE(tree.isValidBST()) << "BST violation at op " << i << " (Seed: " << g_testSeed << ")";
         ASSERT_EQ(tree.size(), treeValueSet.size()) << "Size mismatch at op " << i;
         // }
-        printf("%06u", i);
+        // printf("%06u", i);
         IterationLogEnd(this->log(), i);
     }
-    printf("\n");
-
-
+    
+    
+    printf("FlatAVLTreeGenericTest End\n");
     this->log() << "\n[==========] Stochastic Stress Diagnostics\n";
     this->log() << "             Seed:                                       " << g_testSeed << "\n";
     this->log() << "             Insertions              (Success, Failure): " << std::setw(6) << std::setfill('0') << insertion[1]               << " " << std::setw(6) << std::setfill('0') << insertion[0]               << "\n";

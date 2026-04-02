@@ -1,5 +1,5 @@
-#ifndef __AVL_TREE_C_VERSION_DEFINITION_HEADER__
-#define __AVL_TREE_C_VERSION_DEFINITION_HEADER__
+#ifndef __TREELIB_AVL_TREE_C_VERSION_DEFINITION_HEADER__
+#define __TREELIB_AVL_TREE_C_VERSION_DEFINITION_HEADER__
 #include <tree/C/treelib_api.h>
 #include <tree/C/treelib_extern.h>
 #include <tree/C/compare_func.h>
@@ -26,20 +26,30 @@ void TREELIB_API AVLTreeCreate(
     binaryTreeComparatorFunc valueCompare,
     uint32_t                 valueSizeInBytes
 );
+binaryTreeResult_t TREELIB_API AVLTreeCreateCopy(
+    AVLTree* toCopyFrom,
+    AVLTree* toCopyTo
+);
 void               TREELIB_API AVLTreeDestroy(AVLTree* root);
-binaryTreeResult_t TREELIB_API AVLTreeInsertOld(AVLTree* root, void* value);
 binaryTreeResult_t TREELIB_API AVLTreeInsert(AVLTree* root, void* value);
 binaryTreeResult_t TREELIB_API AVLTreeRemove(AVLTree* root, void* value);
 binaryTreeBool_t   TREELIB_API AVLTreeSearch(AVLTree const* root, void* value);
-binaryTreeBool_t   TREELIB_API AVLTreeIsValidBST(AVLTree const* root);
-binaryTreeBool_t   TREELIB_API AVLTreeIsBalanced(AVLTree const* root);
+
+binaryTreeStatusPair_t TREELIB_API AVLTreeCompare(
+    AVLTree const*           rootA, 
+    AVLTree const*           rootB,
+    binaryTreeComparatorFunc cmpFunc
+);
+binaryTreeStatusPair_t TREELIB_API AVLTreeIsValidBST(AVLTree const* root);
+binaryTreeStatusPair_t TREELIB_API AVLTreeIsBalanced(AVLTree const* root);
+
 binaryTreeBool_t   TREELIB_API AVLTreeEmpty(AVLTree const* root);
 uint32_t           TREELIB_API AVLTreeSize(AVLTree const* root);
 int8_t             TREELIB_API AVLTreeHeight(AVLTree const* root);
-void               TREELIB_API AVLTreePrint(
-    AVLTree const* root, 
-    void*          outputTargetPtr, 
-    uint8_t        isBuffer, 
+binaryTreeResult_t TREELIB_API AVLTreePrint(
+    AVLTree const* root,
+    void*          outputTargetPtr,
+    uint8_t        isBuffer,
     uint64_t       bufferSize,
     binaryTreeNodeDataPrinterFunc optionalNodePrinter
 );

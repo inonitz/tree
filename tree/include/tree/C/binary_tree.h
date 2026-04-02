@@ -1,5 +1,5 @@
-#ifndef __BINARY_TREE_C_VERSION_DEFINITION_HEADER__
-#define __BINARY_TREE_C_VERSION_DEFINITION_HEADER__
+#ifndef __TREELIB_BINARY_TREE_C_VERSION_DEFINITION_HEADER__
+#define __TREELIB_BINARY_TREE_C_VERSION_DEFINITION_HEADER__
 #include <tree/C/treelib_api.h>
 #include <tree/C/treelib_extern.h>
 #include <tree/C/compare_func.h>
@@ -22,24 +22,32 @@ typedef struct binaryTreeNode {
 
 
 binaryTreeResult_t TREELIB_API binaryTreeNodeCreate(
-    binaryTreeNode* rootNode, 
-    void*           value, 
+    binaryTreeNode* rootNode,
+    void*           value,
     uint32_t        valueSizeBytes
 );
 binaryTreeResult_t TREELIB_API binaryTreeNodeCreateWithPointers(
-    binaryTreeNode* rootNode,
-    binaryTreeNode* leftNode,
-    binaryTreeNode* rightNode,
-    binaryTreeNode* parentNode,
-    void*           value, 
-    uint32_t        valueSizeBytes
+    binaryTreeNode*       rootNode,
+    binaryTreeNode const* leftNode,
+    binaryTreeNode const* rightNode,
+    binaryTreeNode const* parentNode,
+    void*                 value,
+    uint32_t              valueSizeBytes
 );
 void TREELIB_API binaryTreeNodeDestroy(binaryTreeNode* node);
-void TREELIB_API binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTreeSizeHint);
+binaryTreeResult_t TREELIB_API binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTreeSizeHint);
 binaryTreeResult_t TREELIB_API binaryTreeDeepCopy(
-    binaryTreeNode*  treeIn,
-    uint32_t         binaryTreeSize,
-    binaryTreeNode** treeOut
+    binaryTreeNode const* treeIn,
+    uint32_t              binaryTreeSize,
+    uint32_t              valueSizeBytes,
+    binaryTreeNode**      treeOut,
+    binaryTreeNode**      treeNodeBufferOut
+);
+binaryTreeResult_t TREELIB_API binaryTreeDeepCopyNoBuf(
+    binaryTreeNode const* treeIn,
+    uint32_t              binaryTreeSize,
+    uint32_t              valueSizeBytes,
+    binaryTreeNode**      treeOut
 );
 void TREELIB_API binaryTreeNodeShallowCopy(
     binaryTreeNode* nodeIn,
@@ -55,8 +63,14 @@ binaryTreeBool_t TREELIB_API binaryTreeNodeIsSingleNodeParent(binaryTreeNode con
 binaryTreeBool_t TREELIB_API binaryTreeNodeIsFull(binaryTreeNode const* node);
 binaryTreeNode*  TREELIB_API binaryTreeFindMax(binaryTreeNode* node);
 binaryTreeNode*  TREELIB_API binaryTreeFindMin(binaryTreeNode* node);
-binaryTreeBool_t TREELIB_API binaryTreeIsValidBST(
-    binaryTreeNode const*    node, 
+binaryTreeStatusPair_t TREELIB_API binaryTreeCompare(
+    binaryTreeNode const*    nodeA,
+    binaryTreeNode const*    nodeB,
+    uint32_t                 binaryTreeSizeHint,
+    binaryTreeComparatorFunc cmp
+);
+binaryTreeStatusPair_t TREELIB_API binaryTreeIsValidBST(
+    binaryTreeNode const*    node,
     uint32_t                 binaryTreeSizeHint,
     binaryTreeComparatorFunc cmp
 );
@@ -69,5 +83,6 @@ binaryTreeBool_t TREELIB_API binaryTreeSearchValue(
 
 
 TREELIB_EXTERNC_DECL_END
+
 
 #endif /* __BINARY_TREE_C_VERSION_DEFINITION_HEADER__ */

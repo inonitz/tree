@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.24)
 include(GoogleTest)
 include(ProcessorCount)
 
@@ -12,7 +12,6 @@ project(benchmark_treelib
 
 set(SOURCES
     source/AVLTreeCBench.cpp
-    source/AVLTreeBench.cpp
     source/AVLTreeGenericBench.cpp
     source/AVLTreeGenericRecursiveBench.cpp
     source/FlatAVLTreeGenericBench.cpp

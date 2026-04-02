@@ -11,6 +11,9 @@ class BreakpointOnFailure : public testing::EmptyTestEventListener {
 };
 
 
+/*
+    This main is only called when linking against it, i.e in serial debug targets
+*/
 int main(int argc, char *argv[])
 {
     int result = 0;
@@ -30,12 +33,12 @@ int main(int argc, char *argv[])
     */
     // ::testing::GTEST_FLAG(filter) = "GenericRecursiveAVLTreeTest/*.*";
     // result = RUN_ALL_TESTS();
-    // ::testing::GTEST_FLAG(filter) = "GenericAVLTreeTest*";
-    // result = RUN_ALL_TESTS();
+    ::testing::GTEST_FLAG(filter) = "GenericAVLTreeTest*";
+    result = RUN_ALL_TESTS();
     // ::testing::GTEST_FLAG(filter) = "AVLTreeTest*";
     // result = RUN_ALL_TESTS();
-    ::testing::GTEST_FLAG(filter) = "FlatAVLTreeGenericTest*";
-    result = RUN_ALL_TESTS();
+    // ::testing::GTEST_FLAG(filter) = "FlatAVLTreeGenericTest*";
+    // result = RUN_ALL_TESTS();
     // ::testing::GTEST_FLAG(filter) = "*";
     // result = RUN_ALL_TESTS();
     return result;

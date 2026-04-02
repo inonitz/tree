@@ -1,5 +1,5 @@
 #include <tree/C/vector.h>
-#include <stdlib.h>
+#include <tree/C/alloc.h>
 #include <string.h>
 
 
@@ -16,7 +16,7 @@ void GenericVectorCreate(GenericVector* toCreate, uint32_t elementSizeBytes) {
 bool GenericVectorCreateWithCapacity(GenericVector* toCreate, uint32_t elementSizeBytes, uint32_t capacity) {
     memset(toCreate, 0x00, sizeof(GenericVector));
 
-    toCreate->m_buf = malloc(elementSizeBytes * capacity);
+    toCreate->m_buf = treelibMallocBytesExplicit(uint8_t, elementSizeBytes, capacity);
     if(toCreate->m_buf == NULL) {
         return 1;
     }
@@ -27,8 +27,8 @@ bool GenericVectorCreateWithCapacity(GenericVector* toCreate, uint32_t elementSi
 }
 
 bool GenericVectorCreateWithSize(
-    GenericVector* toCreate, 
-    uint32_t       elementSizeBytes, 
+    GenericVector* toCreate,
+    uint32_t       elementSizeBytes,
     uint32_t       initialElementCount,
     const void*    defaultValue
 ) {
@@ -56,7 +56,7 @@ bool GenericVectorCreateWithSize(
 
 void GenericVectorDestroy(GenericVector* toDestroy) {
     if(toDestroy->m_buf) {
-        free(toDestroy->m_buf);
+        treelibFreeTypeExplicit(toDestroy->m_buf);
     }
     memset(toDestroy, 0x00, sizeof(GenericVector));
     return;
@@ -71,7 +71,7 @@ void* GenericVectorGet(GenericVector const* toRead, uint32_t index) {
     if(  GenericVectorEmpty(toRead) || (index >= toRead->m_objCount) ) {
         return NULL;
     }
-    return GenericVectorAt(toRead, index); 
+    return GenericVectorAt(toRead, index);
 }
 
 void GenericVectorSetAt(GenericVector* toModify, uint32_t index, void const* val) {
@@ -151,8 +151,8 @@ void GenericVectorClear(GenericVector* toModify) {
 }
 
 bool GenericVectorInsert(
-    GenericVector* toModify, 
-    uint32_t       index, 
+    GenericVector* toModify,
+    uint32_t       index,
     uint32_t       objCount,
     void const*    values
 ) {
@@ -162,11 +162,11 @@ bool GenericVectorInsert(
     }
 
 
-    bool elementsAreAppended = 
-        GenericVectorEmpty(toModify) 
-        || 
+    bool elementsAreAppended =
+        GenericVectorEmpty(toModify)
+        ||
         ( (toModify->m_objCount != 0) && (index == toModify->m_objCount) );
-    
+
     if(!elementsAreAppended) {
         uint8_t* objectsSrc     = GenericVectorAt(toModify, index);
         uint8_t* objectsNewDest = GenericVectorAt(toModify, index + objCount);
@@ -181,19 +181,19 @@ bool GenericVectorInsert(
 }
 
 void GenericVectorErase(
-    GenericVector* toModify, 
-    uint32_t       index, 
+    GenericVector* toModify,
+    uint32_t       index,
     uint32_t       objCount
 ) {
     if(GenericVectorEmpty(toModify) || index >= toModify->m_objCount) {
         return;
     }
-    
-    
+
+
     /* Clamp objCount if it exceeds the number of elements available from index */
-    objCount = (index + objCount > toModify->m_objCount) ? 
-        toModify->m_objCount - index 
-        : 
+    objCount = (index + objCount > toModify->m_objCount) ?
+        toModify->m_objCount - index
+        :
         objCount;
 
 
@@ -212,12 +212,12 @@ void GenericVectorErase(
 }
 
 bool GenericVectorPushBack(GenericVector* toModify, void const* val) {
-    if(toModify->m_objCount == toModify->m_objCapacity) 
+    if(toModify->m_objCount == toModify->m_objCapacity)
     {
         bool tmpBool = (toModify->m_objCapacity == 1) || (toModify->m_objCapacity == 0);
-        const uint32_t newMaxSize = tmpBool ? 
+        const uint32_t newMaxSize = tmpBool ?
             3 : (3 * toModify->m_objCapacity) / 2;
-        
+
         tmpBool = GenericVectorChangeCapacity(toModify, newMaxSize);
         if(tmpBool) {
             return 1;
@@ -263,7 +263,7 @@ bool GenericVectorResize(GenericVector* toModify, uint32_t newSize) {
 
     /* Clear all newly allocated elements. */
     GenericVectorClearRange(
-        GenericVectorEnd(toModify), 
+        GenericVectorEnd(toModify),
         &toModify->m_buf[GenericVectorCapacityBytes(toModify)]
     );
     toModify->m_objCount = toModify->m_objCapacity;
@@ -296,8 +296,11 @@ bool GenericVectorChangeCapacity(GenericVector* toModify, uint32_t numElems)
         toModify->m_objSize = objSize;
         return 0;
     }
-    uint64_t newBufBytes = (uint64_t)toModify->m_objSize * numElems;
-    uint8_t* newBuf      = realloc(toModify->m_buf, newBufBytes);
+    uint8_t* newBuf = treelibReallocBytesExplicit(uint8_t,
+        toModify->m_buf,
+        toModify->m_objSize,
+        numElems
+    );
 
     toModify->m_buf         = (newBuf != NULL) ? newBuf   : toModify->m_buf;
     toModify->m_objCapacity = (newBuf != NULL) ? numElems : toModify->m_objCapacity;

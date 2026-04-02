@@ -1,4 +1,5 @@
 #include <tree/C/stack.h>
+#include <tree/C/alloc.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -17,12 +18,15 @@ uint8_t GenericStackCreate (
     toCreate->m_objSize  = objectSizeInBytes;
     toCreate->m_objCount = 0;
     toCreate->m_maxObjCount = firstObjCount == 0 ? 1 : firstObjCount;
-    toCreate->m_buffer = (uint8_t*)malloc( (uint64_t)toCreate->m_maxObjCount * toCreate->m_objSize);
+    toCreate->m_buffer      = treelibMallocBytesExplicit(uint8_t,
+        toCreate->m_objSize,
+        toCreate->m_maxObjCount
+    );
     return toCreate->m_buffer == NULL ? 1 : 0;
 }
 
 void GenericStackDestroy(GenericStack* toDestroy) {
-    free(toDestroy->m_buffer);
+    treelibFreeTypeExplicit(toDestroy->m_buffer);
     memset(toDestroy, 0x00, sizeof(GenericStack));
     return;
 }
@@ -30,7 +34,7 @@ void GenericStackDestroy(GenericStack* toDestroy) {
 
 
 uint8_t GenericStackPush(
-    GenericStack* toModify, 
+    GenericStack* toModify,
     void* objAddr
 ) {
     uint8_t  failStatus = 0;
@@ -38,7 +42,7 @@ uint8_t GenericStackPush(
 
 
     if(toModify->m_objCount == toModify->m_maxObjCount) { /* Stack is full */
-        uint32_t newMaxSize = toModify->m_maxObjCount == 1 ? 
+        uint32_t newMaxSize = toModify->m_maxObjCount == 1 ?
             3 : (3 * toModify->m_maxObjCount) / 2;
 
         failStatus = GenericStackGrow(toModify, newMaxSize);
@@ -56,7 +60,7 @@ uint8_t GenericStackPush(
 
 
 uint8_t GenericStackTop(
-    GenericStack const* toRead,  
+    GenericStack const* toRead,
     void* objAddrToWriteTo
 ) {
     if(GenericStackEmpty(toRead)) {
@@ -94,7 +98,11 @@ static uint8_t GenericStackGrow(
     GenericStack* toReAlloc,
     uint32_t      newObjectCount
 ) {
-    uint8_t* newBuffer = (uint8_t*)realloc(toReAlloc->m_buffer, (uint64_t)newObjectCount * toReAlloc->m_objSize);
+    uint8_t* newBuffer = treelibReallocBytesExplicit(uint8_t,
+        toReAlloc->m_buffer,
+        toReAlloc->m_objSize,
+        newObjectCount
+    );
     toReAlloc->m_buffer      = (newBuffer != NULL) ? newBuffer      : toReAlloc->m_buffer;
     toReAlloc->m_maxObjCount = (newBuffer != NULL) ? newObjectCount : toReAlloc->m_maxObjCount;
     return newBuffer == NULL;

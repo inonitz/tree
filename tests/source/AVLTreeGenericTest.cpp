@@ -327,6 +327,58 @@ TYPED_TEST(GenericAVLTreeTest, DeletionRebalancing) {
 }
 
 
+TYPED_TEST(GenericAVLTreeTest, CompareEqualSameAndCopy) {
+    AVLTree<TypeParam>  treeA;
+	AVLTree<TypeParam>  treeB;
+    AVLTree<TypeParam>  treeC;
+    auto                testData = generateDataForRebalanceTest<TypeParam>();
+
+
+	for (auto& val : testData) {
+		EXPECT_TRUE(treeA.insert(val));
+		EXPECT_TRUE(treeB.insert(val));
+	}
+    treeC.copy(treeB);
+    EXPECT_TRUE(treeA.compare(treeC));
+	EXPECT_TRUE(treeA.compare(treeB));
+
+
+    treeA.clear();
+    treeB.clear();
+    treeC.clear();
+	return;
+}
+
+
+TYPED_TEST(GenericAVLTreeTest, CompareInequalEdgeCaseAndFull) {
+    AVLTree<TypeParam>  treeA;
+	AVLTree<TypeParam>  treeB;
+    auto                testData = generateDataForRebalanceTest<TypeParam>();
+
+
+    /* Check Inequality for empty compare */
+    treeA.insert(testData[0]);
+	EXPECT_FALSE(treeA.compare(treeB));
+
+    /* Check inequality between 2 trees that are almost identical */
+    treeA.clear();
+	for (auto& val : testData) {
+		EXPECT_TRUE(treeA.insert(val));
+	}
+	for (uint64_t i = 0; i < testData.size() - 1; ++i) {
+		EXPECT_TRUE(treeB.insert(testData[i]));
+	}
+
+
+    EXPECT_FALSE(treeA.compare(treeB));
+    treeA.clear();
+    treeB.clear();
+	return;
+}
+
+
+
+
 /* RANDOMIZED STRESS TEST */
 TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
     using OpType = typename GenericAVLTreeTest<TypeParam>::OperationType;
@@ -360,6 +412,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
     uint32_t& searchExistingValueFailure = searchInSet[1];
 
 
+    printf("AVLTreeGenericTest Begin\n");
     gen.seed(seed);
     for (uint32_t i = 0; i < GenericAVLTreeTest<TypeParam>::gk_stest_total_ops; ++i) {
         // printf("\r\r\r\r\r\r");
@@ -441,8 +494,9 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
         }
         // printf("%06u", i);
     }
-    printf("\n");
 
+
+    printf("AVLTreeGenericRecursiveTest Begin\n");
     this->generic_write_to_test_buffer("\n[==========] Stochastic Stress Diagnostics\n");
     this->generic_write_to_test_buffer("             Seed:                                       %u\n", seed);
     this->generic_write_to_test_buffer("             Insertions              (Success, Failure): %06u %06u\n", insertion[1], insertion[0]);
@@ -455,6 +509,8 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
         this->generic_write_to_test_buffer("             Tree Height: %u\n", tree.getRoot()->m_height);
     }
 
+    
     tree.clear();
+    treeValueSet.clear();
     return;
 }

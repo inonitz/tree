@@ -5,7 +5,7 @@
 #   endif /* __BINARY_TREE_GENERIC_DEFINITION_HEADER__ */
 #include <tree/internal/AVLTreeRotateState.hpp>
 #include <cstdio>
-#include <cstring>
+#include <stack>
 #include <queue>
 
 
@@ -61,7 +61,7 @@ bool binaryTree<T>::isValidAVL_InternalRecursive(binaryTree<T>* node)
     if(node == nullptr) {
         return true;
     }
-    bool balanced = (node->m_bf == -1) || (node->m_bf == +1) ||  (node->m_bf == 0); 
+    bool balanced = (node->m_bf == -1) || (node->m_bf == +1) || (node->m_bf == 0); 
     return balanced && isValidAVL_InternalRecursive(node->m_left) && isValidAVL_InternalRecursive(node->m_right);
 }
 
@@ -158,10 +158,61 @@ void binaryTree<T>::destroy(binaryTree<T>* node) noexcept
 
 template<typename T>
 void binaryTree<T>::deepCopy(
-    binaryTree<T>* nodeIn, 
-    binaryTree<T>* nodeOut
+    binaryTree<T>*  nodeIn, 
+    binaryTree<T>** nodeOut
 ) {
+    binaryTree<T> const* currNode  = nodeIn;
+    binaryTree<T> const* leftNode  = nodeIn->m_left;
+    binaryTree<T> const* rightNode = nodeIn->m_right;
+    binaryTree<T>* currCopiedNode  = NULL;
+    uint32_t                         currLevelSize = 0;
+    std::queue<binaryTree<T> const*> currLevelNodes;
+    std::queue<binaryTree<T>*>       copiedLevelNodes;
 
+
+    currCopiedNode = new binaryTree<T>{ currNode->m_data.get() };
+    *nodeOut = currCopiedNode;
+
+    currLevelNodes.push(currNode);
+    copiedLevelNodes.push(currCopiedNode);
+    while( !currLevelNodes.empty() )
+    {
+        currLevelSize = currLevelNodes.size();
+        while(currLevelSize) {
+            currNode       = currLevelNodes.front();
+            currCopiedNode = copiedLevelNodes.front();
+            
+            
+            leftNode  = currNode->m_left;
+            rightNode = currNode->m_right;
+            if(leftNode != NULL) {
+                currLevelNodes.push(leftNode);
+
+                currCopiedNode->m_left = new binaryTree<T>{ 
+                    nullptr, nullptr, currCopiedNode,
+                    leftNode->m_data.get() 
+                };
+                copiedLevelNodes.push(currCopiedNode->m_left);
+            }
+            if(rightNode != NULL) {
+                currLevelNodes.push(rightNode);
+                
+                currCopiedNode->m_right = new binaryTree<T>{ 
+                    nullptr, nullptr, currCopiedNode,
+                    rightNode->m_data.get() 
+                };
+                copiedLevelNodes.push(currCopiedNode->m_right);
+            }
+
+
+            currLevelNodes.pop();
+            copiedLevelNodes.pop();
+            --currLevelSize;
+        }
+    }
+
+
+    return;
 }
 
 template<typename T>
@@ -185,8 +236,7 @@ template<typename T>
 void binaryTree<T>::move(
     binaryTree<T>* toMoveFrom,
     binaryTree<T>* toMoveTo
-)
-{
+) {
     shallowCopy(toMoveFrom, toMoveTo);
     memset(toMoveFrom, 0x00, toMoveFrom->nodeSize());
     return;
@@ -387,30 +437,37 @@ void binaryTree<T>::maybeRebalance(
 
 
 
-
 template<typename T>
-bool binaryTree<T>::isValidBSTRecursive(binaryTree<T>* node)
+bool binaryTree<T>::isValidBSTRecursive(binaryTree<T>* node, binaryTree<T>** parent)
 {
     if(node == nullptr) {
         return true;
     }
-    if(binaryTree<T>::isLeaf(node)) {
-        return true;
+
+    if(!isValidBSTRecursive(node->m_left, parent)) {
+        return false;
     }
-    bool satisfiesCondition = true;
-    if(node->m_left) {
-        satisfiesCondition = satisfiesCondition && (node->m_data.get() > node->m_left->m_data.get());
+
+    if(*parent != nullptr) {
+        if((*parent)->m_data.get() >= node->m_data.get()) {
+            return false;
+        }
     }
-    if(node->m_right) {
-        satisfiesCondition = satisfiesCondition && (node->m_data.get() < node->m_right->m_data.get());
+
+    *parent = node;
+    if(!isValidBSTRecursive(node->m_right, parent)) {
+        return false;
     }
-    return satisfiesCondition && isValidBSTRecursive(node->m_left) && isValidBSTRecursive(node->m_right);
+
+
+    return true;
 }
 
 template<typename T>
 bool binaryTree<T>::isValidAVL(binaryTree<T>* node)
 {
-    if(!binaryTree<T>::isValidBSTRecursive(node)) {
+    binaryTree<T>* parent = nullptr;
+    if(!binaryTree<T>::isValidBSTRecursive(node, &parent)) {
         return false;
     }
     return binaryTree<T>::isValidAVL_InternalRecursive(node);
@@ -436,9 +493,9 @@ void binaryTree<T>::writeBufferRecursive(
 
 
 template<typename T>
-binaryTree<T>* binaryTree<T>::searchIterative(binaryTree<T>* node, T const& value) {
-    bool           found = false;
-    binaryTree<T>* searchptr = nullptr;
+binaryTree<T> const* binaryTree<T>::searchIterative(binaryTree<T> const* node, T const& value) {
+    binaryTree<T> const* searchptr = nullptr;
+    bool found = false;
 
     for(searchptr = node; (searchptr != nullptr) && !found; ) {
         found = (searchptr->m_data.get() == value);
@@ -454,63 +511,25 @@ binaryTree<T>* binaryTree<T>::searchIterative(binaryTree<T>* node, T const& valu
     return found ? searchptr : nullptr;
 }
 
-
-template<typename T>
-bool binaryTree<T>::searchRecursive(binaryTree* node, T const& value)
-{
-    if(node == nullptr) {
-        return false;
-    }
-
-    auto const& nodeData = node->m_data.get();
-    if(value < nodeData) {
-        return binaryTree<T>::searchRecursive(node->m_left, value);
-    } 
-    else if(value > nodeData) {
-        return binaryTree<T>::searchRecursive(node->m_right, value);
-    }
-
-
-    return true;
-}
-
-
-
-
 template<typename T>
 bool binaryTree<T>::AVLInsertIterative(binaryTree<T>* node, T const& value, binaryTree<T>** out)
 {
-    int8_t      bfright, bfleft;
-    bool        inserted = false;
-    bool        found  = false;
-    binaryTree<T>* search = node;
+    bool           found, cmp = found = false;
+    binaryTree<T>* search       = node;
     binaryTree<T>* allocNode    = nullptr;
     binaryTree<T>* maybeNewRoot = nullptr;
-    std::deque<binaryTree<T>*> nodesTouched;
+    std::stack<binaryTree<T>*> nodesTouched;
 
 
     if(node == nullptr) {
         *out = new binaryTree<T>{value};
         return true;
     }
-
-    // binaryTree<T>::searchIterative(val, search);
-    // if(search != nullptr) {
-    //     *out = node;
-    //     return false;
-    // }
-
-
-    // search    = node;
-    // allocNode = new binaryTree<T>{val};
-    // for(; search != nullptr ;) {
-    //     nodesTouched.push_back(search);
-    //     search = (val < search->m_data) ? search->m_left : search->m_right;
-    // }
     for(search = node; !found && search != nullptr; ) {
-        nodesTouched.push_back(search);
+        nodesTouched.push(search);
         found  = (value == search->m_data.get());
-        search = (value < search->m_data.get()) ? search->m_left : search->m_right;
+        cmp    = (value < search->m_data.get());
+        search = cmp ? search->m_left : search->m_right;
     }
     
     
@@ -521,37 +540,20 @@ bool binaryTree<T>::AVLInsertIterative(binaryTree<T>* node, T const& value, bina
     
     
     allocNode = new binaryTree<T>{value};
-    if(allocNode == nullptr) {
-        *out = nullptr;
-        return false;
+    auto& top = nodesTouched.top();
+    if(cmp) {
+        top->m_left = allocNode;
+    } else {
+        top->m_right = allocNode;
     }
+    allocNode->m_parent = top;
 
 
-    bfright = bfleft = 0;
     for(; !nodesTouched.empty() ;) {
-        auto& currentParent = nodesTouched.back();
-        /* 
-            If there was a rebalance, maybeNewRoot would change to the correct root
-            Otherwise, maybeNewRoot is just the old root, and thus can be returned as normal.
-        */
+        auto& currentParent = nodesTouched.top();
         maybeNewRoot = currentParent;
-
-        /* I don't want to unroll the first-iteration contents of the loop just for insertion. */
-        /* In Hindsight, this was a mistake. See the C Implementation for Insertion/Deletion */
-        if(!inserted) {
-            // currentParent->m_nodes[ (val < currentParent->m_data) ? 1 : 0] = allocNode;
-            if(value < currentParent->m_data.get()) {
-                currentParent->m_left = allocNode;
-            } else {
-                currentParent->m_right = allocNode;
-            }
-            allocNode->m_parent = currentParent;
-            inserted = true;
-        }
-
-
         binaryTree<T>::maybeRebalance(currentParent, &maybeNewRoot);
-        nodesTouched.pop_back();
+        nodesTouched.pop();
     }
 
 
@@ -711,6 +713,82 @@ bool binaryTree<T>::AVLDeleteIterative(binaryTree<T>* node, T const& value, bina
     return true;
 }
 
+template<typename T>
+bool binaryTree<T>::compareIterative(binaryTree const* nodeA, binaryTree const* nodeB)
+{
+    bool status = true;
+    struct TreeContext {
+        binaryTree<T> const* currNode; 
+        binaryTree<T> const* currLeft; 
+        binaryTree<T> const* currRight;
+        uint32_t                         levelSize;
+        std::queue<binaryTree<T> const*> levelQueue;
+    };
+    struct TreeContext A = {
+        nodeA, nodeA->m_left, nodeA->m_right, 0, {}
+    };
+    struct TreeContext B = {
+        nodeB, nodeB->m_left, nodeB->m_right, 0, {}
+    };
+
+
+    /* iterate over two trees at the same time, and compare elements one by one */
+    A.levelQueue.push(A.currNode);
+    B.levelQueue.push(B.currNode);
+    while( status && !A.levelQueue.empty() && !B.levelQueue.empty() )
+    {
+        A.levelSize = A.levelQueue.size();
+        B.levelSize = B.levelQueue.size();
+        while(status && A.levelSize && B.levelSize) 
+        {
+            A.currNode = A.levelQueue.front();
+            B.currNode = B.levelQueue.front();
+
+            /* Iterating Over Tree A */
+            A.currLeft  = A.currNode->m_left;
+            A.currRight = A.currNode->m_right;
+            if(A.currLeft  != NULL) { A.levelQueue.push(A.currLeft); }
+            if(A.currRight != NULL) { A.levelQueue.push(A.currRight); }
+            A.levelQueue.pop();
+            --A.levelSize;
+
+
+            /* Iterating Over Tree B */
+            B.currLeft  = B.currNode->m_left;
+            B.currRight = B.currNode->m_right;
+            if(B.currLeft  != NULL) { B.levelQueue.push(B.currLeft); }
+            if(B.currRight != NULL) { B.levelQueue.push(B.currRight); }
+            B.levelQueue.pop();
+            --B.levelSize;
+
+
+            status = status && ( A.currNode->m_data.get() == B.currNode->m_data.get() );
+        }
+    }
+
+
+    return status;
+}
+
+
+template<typename T>
+bool binaryTree<T>::searchRecursive(binaryTree const* node, T const& value)
+{
+    if(node == nullptr) {
+        return false;
+    }
+
+    auto const& nodeData = node->m_data.get();
+    if(value < nodeData) {
+        return binaryTree<T>::searchRecursive(node->m_left, value);
+    } 
+    else if(value > nodeData) {
+        return binaryTree<T>::searchRecursive(node->m_right, value);
+    }
+
+
+    return true;
+}
 
 template<typename T>
 binaryTree<T>* binaryTree<T>::AVLInsertRecursive(binaryTree* node, binaryTree* parent, T const& value)
@@ -741,8 +819,6 @@ binaryTree<T>* binaryTree<T>::AVLInsertRecursive(binaryTree* node, binaryTree* p
     binaryTree<T>::maybeRebalance(node, &maybeNewRoot);
     return maybeNewRoot;
 }
-
-
 
 template<typename T>
 binaryTree<T>* binaryTree<T>::AVLDeleteRecursive(binaryTree* node, binaryTree* parent, T const& value)
@@ -798,6 +874,20 @@ binaryTree<T>* binaryTree<T>::AVLDeleteRecursive(binaryTree* node, binaryTree* p
 
     binaryTree<T>::maybeRebalance(node, &maybeNewRoot);
     return maybeNewRoot;
+}
+
+template<typename T>
+bool binaryTree<T>::compareRecursive(binaryTree const* nodeA, binaryTree const* nodeB)
+{
+    if(nodeA == nullptr && nodeB == nullptr) {
+        return true;
+    }
+    if( (nodeA == nullptr && nodeB != nullptr) || (nodeA != nullptr && nodeB == nullptr) ) {
+        return false;
+    }
+    return nodeA->m_data.get() == nodeB->m_data.get()
+        && binaryTree<T>::compareRecursive(nodeA->m_left, nodeB->m_left)
+        && binaryTree<T>::compareRecursive(nodeA->m_right, nodeB->m_right);
 }
 
 

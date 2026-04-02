@@ -19,6 +19,21 @@ void AVLTree<T>::clear() noexcept {
 }
 
 template<typename T>
+void AVLTree<T>::copy(AVLTree const& other)
+{
+    if(other.empty()) {
+        return;
+    }
+    if(!empty()) {
+        clear();
+    }
+    binaryTree<T>::deepCopy(other.m_root, &m_root);
+    m_nodeCount = other.m_nodeCount;
+    return;
+}
+
+
+template<typename T>
 bool AVLTree<T>::insert(T const& val) {
     binaryTree<T>* newRootMaybe = nullptr;
     bool           status       = binaryTree<T>::AVLInsertIterative(m_root, val, &newRootMaybe);
@@ -43,11 +58,24 @@ bool AVLTree<T>::remove(T const& val) {
 }
 
 template<typename T>
-bool AVLTree<T>::search(T const& val) {
+bool AVLTree<T>::search(T const& val) const noexcept {
     if(empty()) {
         return false;
     }
     return (binaryTree<T>::searchIterative(m_root, val) != nullptr);
+}
+
+template<typename T>
+bool AVLTree<T>::compare(AVLTree const& other) const {
+    if(empty() && other.empty()) {
+        return true;
+    }
+    if(m_nodeCount != other.m_nodeCount) {
+        return false;
+    }
+
+
+    return binaryTree<T>::compareIterative(m_root, other.m_root);
 }
 
 
@@ -74,38 +102,49 @@ bool AVLTree<T>::removeRecursive(T const& val)
 }
 
 template<typename T>
-bool AVLTree<T>::searchRecursive(T const& val)
+bool AVLTree<T>::searchRecursive(T const& val) const noexcept
 {
     return binaryTree<T>::searchRecursive(m_root, val);
 }
 
-
+template<typename T>
+bool AVLTree<T>::compareRecursive(AVLTree const& other) const
+{
+    return binaryTree<T>::compareRecursive(m_root, other.m_root);
+}
 
 
 template<typename T> [[nodiscard]] bool AVLTree<T>::isValidBST() const noexcept {
-    return binaryTree<T>::isValidBSTRecursive(m_root);
+    binaryTree<T>* prev = nullptr;
+    return binaryTree<T>::isValidBSTRecursive(m_root, &prev);
 }
 
 template<typename T> [[nodiscard]] bool AVLTree<T>::isBalanced() const noexcept {
     return binaryTree<T>::isValidAVL(m_root);
 }
 
-template<typename T> [[nodiscard]] bool AVLTree<T>::empty() const {
+template<typename T> [[nodiscard]] bool AVLTree<T>::empty() const noexcept {
     return m_nodeCount == 0;
 }
-template<typename T> [[nodiscard]] uint64_t AVLTree<T>::size() const {
+template<typename T> [[nodiscard]] uint64_t AVLTree<T>::size() const noexcept {
     return m_nodeCount;
 }
-template<typename T> [[nodiscard]] int8_t AVLTree<T>::height() const {
+template<typename T> [[nodiscard]] int8_t AVLTree<T>::height() const noexcept {
     return m_root->m_height;
 }
 template<typename T> [[nodiscard]] auto AVLTree<T>::getRoot() const -> binaryTree<T> const* {
     return m_root;
 }
 template<typename T> [[nodiscard]] auto AVLTree<T>::getLeftChild() const -> binaryTree<T> const* {
+    if(m_root == nullptr) {
+        return nullptr;
+    }    
     return m_root->m_left;
 }
 template<typename T> [[nodiscard]] auto AVLTree<T>::getRightChild() const -> binaryTree<T> const* {
+    if(m_root == nullptr) {
+        return nullptr;
+    }    
     return m_root->m_right;
 }
 
@@ -166,6 +205,9 @@ void AVLTree<T>::printIterative(const binaryTree<T>* root, uint32_t space, Funct
         curr = curr->m_left;
         currentSpace = space;
     }
+
+
+    return;
 }
 
 

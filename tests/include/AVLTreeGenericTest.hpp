@@ -10,7 +10,7 @@
 #endif
 
 
-struct DummyRecord 
+struct DummyRecord
 {
     DummyRecord() : m_id{DEFAULT64} {}
     DummyRecord(uint64_t id) : m_id{id} {}
@@ -18,13 +18,23 @@ struct DummyRecord
     bool operator<(const DummyRecord& other) const {
         return m_id < other.m_id;
     }
+    bool operator<=(const DummyRecord& other) const {
+        return m_id <= other.m_id;
+    }
     bool operator>(const DummyRecord& other) const {
         return m_id > other.m_id;
+    }
+    bool operator>=(const DummyRecord& other) const {
+        return m_id >= other.m_id;
     }
     bool operator==(const DummyRecord& other) const {
         return m_id == other.m_id;
     }
 
+    friend std::ostream& operator<<(std::ostream& os, const DummyRecord& obj) {
+        os << "DummyRecord ID=[" << obj.m_id << "]\n";
+        return os;
+    }
 private:
     uint64_t m_id;
     double   m_values[8]{0};

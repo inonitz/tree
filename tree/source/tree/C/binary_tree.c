@@ -1,24 +1,25 @@
 #include <tree/C/binary_tree.h>
 #include <tree/C/queue.h>
 #include <tree/C/stack.h>
+#include <tree/C/alloc.h>
 #include <string.h>
-#include <stdlib.h>
 
 
-static const uint32_t gkGenericQueueArbitraryInitialSize = 8192;
+static const uint32_t gkGenericStackArbitraryInitialSize = 1024;
+static const uint32_t gkGenericQueueArbitraryInitialSize = 4096;
 
 
 binaryTreeResult_t binaryTreeNodeCreate(
-    binaryTreeNode* rootNode, 
-    void*           value, 
+    binaryTreeNode* rootNode,
+    void*           value,
     uint32_t        valueSizeBytes
 ) {
     memset(rootNode, 0x00, sizeof(binaryTreeNode));
 
 
-    rootNode->m_data = malloc(valueSizeBytes);
+    rootNode->m_data = (void*)treelibMallocBufferExplicit(uint8_t, valueSizeBytes);
     if(rootNode->m_data == NULL) {
-        free(rootNode->m_data);
+        treelibFreeTypeExplicit(rootNode->m_data);
         return BINARY_TREE_OP_FAILURE;
     }
 
@@ -29,16 +30,16 @@ binaryTreeResult_t binaryTreeNodeCreate(
 
 
 binaryTreeResult_t binaryTreeNodeCreateWithPointers(
-    binaryTreeNode* rootNode,
-    binaryTreeNode* leftNode,
-    binaryTreeNode* rightNode,
-    binaryTreeNode* parentNode,
-    void*           value, 
-    uint32_t        valueSizeBytes
+    binaryTreeNode*       rootNode,
+    binaryTreeNode const* leftNode,
+    binaryTreeNode const* rightNode,
+    binaryTreeNode const* parentNode,
+    void*                 value,
+    uint32_t              valueSizeBytes
 ) {
     memset(rootNode, 0x00, sizeof(binaryTreeNode));
-    
-    rootNode->m_data = malloc(valueSizeBytes);
+
+    rootNode->m_data = (void*)treelibMallocBytesExplicit(uint8_t, valueSizeBytes, 1);
     if(rootNode->m_data == NULL) {
         return BINARY_TREE_OP_FAILURE;
     }
@@ -53,9 +54,9 @@ binaryTreeResult_t binaryTreeNodeCreateWithPointers(
 
 void binaryTreeNodeDestroy(binaryTreeNode* node)
 {
-    free(node->m_data);
+    treelibFreeTypeExplicit(node->m_data);
     memset(node, 0x00, sizeof(binaryTreeNode));
-    /* 
+    /*
         The node object itself may have been allocated out of
         this scope, and thus its' memory shall be managed externally.
     */
@@ -63,25 +64,31 @@ void binaryTreeNodeDestroy(binaryTreeNode* node)
 }
 
 
-void binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTreeSizeHint) {
+binaryTreeResult_t binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTreeSizeHint) {
     if(rootNode == NULL) {
-        return;
+        return BINARY_TREE_OP_SUCCESS;
     }
-    /* 
+    /*
         Iterative Post-Order Traversal Using a single Stack
         We traverse the children first, de-allocate them, and then we come back to the parents.
         Thank you very much to:
         https://medium.com/@amanjain843/iterative-postorder-traversal-of-a-binary-tree-using-a-single-stack-time-o-n-space-o-h-bb037b9ef28
     */
     GenericStack nodeStack;
-    binaryTreeNode* currNode = rootNode;
-    binaryTreeNode* tmpNode  = NULL;
+    binaryTreeNode*    currNode = rootNode;
+    binaryTreeNode*    tmpNode  = NULL;
+    binaryTreeResult_t status   = BINARY_TREE_OP_SUCCESS;
 
 
-    binaryTreeSizeHint = (binaryTreeSizeHint == 0) ? gkGenericQueueArbitraryInitialSize : binaryTreeSizeHint;
-    GenericStackCreate(&nodeStack, sizeof(binaryTreeNode*), binaryTreeSizeHint);
+    binaryTreeSizeHint = (binaryTreeSizeHint == 0) ? gkGenericStackArbitraryInitialSize : binaryTreeSizeHint;
+    status = GenericStackCreate(&nodeStack, sizeof(binaryTreeNode*), binaryTreeSizeHint);
+    if(status) {
+        GenericStackDestroy(&nodeStack);
+        return status;
+    }
 
-    while(currNode != NULL || !GenericStackEmpty(&nodeStack)) 
+
+    while(currNode != NULL || !GenericStackEmpty(&nodeStack))
     {
         while(currNode != NULL) {
             GenericStackPush(&nodeStack, (void*)&currNode);
@@ -95,7 +102,7 @@ void binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTreeSizeHint) {
             /* These 4-LOC could be replaced by anything - this is just a tree traversal */
             GenericStackTop(&nodeStack, (void*)&tmpNode);
             binaryTreeNodeDestroy(tmpNode);
-            free(tmpNode);
+            treelibFreeTypeExplicit(tmpNode);
             tmpNode = NULL;
 
             GenericStackPop(&nodeStack);
@@ -109,64 +116,254 @@ void binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTreeSizeHint) {
 
 
     GenericStackDestroy(&nodeStack);
-    return;
+    return status;
 }
 
 
-/* TODO: FINISH */
 binaryTreeResult_t binaryTreeDeepCopy(
-    binaryTreeNode*  treeIn,
-    uint32_t         binaryTreeSize,
-    binaryTreeNode** treeOut
+    binaryTreeNode const* treeIn,
+    uint32_t              binaryTreeSize,
+    uint32_t              valueSizeBytes,
+    binaryTreeNode**      treeOut,
+    binaryTreeNode**      treeNodeBufferOut
 ) {
-    binaryTreeNode const* currNode   = treeIn;
-    binaryTreeNode const* leftNode   = treeIn->m_left;
-    binaryTreeNode const* rightNode  = treeIn->m_right;
-    binaryTreeNode*       nodeBuffer = NULL;
-    uint32_t     currLevelSize = 0;
-    uint32_t     nodeBufIdx    = 0;
-    uint8_t      status        = 0;
-    GenericQueue currLevelNodes;
+    binaryTreeNode const* currNode  = treeIn;
+    binaryTreeNode const* leftNode  = treeIn->m_left;
+    binaryTreeNode const* rightNode = treeIn->m_right;
+    binaryTreeNode* currCopiedNode  = NULL;
+    binaryTreeNode* leftCopiedNode  = NULL;
+    binaryTreeNode* rightCopiedNode = NULL;
+    binaryTreeNode* nodeBuffer      = NULL;
+
+    uint32_t           currLevelSize = 0;
+    uint32_t           nodeBufTopIdx = 0;
+    binaryTreeResult_t failStatus[3] = { 
+        BINARY_TREE_OP_SUCCESS, 
+        BINARY_TREE_OP_SUCCESS, 
+        BINARY_TREE_OP_SUCCESS
+    };    GenericQueue       currLevelNodes;
+    GenericQueue       copiedLevelNodes;
 
 
-    status = GenericQueueCreate(&currLevelNodes, sizeof(binaryTreeNode*), binaryTreeSize);
-    nodeBuffer = (binaryTreeNode*)malloc(sizeof(binaryTreeNode) * binaryTreeSize);
-    if(status || nodeBuffer == NULL) {
-        /* Either case has happened, so we make sure to free whatever we (if we) allocated. */
-        if(!status) {
-            GenericQueueDestroy(&currLevelNodes);
-        }
-        if(nodeBuffer != NULL) {
-            free(nodeBuffer);
-        }
+    failStatus[0] = GenericQueueCreate(&currLevelNodes, sizeof(binaryTreeNode*), binaryTreeSize);
+    failStatus[1] = GenericQueueCreate(&copiedLevelNodes, sizeof(binaryTreeNode*), binaryTreeSize);
+    nodeBuffer = treelibMallocBufferExplicit(binaryTreeNode, binaryTreeSize);
+    failStatus[2] = (nodeBuffer == NULL);
+    if(failStatus[0] || failStatus[1] || failStatus[2]) {
+        GenericQueueDestroy(&currLevelNodes);
+        GenericQueueDestroy(&copiedLevelNodes);
+        treelibFreeTypeExplicit(nodeBuffer);
+
+        *treeOut = NULL;
+        *treeNodeBufferOut = NULL;
         return BINARY_TREE_OP_FAILURE;
     }
-    
-    
-    GenericQueuePush(&currLevelNodes, (void*)&currNode);
-    while( !GenericQueueEmpty(&currLevelNodes) ) 
+
+
+    /* Copy the root node */
+    currCopiedNode = &nodeBuffer[nodeBufTopIdx];
+    ++nodeBufTopIdx;
+    failStatus[0] = binaryTreeNodeCreateWithPointers(
+        currCopiedNode, 
+        NULL, NULL, NULL, 
+        currNode->m_data, 
+        valueSizeBytes
+    );
+
+    GenericQueuePush(&currLevelNodes,   (void*)&currNode);
+    GenericQueuePush(&copiedLevelNodes, (void*)&currCopiedNode);
+    while(!failStatus[0] && !GenericQueueEmpty(&currLevelNodes) )
     {
         currLevelSize = GenericQueueSize(&currLevelNodes);
-        while(currLevelSize) {
-            GenericQueueFront(&currLevelNodes, (void*)&currNode);
+        while(!failStatus[0] && currLevelSize) {
+            GenericQueueFront(&currLevelNodes,   (void*)&currNode);
+            GenericQueueFront(&copiedLevelNodes, (void*)&currCopiedNode);
+
             leftNode  = currNode->m_left;
             rightNode = currNode->m_right;
 
-            
+            /* 
+                for each child:
+                    Allocate a node from nodeBuffer
+                    initialize it
+                    add it to the copied tree
+                    add it to the queue (so we can continue iterating)
+            */
             if(leftNode != NULL) {
                 GenericQueuePush(&currLevelNodes, (void*)&leftNode);
+
+                leftCopiedNode = &nodeBuffer[nodeBufTopIdx];
+                ++nodeBufTopIdx;
+                failStatus[1] = binaryTreeNodeCreateWithPointers(leftCopiedNode, 
+                    NULL, NULL, currCopiedNode, 
+                    leftNode->m_data, 
+                    valueSizeBytes
+                );
+                currCopiedNode->m_left = leftCopiedNode;
+
+                GenericQueuePush(&copiedLevelNodes, (void*)&leftCopiedNode);
+                failStatus[0] = failStatus[0] && failStatus[1];
             }
             if(rightNode != NULL) {
                 GenericQueuePush(&currLevelNodes, (void*)&rightNode);
+                
+                rightCopiedNode = &nodeBuffer[nodeBufTopIdx];
+                ++nodeBufTopIdx;
+                failStatus[1] = binaryTreeNodeCreateWithPointers(rightCopiedNode, 
+                    NULL, NULL, currCopiedNode, 
+                    rightNode->m_data, 
+                    valueSizeBytes
+                );
+                currCopiedNode->m_right = rightCopiedNode;
+
+                GenericQueuePush(&copiedLevelNodes, (void*)&rightCopiedNode);
+                failStatus[0] = failStatus[0] && failStatus[1];
             }
 
             GenericQueuePop(&currLevelNodes);
+            GenericQueuePop(&copiedLevelNodes);
             --currLevelSize;
         }
     }
 
 
+    *treeOut           = &nodeBuffer[0];
+    *treeNodeBufferOut = nodeBuffer;
     GenericQueueDestroy(&currLevelNodes);
+    GenericQueueDestroy(&copiedLevelNodes);
+    return BINARY_TREE_OP_SUCCESS;
+}
+
+
+binaryTreeResult_t binaryTreeDeepCopyNoBuf(
+    binaryTreeNode const* treeIn,
+    uint32_t              binaryTreeSize,
+    uint32_t              valueSizeBytes,
+    binaryTreeNode**      treeOut
+) {
+    binaryTreeNode const* currNode  = treeIn;
+    binaryTreeNode const* leftNode  = treeIn->m_left;
+    binaryTreeNode const* rightNode = treeIn->m_right;
+    binaryTreeNode* currCopiedNode  = NULL;
+    binaryTreeNode* leftCopiedNode  = NULL;
+    binaryTreeNode* rightCopiedNode = NULL;
+    binaryTreeNode** allocNodeBuf   = NULL;
+
+    uint32_t           currLevelSize = 0;
+    uint32_t           allocNodeBufTopIdx = 0;
+    binaryTreeResult_t failStatus[3] = { 
+        BINARY_TREE_OP_SUCCESS, 
+        BINARY_TREE_OP_SUCCESS, 
+        BINARY_TREE_OP_SUCCESS
+    };
+    GenericQueue       currLevelNodes;
+    GenericQueue       copiedLevelNodes;
+
+
+    failStatus[0] = GenericQueueCreate(&currLevelNodes, sizeof(binaryTreeNode*), binaryTreeSize);
+    failStatus[1] = GenericQueueCreate(&copiedLevelNodes, sizeof(binaryTreeNode*), binaryTreeSize);
+    allocNodeBuf = treelibMallocBufferExplicit(binaryTreeNode*, binaryTreeSize);
+    failStatus[2] = (allocNodeBuf == NULL);
+    if(failStatus[0] || failStatus[1] || failStatus[2]) {
+        GenericQueueDestroy(&currLevelNodes);
+        GenericQueueDestroy(&copiedLevelNodes);
+        treelibFreeTypeExplicit(allocNodeBuf);
+
+        *treeOut = NULL;
+        return BINARY_TREE_OP_FAILURE;
+    }
+
+
+    /* Copy the root node */
+    currCopiedNode = treelibMallocTypeExplicit(binaryTreeNode);
+    allocNodeBuf[allocNodeBufTopIdx] = currCopiedNode;
+    ++allocNodeBufTopIdx;
+    failStatus[0] = binaryTreeNodeCreateWithPointers(
+        currCopiedNode, 
+        NULL, NULL, NULL, 
+        currNode->m_data, 
+        valueSizeBytes
+    );
+
+    GenericQueuePush(&currLevelNodes,   (void*)&currNode);
+    GenericQueuePush(&copiedLevelNodes, (void*)&currCopiedNode);
+    while(!failStatus[0] && !GenericQueueEmpty(&currLevelNodes) )
+    {
+        currLevelSize = GenericQueueSize(&currLevelNodes);
+        while(!failStatus[0] && currLevelSize) {
+            GenericQueueFront(&currLevelNodes,   (void*)&currNode);
+            GenericQueueFront(&copiedLevelNodes, (void*)&currCopiedNode);
+
+            leftNode  = currNode->m_left;
+            rightNode = currNode->m_right;
+
+            /* 
+                for each child:
+                    Allocate a node from nodeBuffer
+                    initialize it
+                    add it to the copied tree
+                    add it to the queue (so we can continue iterating)
+            */
+            if(leftNode != NULL) {
+                GenericQueuePush(&currLevelNodes, (void*)&leftNode);
+
+                leftCopiedNode = treelibMallocTypeExplicit(binaryTreeNode);
+                failStatus[0] = (leftCopiedNode == NULL); 
+                if(!failStatus[0]) {
+                    allocNodeBuf[allocNodeBufTopIdx] = leftCopiedNode;
+                    ++allocNodeBufTopIdx;
+                    failStatus[1] = binaryTreeNodeCreateWithPointers(
+                        leftCopiedNode, 
+                        NULL, NULL, currCopiedNode, 
+                        leftNode->m_data, 
+                        valueSizeBytes
+                    );
+
+                    currCopiedNode->m_left = leftCopiedNode;
+                    GenericQueuePush(&copiedLevelNodes, (void*)&leftCopiedNode);
+                    failStatus[0] = failStatus[0] && failStatus[1];
+                }
+            }
+            if(rightNode != NULL) {
+                GenericQueuePush(&currLevelNodes, (void*)&rightNode);
+                
+                rightCopiedNode = treelibMallocTypeExplicit(binaryTreeNode);
+                failStatus[0] = (rightCopiedNode == NULL); 
+                if(!failStatus[0]) {
+                    allocNodeBuf[allocNodeBufTopIdx] = rightCopiedNode;
+                    ++allocNodeBufTopIdx;
+                    failStatus[1] = binaryTreeNodeCreateWithPointers(
+                        rightCopiedNode, 
+                        NULL, NULL, currCopiedNode, 
+                        rightNode->m_data, 
+                        valueSizeBytes
+                    );
+
+                    currCopiedNode->m_right = rightCopiedNode;
+                    GenericQueuePush(&copiedLevelNodes, (void*)&rightCopiedNode);
+                    failStatus[0] = failStatus[0] && failStatus[1];
+                }
+            }
+
+
+            GenericQueuePop(&currLevelNodes);
+            GenericQueuePop(&copiedLevelNodes);
+            --currLevelSize;
+        }
+    }
+
+
+    if(failStatus[0]) {
+        for(uint32_t i = 0; i < allocNodeBufTopIdx; ++i) {
+            treelibFreeTypeExplicit(allocNodeBuf[i]);
+        }
+    }
+
+
+    *treeOut = failStatus[0] ? NULL : allocNodeBuf[0];
+    treelibFreeTypeExplicit(allocNodeBuf);
+    GenericQueueDestroy(&currLevelNodes);
+    GenericQueueDestroy(&copiedLevelNodes);
     return BINARY_TREE_OP_SUCCESS;
 }
 
@@ -242,72 +439,163 @@ binaryTreeNode* binaryTreeFindMin(binaryTreeNode* node)
     return node;
 }
 
-binaryTreeBool_t binaryTreeIsValidBST(
-    binaryTreeNode const*    node, 
+
+binaryTreeStatusPair_t binaryTreeCompare(
+    binaryTreeNode const*    nodeA,
+    binaryTreeNode const*    nodeB,
     uint32_t                 binaryTreeSizeHint,
     binaryTreeComparatorFunc cmp
 ) {
+    binaryTreeStatusPair_t status = (binaryTreeStatusPair_t){
+        BINARY_TREE_OP_SUCCESS,
+        BINARY_TREE_BOOL_TRUE
+    };
+    struct TreeContext {
+        binaryTreeNode const* currNode; 
+        binaryTreeNode const* currLeft; 
+        binaryTreeNode const* currRight;
+        uint32_t              lvlSize;
+        binaryTreeResult_t    qStatus;
+        GenericQueue          lvlNodes;
+    };
+    
+    struct TreeContext A = {
+        nodeA, nodeA->m_left, nodeA->m_right, 0, BINARY_TREE_OP_SUCCESS, (GenericQueue){}
+    };
+    struct TreeContext B = {
+        nodeB, nodeB->m_left, nodeB->m_right, 0, BINARY_TREE_OP_SUCCESS, (GenericQueue){}
+    };
+
+
+    binaryTreeSizeHint = (binaryTreeSizeHint == 0) ? 
+        gkGenericQueueArbitraryInitialSize 
+        : 
+        binaryTreeSizeHint;
+
+    A.qStatus = GenericQueueCreate(&A.lvlNodes, sizeof(binaryTreeNode*), binaryTreeSizeHint);
+    B.qStatus = GenericQueueCreate(&B.lvlNodes, sizeof(binaryTreeNode*), binaryTreeSizeHint);
+    status.m_op = A.qStatus || B.qStatus;
+    if(status.m_op == BINARY_TREE_OP_FAILURE) {
+        GenericQueueDestroy(&A.lvlNodes);
+        GenericQueueDestroy(&B.lvlNodes);
+        status.m_bool = BINARY_TREE_BOOL_FALSE;
+        return status;
+    }
+
+
+    A.qStatus = GenericQueuePush(&A.lvlNodes, (void*)&A.currNode);
+    B.qStatus = GenericQueuePush(&B.lvlNodes, (void*)&B.currNode);
+    status.m_op = A.qStatus || B.qStatus;
+    while(status.m_op != BINARY_TREE_OP_FAILURE
+        && status.m_bool == BINARY_TREE_BOOL_TRUE
+        && !GenericQueueEmpty(&A.lvlNodes) 
+        && !GenericQueueEmpty(&B.lvlNodes)
+    ) {
+        A.lvlSize = GenericQueueSize(&A.lvlNodes);
+        B.lvlSize = GenericQueueSize(&B.lvlNodes);
+        status.m_bool = (A.lvlSize == B.lvlSize);
+
+        while(status.m_op != BINARY_TREE_OP_FAILURE 
+            && status.m_bool == BINARY_TREE_BOOL_TRUE 
+            && A.lvlSize 
+            && B.lvlSize
+        ) {
+            GenericQueueFront(&A.lvlNodes, (void*)&A.currNode);
+            GenericQueueFront(&B.lvlNodes, (void*)&B.currNode);
+
+            /* Iterating Over Tree A */
+            A.currLeft  = A.currNode->m_left;
+            A.currRight = A.currNode->m_right;
+            if(A.currLeft  != NULL) {
+                status.m_op = status.m_op || GenericQueuePush(&A.lvlNodes, (void*)&A.currLeft);
+            }
+            if(A.currRight != NULL) {
+                status.m_op = status.m_op || GenericQueuePush(&A.lvlNodes, (void*)&A.currRight);
+            }
+            GenericQueuePop(&A.lvlNodes);
+            --A.lvlSize;
+
+
+            /* Iterating Over Tree B */
+            B.currLeft  = B.currNode->m_left;
+            B.currRight = B.currNode->m_right;
+            if(B.currLeft  != NULL) {
+                status.m_op = status.m_op || GenericQueuePush(&B.lvlNodes, (void*)&B.currLeft);
+            }
+            if(B.currRight != NULL) {
+                status.m_op = status.m_op || GenericQueuePush(&B.lvlNodes, (void*)&B.currRight);
+            }
+            GenericQueuePop(&B.lvlNodes);
+            --B.lvlSize;
+
+
+            status.m_bool = status.m_bool && ( cmp(A.currNode->m_data, B.currNode->m_data) == 0 );
+        }
+    }
+
+
+    GenericQueueDestroy(&A.lvlNodes);
+    GenericQueueDestroy(&B.lvlNodes);
+    return status;
+}
+
+
+binaryTreeStatusPair_t binaryTreeIsValidBST(
+    binaryTreeNode const*    node,
+    uint32_t                 binaryTreeSizeHint,
+    binaryTreeComparatorFunc cmp
+) {
+    binaryTreeStatusPair_t status = (binaryTreeStatusPair_t){
+        BINARY_TREE_OP_SUCCESS,
+        BINARY_TREE_BOOL_TRUE
+    };
+    GenericStack          nodeStack;
+    binaryTreeNode const* currNode = node;
+    void*                 prevData = NULL;
     if(node == NULL) {
-        return BINARY_TREE_BOOL_TRUE;
+        return status;
     }
 
+    binaryTreeSizeHint = (binaryTreeSizeHint == 0) ? 
+        gkGenericStackArbitraryInitialSize 
+        : 
+        binaryTreeSizeHint;
 
-    uint8_t         satisfiesCondition = BINARY_TREE_BOOL_TRUE;
-    uint8_t         tmpCond            = BINARY_TREE_BOOL_TRUE;
-    uint32_t        currLevelSize      = 0;
-    binaryTreeNode const* currNode     = node;
-    binaryTreeNode const* leftNode     = node->m_left;
-    binaryTreeNode const* rightNode    = node->m_right;
-    GenericQueue currLevelNodes;
-
-
-    binaryTreeSizeHint = (binaryTreeSizeHint == 0) ? gkGenericQueueArbitraryInitialSize : binaryTreeSizeHint;
-    GenericQueueCreate(&currLevelNodes, sizeof(binaryTreeNode*), binaryTreeSizeHint);
-    
-    /* 
-        Extract the first check Outside the loop because 
-        the tree might be very small / doesn't satisfy the condition already 
-    */
-    if(leftNode != NULL) {
-        tmpCond = tmpCond && ( cmp(leftNode->m_data, currNode->m_data) < 0 );
-        GenericQueuePush(&currLevelNodes, (void*)&leftNode);
+    status.m_op = GenericStackCreate(&nodeStack, sizeof(binaryTreeNode const*), binaryTreeSizeHint);
+    if(status.m_op == BINARY_TREE_OP_FAILURE) {
+        goto __cleanup;
     }
-    if(rightNode != NULL) {
-        tmpCond = tmpCond && ( cmp(rightNode->m_data, currNode->m_data) > 0 );
-        GenericQueuePush(&currLevelNodes, (void*)&rightNode);
-    }
-    satisfiesCondition = satisfiesCondition && tmpCond;
-    
-    
-    while(satisfiesCondition && !GenericQueueEmpty(&currLevelNodes) ) 
+
+    /* Iterative In-Order Traversal */
+    while (currNode != NULL || !GenericStackEmpty(&nodeStack)) 
     {
-        currLevelSize = GenericQueueSize(&currLevelNodes);
-
-        while(currLevelSize) {
-            GenericQueueFront(&currLevelNodes, (void*)&currNode);
-            leftNode  = currNode->m_left;
-            rightNode = currNode->m_right;
-
-            if(leftNode != NULL) {
-                GenericQueuePush(&currLevelNodes, (void*)&leftNode);
-                tmpCond = tmpCond && ( cmp(leftNode->m_data, currNode->m_data) < 0 );
+        while (currNode != NULL) {
+            status.m_op = GenericStackPush(&nodeStack, (void*)&currNode);
+            if(status.m_op == BINARY_TREE_OP_FAILURE) {
+                goto __cleanup;
             }
-            if(rightNode != NULL) {
-                GenericQueuePush(&currLevelNodes, (void*)&rightNode);
-                tmpCond = tmpCond && ( cmp(rightNode->m_data, currNode->m_data) > 0 );
-            }
-
-            GenericQueuePop(&currLevelNodes);
-            --currLevelSize;
+            currNode = currNode->m_left;
         }
 
+        GenericStackTop(&nodeStack, (void*)&currNode);
+        GenericStackPop(&nodeStack);
 
-        satisfiesCondition = satisfiesCondition && tmpCond;
+        /* Elements must be strictly ascending */
+        if (prevData != NULL) {
+            if (cmp(prevData, currNode->m_data) >= 0) {
+                status.m_bool = BINARY_TREE_BOOL_FALSE;
+                break; /* Exit early, the tree is invalid */
+            }
+        }
+        
+        prevData = currNode->m_data;
+        currNode = currNode->m_right;
     }
 
 
-    GenericQueueDestroy(&currLevelNodes);
-    return satisfiesCondition;
+__cleanup:
+    GenericStackDestroy(&nodeStack);
+    return status;
 }
 
 
@@ -328,8 +616,8 @@ binaryTreeBool_t binaryTreeSearchValue(
         search       = cmpResult < 0 ? search->m_left : search->m_right;
     }
     cmpResult = (cmpResult == 0) ? 1 : 0;
-    
-    
+
+
     *outNodeIfFound = cmpResult ? searchParent : NULL;
     return cmpResult;
 }

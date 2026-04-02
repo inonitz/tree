@@ -1,5 +1,5 @@
-#include <stdlib.h>
 #include <tree/C/dynamic_pool.h>
+#include <tree/C/alloc.h>
 #include <string.h>
 
 
@@ -25,7 +25,7 @@
 
 
 bool GenericDynamicPoolExpand(
-    genericDynamicPool* toModify, 
+    GenericDynamicPool* toModify,
     uint32_t            newCapacity
 );
 
@@ -33,12 +33,12 @@ bool GenericDynamicPoolExpand(
 
 
 bool GenericDynamicPoolCreate(
-    genericDynamicPool* toCreate, 
-    uint32_t            objSizeBytes, 
+    GenericDynamicPool* toCreate,
+    uint32_t            objSizeBytes,
     uint32_t            initialAmountOfObjects
 ) {
-    memset(toCreate, 0x00, sizeof(genericDynamicPool));
-    
+    memset(toCreate, 0x00, sizeof(GenericDynamicPool));
+
     toCreate->m_elemSize = objSizeBytes;
     if(initialAmountOfObjects == 0) {
         return 1;
@@ -46,14 +46,15 @@ bool GenericDynamicPoolCreate(
 
     toCreate->m_elemCount    = 0;
     toCreate->m_elemCountMax = initialAmountOfObjects;
-    toCreate->m_buf      = malloc(GenericDynamicPoolTotalBytes(toCreate));
-    toCreate->m_freeList = malloc(sizeof(poolNode_t) * toCreate->m_elemCountMax);
+    toCreate->m_buf      = treelibMallocBytesExplicit(uint8_t, 1, GenericDynamicPoolTotalBytes(toCreate));
+    toCreate->m_freeList = treelibMallocBufferExplicit(poolNode_t, toCreate->m_elemCountMax);
+
     if(toCreate->m_buf == NULL || toCreate->m_freeList == NULL) {
         if(toCreate->m_buf) {
-            free(toCreate->m_buf);
+            treelibFreeTypeExplicit(toCreate->m_buf);
         }
         if(toCreate->m_freeList) {
-            free(toCreate->m_freeList);
+            treelibFreeTypeExplicit(toCreate->m_freeList);
         }
         return 1;
     }
@@ -69,20 +70,20 @@ bool GenericDynamicPoolCreate(
     return 0;
 }
 
-void GenericDynamicPoolDestroy(genericDynamicPool* toDestroy) {
+void GenericDynamicPoolDestroy(GenericDynamicPool* toDestroy) {
 
     if(toDestroy->m_buf != NULL) {
-        free(toDestroy->m_buf);
+        treelibFreeTypeExplicit(toDestroy->m_buf);
     }
     if(toDestroy->m_freeList != NULL) {
-        free(toDestroy->m_freeList);
+        treelibFreeTypeExplicit(toDestroy->m_freeList);
     }
-    memset(toDestroy, 0x00, sizeof(genericDynamicPool));
+    memset(toDestroy, 0x00, sizeof(GenericDynamicPool));
     return;
 }
 
 
-void* GenericDynamicPoolAllocate(genericDynamicPool* toModify) {
+void* GenericDynamicPoolAllocate(GenericDynamicPool* toModify) {
     if(GenericDynamicPoolFreeBlocks(toModify) == 0) {
         bool err = GenericDynamicPoolExpand(toModify, toModify->m_elemCountMax * 3 / 2);
         if(err) {
@@ -92,7 +93,7 @@ void* GenericDynamicPoolAllocate(genericDynamicPool* toModify) {
 
 
     poolNode_t* availableNode = &FREELIST_AVAILABLE_NODE(toModify);
-    uint8_t*    valueToAlloc  = &POOL_BUFFER_AT(toModify, availableNode->m_indexInBuf - 1); 
+    uint8_t*    valueToAlloc  = &POOL_BUFFER_AT(toModify, availableNode->m_indexInBuf - 1);
     availableNode->m_indexInBuf *= -1; /* now occupied */
 
     toModify->m_availableIdx = availableNode->m_nextNodeIdx;
@@ -100,7 +101,7 @@ void* GenericDynamicPoolAllocate(genericDynamicPool* toModify) {
     return valueToAlloc;
 }
 
-void GenericDynamicPoolFree(genericDynamicPool* toModify, void* blockToFree) {
+void GenericDynamicPoolFree(GenericDynamicPool* toModify, void* blockToFree) {
     uint32_t blockIdx = BLOCK_INDEX_FROM_POINTER(toModify, blockToFree);
 
     if(false
@@ -131,19 +132,19 @@ void GenericDynamicPoolFree(genericDynamicPool* toModify, void* blockToFree) {
 }
 
 
-uint32_t GenericDynamicPoolBlockSize(genericDynamicPool const* toRead) {
+uint32_t GenericDynamicPoolBlockSize(GenericDynamicPool const* toRead) {
     return toRead->m_elemSize;
 }
 
-uint32_t GenericDynamicPoolFreeBlocks(genericDynamicPool const* toRead) {
+uint32_t GenericDynamicPoolFreeBlocks(GenericDynamicPool const* toRead) {
     return toRead->m_elemCountMax - toRead->m_elemCount;
 }
 
-uint32_t GenericDynamicPoolTotalBlocks(genericDynamicPool const* toRead) {
+uint32_t GenericDynamicPoolTotalBlocks(GenericDynamicPool const* toRead) {
     return toRead->m_elemCountMax;
 }
 
-uint64_t GenericDynamicPoolTotalBytes(genericDynamicPool const* toRead) {
+uint64_t GenericDynamicPoolTotalBytes(GenericDynamicPool const* toRead) {
     return (uint64_t)GenericDynamicPoolBlockSize(toRead) * GenericDynamicPoolTotalBlocks(toRead);
 }
 
@@ -151,15 +152,15 @@ uint64_t GenericDynamicPoolTotalBytes(genericDynamicPool const* toRead) {
 
 
 bool GenericDynamicPoolExpand(
-    genericDynamicPool* toModify, 
+    GenericDynamicPool* toModify,
     uint32_t            newCapacity
 ) {
-    /* 
-        Care must be taken to ensure this function is called 
+    /*
+        Care must be taken to ensure this function is called
         ONLY when the existing pool is full.
         Otherwise, the last node in the pool will point to a NULL index,
         which, on allocation, will set m_availableIdx=NULL.
-        
+
         The buffer would have resized to accomodate additional allocations,
         but the indices would be messed up.
     */
@@ -167,14 +168,23 @@ bool GenericDynamicPoolExpand(
         return 1;
     }
 
-    uint8_t*    bBuf  = realloc(toModify->m_buf, (uint64_t)toModify->m_elemSize * newCapacity);
-    poolNode_t* flBuf = realloc(toModify->m_freeList, sizeof(poolNode_t) * newCapacity);
+    uint8_t*    bBuf  = treelibReallocBytesExplicit(uint8_t,
+        toModify->m_buf,
+        toModify->m_elemSize,
+        newCapacity
+    );
+    poolNode_t* flBuf = treelibReallocBytesExplicit(poolNode_t,
+        toModify->m_freeList,
+        sizeof(poolNode_t),
+        newCapacity
+    );
+
     if(bBuf == NULL || flBuf == NULL) {
         if(bBuf) {
-            free(bBuf);
+            treelibFreeTypeExplicit(bBuf);
         }
         if(flBuf) {
-            free(flBuf);
+            treelibFreeTypeExplicit(flBuf);
         }
         return 1;
     }
@@ -190,7 +200,7 @@ bool GenericDynamicPoolExpand(
         };
     }
     toModify->m_freeList[ newCapacity - 1 ] = (poolNode_t){ newCapacity, (poolNodeIndex_t)-1 };
-    /* 
+    /*
         the function is called when the pool is full, i.e m_availableIdx = -1
         because -1 is an invalid index (intentionally so) we need to reset it
         The first available block in the free-list is now in the newly allocated space.

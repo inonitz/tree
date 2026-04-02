@@ -1,5 +1,5 @@
-#ifndef __DYNAMIC_ARRAY_LIKE_CPP_VECTOR_DEFINITION_HEADER__
-#define __DYNAMIC_ARRAY_LIKE_CPP_VECTOR_DEFINITION_HEADER__
+#ifndef __TREELIB_DYNAMIC_ARRAY_LIKE_CPP_VECTOR_DEFINITION_HEADER__
+#define __TREELIB_DYNAMIC_ARRAY_LIKE_CPP_VECTOR_DEFINITION_HEADER__
 #include <tree/C/treelib_extern.h>
 #include <tree/C/treelib_api.h>
 #include <stdint.h>
@@ -19,17 +19,17 @@ typedef struct __dynamic_array_cpp_vector_equivalent_type_v0 {
 
 
 void TREELIB_API GenericVectorCreate(
-    GenericVector* toCreate, 
+    GenericVector* toCreate,
     uint32_t       elementSizeBytes
 );
 bool TREELIB_API GenericVectorCreateWithCapacity(
-    GenericVector* toCreate, 
-    uint32_t       elementSizeBytes, 
+    GenericVector* toCreate,
+    uint32_t       elementSizeBytes,
     uint32_t       maxElements
 );
 bool TREELIB_API GenericVectorCreateWithSize(
-    GenericVector* toCreate, 
-    uint32_t       elementSizeBytes, 
+    GenericVector* toCreate,
+    uint32_t       elementSizeBytes,
     uint32_t       initialElementCount,
     const void*    defaultValue
 );
@@ -58,24 +58,24 @@ bool     TREELIB_API GenericVectorShrinkToFit(GenericVector* toModify);
 
 void TREELIB_API GenericVectorClear(GenericVector* toModify);
 bool TREELIB_API GenericVectorInsert(
-    GenericVector* toModify, 
-    uint32_t       index, 
+    GenericVector* toModify,
+    uint32_t       index,
     uint32_t       objCount,
     void const*    values
 );
 void TREELIB_API GenericVectorErase(
-    GenericVector* toModify, 
-    uint32_t       index, 
+    GenericVector* toModify,
+    uint32_t       index,
     uint32_t       objCount
 );
 bool TREELIB_API GenericVectorPushBack(
-    GenericVector* toModify, 
+    GenericVector* toModify,
     void const*    val
 );
 void TREELIB_API GenericVectorPopBack(GenericVector* toModify);
 bool TREELIB_API GenericVectorResize(GenericVector* toModify, uint32_t newNumOfElements);
 void TREELIB_API GenericVectorSwap(
-    GenericVector* vecA, 
+    GenericVector* vecA,
     GenericVector* vecB
 );
 

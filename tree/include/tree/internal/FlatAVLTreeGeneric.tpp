@@ -204,6 +204,79 @@ bool FlatAVLTree<T>::search(T const& val) {
     return found;
 }
 
+
+template<typename T>
+bool FlatAVLTree<T>::compare(FlatAVLTree const& other) const {
+    if(empty() && other.empty()) {
+        return true;
+    }
+    if(size() != other.size()) {
+        return false;
+    }
+
+
+    bool status = true;
+    struct TreeContext {
+        uint32_t currNodeIdx; 
+        uint32_t currLeftIdx; 
+        uint32_t currRightIdx;
+        uint32_t             levelSize;
+        std::queue<uint32_t> levelQueue;
+    };
+    struct TreeContext A = {
+        m_rootIdx, 
+        readMetadata(m_rootIdx).getLeftChild(), 
+        readMetadata(m_rootIdx).getRightChild(), 
+        0, 
+        {}
+    };
+    struct TreeContext B = {
+        other.m_rootIdx, 
+        readMetadata(other.m_rootIdx).getLeftChild(), 
+        readMetadata(other.m_rootIdx).getRightChild(), 
+        0, 
+        {}
+    };
+
+
+    /* iterate over two trees at the same time, and compare elements one by one */
+    A.levelQueue.push(A.currNodeIdx);
+    B.levelQueue.push(B.currNodeIdx);
+    while( status && !A.levelQueue.empty() && !B.levelQueue.empty() )
+    {
+        A.levelSize = A.levelQueue.size();
+        B.levelSize = B.levelQueue.size();
+        while(status && A.levelSize && B.levelSize) 
+        {
+            A.currNodeIdx = A.levelQueue.front();
+            B.currNodeIdx = B.levelQueue.front();
+
+            /* Iterating Over Tree A */
+            A.currLeftIdx  = readMetadata(A.currNodeIdx).getLeftChild();
+            A.currRightIdx = readMetadata(A.currNodeIdx).getRightChild();
+            if(nodeExists(A.currLeftIdx)) { A.levelQueue.push(A.currLeftIdx); }
+            if(nodeExists(A.currRightIdx)) { A.levelQueue.push(A.currRightIdx); }
+            A.levelQueue.pop();
+            --A.levelSize;
+
+
+            /* Iterating Over Tree B */
+            B.currLeftIdx  = readMetadata(B.currNodeIdx).getLeftChild();
+            B.currRightIdx = readMetadata(B.currNodeIdx).getRightChild();
+            if(nodeExists(B.currLeftIdx)) { B.levelQueue.push(B.currLeftIdx); }
+            if(nodeExists(B.currRightIdx)) { B.levelQueue.push(B.currRightIdx); }
+            B.levelQueue.pop();
+            --B.levelSize;
+
+
+            status = status && ( readValue(A.currNodeIdx) == readValue(B.currNodeIdx) );
+        }
+    }
+
+
+    return status;
+}
+
 // template <typename T>
 // bool FlatAVLTree<T>::insertRecursive(T const& val) {
 // 	// TODO: Implement recursive AVL insertion
@@ -288,58 +361,35 @@ bool FlatAVLTree<T>::isValidBST() const noexcept {
         return true;
     }
 
-    bool     satisfiesCondition = true;
-    bool     tmpCond            = true;
-    uint32_t currLevelSize      = 0;
-    uint32_t currNodeIdx  = m_rootIdx;
-    uint32_t leftNodeIdx  = readMetadata(currNodeIdx).getLeftChild();
-    uint32_t rightNodeIdx = readMetadata(currNodeIdx).getRightChild();
-    std::queue<uint32_t> currLevelNodes;
+    bool     cond = true;
+    uint32_t prevNodeIdx = ati::Metadata::k_nullIndex;
+    uint32_t currNodeIdx = m_rootIdx;
+    std::stack<uint32_t> nodeStack;
 
-
-    /*
-        Extract the first check Outside the loop because
-        the tree might be very small / doesn't satisfy the condition already
-    */
-    if(nodeExists(leftNodeIdx)) {
-        tmpCond = tmpCond && ( readValue(leftNodeIdx) < readValue(currNodeIdx) );
-        currLevelNodes.push(leftNodeIdx);
-    }
-    if(nodeExists(rightNodeIdx)) {
-        tmpCond = tmpCond && ( readValue(rightNodeIdx) > readValue(currNodeIdx) );
-        currLevelNodes.push(rightNodeIdx);
-    }
-    satisfiesCondition = satisfiesCondition && tmpCond;
-
-
-    /* Iterative Level Order Traversal */
-    while(satisfiesCondition && !currLevelNodes.empty() )
+    /* Iterative In-Order Traversal */
+    while(nodeExists(currNodeIdx) || !nodeStack.empty() )
     {
-        currLevelSize = currLevelNodes.size();
-        while(currLevelSize) {
-            currNodeIdx = currLevelNodes.front();
-            leftNodeIdx  = readMetadata(currNodeIdx).getLeftChild();
-            rightNodeIdx = readMetadata(currNodeIdx).getRightChild();
-
-            if(nodeExists(leftNodeIdx)) {
-                tmpCond = tmpCond && ( readValue(leftNodeIdx) < readValue(currNodeIdx) );
-                currLevelNodes.push(leftNodeIdx);
-            }
-            if(nodeExists(rightNodeIdx)) {
-                tmpCond = tmpCond && ( readValue(rightNodeIdx) > readValue(currNodeIdx) );
-                currLevelNodes.push(rightNodeIdx);
-            }
-
-            currLevelNodes.pop();
-            --currLevelSize;
+        while(nodeExists(currNodeIdx)) {
+            nodeStack.push(currNodeIdx);
+            currNodeIdx = readMetadata(currNodeIdx).getLeftChild();
         }
 
+        currNodeIdx = nodeStack.top();
+        nodeStack.pop();
 
-        satisfiesCondition = satisfiesCondition && tmpCond;
+        if(nodeExists(prevNodeIdx)) {
+            if( readValue(prevNodeIdx) >= readValue(currNodeIdx) ) {
+                cond = false;
+                break;
+            }
+        }
+
+        prevNodeIdx = currNodeIdx;
+        currNodeIdx = readMetadata(currNodeIdx).getRightChild();
     }
 
 
-    return satisfiesCondition;
+    return cond;
 }
 
 template <typename T>
@@ -356,7 +406,7 @@ bool FlatAVLTree<T>::isBalanced() const noexcept {
 
 
     /* Iterative Reverse-In-Order Tree Traversal */
-    while (  satisfiesCondition && ( nodeExists(currNodeIdx) || !nodeIdxStack.empty() )  )
+    while (nodeExists(currNodeIdx) || !nodeIdxStack.empty())
     {
         while (nodeExists(currNodeIdx)) {
             nodeIdxStack.push(currNodeIdx);
@@ -373,6 +423,11 @@ bool FlatAVLTree<T>::isBalanced() const noexcept {
             (tmpVal == +1);
 
         satisfiesCondition = satisfiesCondition && static_cast<bool>(tmpVal);
+        if(!satisfiesCondition) {
+            break;
+        }
+
+
         currNodeIdx = readMetadata(currNodeIdx).getLeftChild();
     }
 

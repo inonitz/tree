@@ -20,7 +20,7 @@ public:
     void clear (uint64_t bitIndex);
     void flip  (uint64_t bitIndex);
 
-    void toogle_if(uint64_t index, bool condition);
+    void toggle_if(uint64_t index, bool condition);
     void clear_if (uint64_t index, bool condition);
     void flip_if  (uint64_t index, bool condition);
 

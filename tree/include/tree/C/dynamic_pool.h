@@ -1,5 +1,5 @@
-#ifndef __DYNAMIC_POOL_ALLOCATOR_DEFINITION_HEADER__
-#define __DYNAMIC_POOL_ALLOCATOR_DEFINITION_HEADER__
+#ifndef __TREELIB_DYNAMIC_POOL_ALLOCATOR_DEFINITION_HEADER__
+#define __TREELIB_DYNAMIC_POOL_ALLOCATOR_DEFINITION_HEADER__
 #include <tree/C/treelib_extern.h>
 #include <tree/C/treelib_api.h>
 #include <stdbool.h>
@@ -32,8 +32,8 @@ typedef struct __dynamic_vector_like_pool_allocator_type_v0 {
 
 
 bool TREELIB_API GenericDynamicPoolCreate(
-    GenericDynamicPool* toCreate, 
-    uint32_t            objSizeBytes, 
+    GenericDynamicPool* toCreate,
+    uint32_t            objSizeBytes,
     uint32_t            initialAmountOfObjects
 );
 void TREELIB_API GenericDynamicPoolDestroy(GenericDynamicPool* toDestroy);

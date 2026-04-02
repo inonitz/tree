@@ -7,20 +7,20 @@
 
 
 template<typename T>
-class TREELIB_NO_EXPORT binaryTree 
+class TREELIB_NO_EXPORT binaryTree
 {
     static_assert(internal::has_less_v<T>   , "type T MUST have an overload for operator<\n");
     static_assert(internal::has_greater_v<T>, "type T MUST have an overload for operator>\n");
-    static_assert(internal::has_equal_v<T>  , "type T MUST have an overload for operator==\n");    
+    static_assert(internal::has_equal_v<T>  , "type T MUST have an overload for operator==\n");
 private:
     using valueType = typename internal::CompactifiedType<T>;
     using classPtr  = binaryTree*;
-    
+
     static constexpr auto reservedBytesSize() -> uint64_t {
         auto currentClassSize = 3 * sizeof(classPtr) + 2 + sizeof(valueType);
         auto alignTo8Multiple = 8 * ( (currentClassSize / 8) + (currentClassSize % 8 > 0) );
 
-        /* Return whatever difference is left - that is how much is required for an 8 byte multiple */
+        /* whatever difference is left is required for an 8 byte multiple */
         return alignTo8Multiple - currentClassSize;
     }
 
@@ -35,9 +35,9 @@ public:
     static binaryTree* findMinAndPushParents(binaryTree* node, std::deque<binaryTree*>& parentQueue);
     static bool        isValidAVL_InternalRecursive(binaryTree* node);
     static uint32_t    writeTreeToBufferRecursive(
-        char*       outputBuf, 
-        uint32_t    outputBufIdx, 
-        binaryTree* root, 
+        char*       outputBuf,
+        uint32_t    outputBufIdx,
+        binaryTree* root,
         uint32_t    space
     );
 
@@ -45,9 +45,9 @@ public:
     binaryTree() = default;
     explicit binaryTree(T const& value);
     binaryTree(
-        binaryTree* left, 
-        binaryTree* right, 
-        binaryTree* parent, 
+        binaryTree* left,
+        binaryTree* right,
+        binaryTree* parent,
         T const&    value
     );
 
@@ -60,8 +60,8 @@ public:
 
     static void destroy(binaryTree* node) noexcept;
     static void deepCopy(
-        binaryTree* nodeIn, 
-        binaryTree* nodeOut
+        binaryTree* nodeIn,
+        binaryTree** nodeOut
     );
     static void shallowCopy(
         binaryTree* nodeIn,
@@ -78,34 +78,37 @@ public:
     static binaryTree* getLeft(binaryTree* node)             noexcept;
     static binaryTree* getRight(binaryTree* node)            noexcept;
 
-    
+
     /* Functions that enable balancing in the Binary Tree */
     static binaryTree* rotateLeft(binaryTree* node);
     static binaryTree* rotateRight(binaryTree* node);
     static binaryTree* findMax(binaryTree* node);
     static binaryTree* findMin(binaryTree* node);
     static void maybeRebalance(
-        binaryTree*  node, 
+        binaryTree*  node,
         binaryTree** maybeNewRoot
     );
 
     /* Sanity Checks for testing */
-    static bool isValidBSTRecursive(binaryTree* node);
+    static bool isValidBSTRecursive(binaryTree* node, binaryTree** parent);
     static bool isValidAVL(binaryTree* node);
     static void writeBufferRecursive(
-        char*       outputBuf, 
-        uint32_t    outputBufIdx, 
-        binaryTree* root, 
+        char*       outputBuf,
+        uint32_t    outputBufIdx,
+        binaryTree* root,
         uint32_t    space
     );
 
     /* Regular BST Search With AVLTree Insertion & Deletion */
-    static binaryTree<T>* searchIterative(binaryTree* node, T const& value);
-    static bool searchRecursive(binaryTree* node, T const& value);
+    static binaryTree<T> const* searchIterative(binaryTree const* node, T const& value);
     static bool AVLInsertIterative(binaryTree* node, T const& value, binaryTree** out);
     static bool AVLDeleteIterative(binaryTree* node, T const& value, binaryTree** out);
+    static bool compareIterative(binaryTree const* nodeA, binaryTree const* nodeB);
+
+    static bool searchRecursive(binaryTree const* node, T const& value);
     static binaryTree<T>* AVLInsertRecursive(binaryTree* node, binaryTree* parent, T const& value);
     static binaryTree<T>* AVLDeleteRecursive(binaryTree* node, binaryTree* parent, T const& value);
+    static bool compareRecursive(binaryTree const* nodeA, binaryTree const* nodeB);
 
 public:
     union

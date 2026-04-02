@@ -1,5 +1,5 @@
-#ifndef __SIMPLE_LINEAR_STACK_C_DEFINITION_HEADER__
-#define __SIMPLE_LINEAR_STACK_C_DEFINITION_HEADER__
+#ifndef __TREELIB_LINEAR_STACK_C_DEFINITION_HEADER__
+#define __TREELIB_LINEAR_STACK_C_DEFINITION_HEADER__
 #include <tree/C/treelib_extern.h>
 #include <tree/C/treelib_api.h>
 #include <stdint.h>

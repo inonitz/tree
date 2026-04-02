@@ -1,5 +1,5 @@
 #include <tree/C/queue.h>
-#include <stdlib.h>
+#include <tree/C/alloc.h>
 #include <string.h>
 
 
@@ -19,29 +19,35 @@ uint8_t GenericQueueCreate(
     toCreate->m_maxObjCount = capacity == 0 ? 1 : capacity;
     toCreate->m_head        = 0;
     toCreate->m_tail        = 0;
-    toCreate->m_buffer = (uint8_t*)malloc((uint64_t)toCreate->m_maxObjCount * toCreate->m_objSize);
+    toCreate->m_buffer      = treelibMallocBytesExplicit(uint8_t,
+        toCreate->m_objSize,
+        toCreate->m_maxObjCount
+    );
     return toCreate->m_buffer == NULL ? 1 : 0;
 }
 
 
 void GenericQueueDestroy(GenericQueue* toDestroy) {
-    free(toDestroy->m_buffer);
+    treelibFreeTypeExplicit(toDestroy->m_buffer);
     memset(toDestroy, 0x00, sizeof(GenericQueue));
     return;
 }
 
 
 uint8_t GenericQueuePush(
-    GenericQueue* toModify, 
+    GenericQueue* toModify,
     void*         objAddr
 ) {
     uint8_t  failStatus = 0;
     uint8_t* destptr    = NULL;
+    if(objAddr == NULL) {
+        return 1;
+    }
     
     /* Queue is full */
-    if(toModify->m_objCount == toModify->m_maxObjCount) 
+    if(toModify->m_objCount == toModify->m_maxObjCount)
     {
-        uint32_t newMaxSize = toModify->m_maxObjCount == 1 ? 
+        uint32_t newMaxSize = toModify->m_maxObjCount == 1 ?
             3 : (3 * toModify->m_maxObjCount) / 2;
 
         failStatus = GenericQueueGrow(toModify, newMaxSize);
@@ -99,7 +105,7 @@ static uint8_t GenericQueueGrow(
     GenericQueue* q,
     uint32_t      newObjectCount
 ) {
-    uint8_t* newBuffer = (uint8_t*)malloc( (uint64_t)newObjectCount * q->m_objSize);
+    uint8_t* newBuffer = treelibMallocBytesExplicit(uint8_t, q->m_objSize, newObjectCount);
     if (newBuffer == NULL) {
         return 1;
     }
@@ -108,11 +114,11 @@ static uint8_t GenericQueueGrow(
     if (q->m_head < q->m_tail) {
         /* Case 1: Data is already contiguous (no wrap-around) */
         memcpy(
-            newBuffer, 
-            &q->m_buffer[q->m_head * q->m_objSize], 
+            newBuffer,
+            &q->m_buffer[q->m_head * q->m_objSize],
             (uint64_t)q->m_objCount * q->m_objSize
         );
-    } 
+    }
     else {
         /* Case 2: Data is wrapped */
 
@@ -120,22 +126,22 @@ static uint8_t GenericQueueGrow(
         /* Part A: From head to the physical end of the old buffer */
         uint64_t firstPartCount = q->m_maxObjCount - q->m_head;
         memcpy(
-            newBuffer, 
-            &q->m_buffer[q->m_head * q->m_objSize], 
+            newBuffer,
+            &q->m_buffer[q->m_head * q->m_objSize],
             firstPartCount * q->m_objSize
         );
 
         /* Part B: From the start of the old buffer to tail */
         uint64_t secondPartCount = q->m_tail;
         memcpy(
-            &newBuffer[firstPartCount * q->m_objSize], 
-            q->m_buffer, 
+            &newBuffer[firstPartCount * q->m_objSize],
+            q->m_buffer,
             secondPartCount * q->m_objSize
         );
     }
 
 
-    free(q->m_buffer);
+    treelibFreeTypeExplicit(q->m_buffer);
     q->m_buffer      = newBuffer;
     q->m_maxObjCount = newObjectCount;
     q->m_head        = 0;

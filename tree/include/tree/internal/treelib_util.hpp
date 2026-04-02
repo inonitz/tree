@@ -14,7 +14,7 @@ namespace internal
     struct conditional_operator<true,  TypeA, TypeB>{ using type = TypeA; };
     
 
-    template<typename T> struct value_ptr {
+    template<typename T> struct value_or_value_ptr {
         using type = typename conditional_operator<sizeof(T) <= 8, T, T*>::type;
         static constexpr bool value = (sizeof(T) <= 8);
     };
@@ -22,7 +22,7 @@ namespace internal
 
     template<typename T>
     struct CompactifiedType {
-        typename value_ptr<T>::type m_value;
+        typename value_or_value_ptr<T>::type m_value;
 
 
         CompactifiedType() {
@@ -34,7 +34,7 @@ namespace internal
 
 
         T const& get() const {
-            if constexpr ( value_ptr<T>::value == false ) {
+            if constexpr ( value_or_value_ptr<T>::value == false ) {
                 return *m_value;
             } else {
                 return m_value;
@@ -42,7 +42,7 @@ namespace internal
         }
 
         void set(T const& value) {
-            if constexpr ( value_ptr<T>::value == false ) {
+            if constexpr ( value_or_value_ptr<T>::value == false ) {
                 if(m_value != nullptr) {
                     *m_value = value;
                 } else {
@@ -57,7 +57,7 @@ namespace internal
 
 
         void release() {
-            if constexpr ( value_ptr<T>::value == false ) {
+            if constexpr ( value_or_value_ptr<T>::value == false ) {
                 delete m_value;
                 m_value = nullptr;
                 return;

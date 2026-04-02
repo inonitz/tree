@@ -1,5 +1,5 @@
-#ifndef __SIMPLE_LINEAR_CIRCULAR_QUEUE_C_DEFINITION_HEADER__
-#define __SIMPLE_LINEAR_CIRCULAR_QUEUE_C_DEFINITION_HEADER__
+#ifndef __TREELIB_LINEAR_CIRCULAR_QUEUE_C_DEFINITION_HEADER__
+#define __TREELIB_LINEAR_CIRCULAR_QUEUE_C_DEFINITION_HEADER__
 #include <tree/C/treelib_extern.h>
 #include <tree/C/treelib_api.h>
 #include <stdint.h>
@@ -19,8 +19,8 @@ typedef struct {
 
 
 uint8_t  TREELIB_API GenericQueueCreate(
-    GenericQueue* toCreate, 
-    uint32_t      objSizeInBytes, 
+    GenericQueue* toCreate,
+    uint32_t      objSizeInBytes,
     uint32_t      maximumInitialAmountOfObjects
 );
 void     TREELIB_API GenericQueueDestroy(GenericQueue*       toDestroy);
