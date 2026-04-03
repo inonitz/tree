@@ -1,10 +1,8 @@
 #include "FlatAVLTreeGenericTest.hpp"
-#include "tree/internal/nodeMetadata.hpp"
-#include <util2/random.hpp>
 #include <tree/internal/FlatAVLGenericAccessor.hpp>
 #include <tree/FlatAVLTreeImpl.hpp>
+#include <fstream>
 #include <shared_mutex>
-#include <utility>
 #include <iomanip>
 #include <random>
 #include <array>
@@ -49,34 +47,39 @@ public:
     ) : m_logging(toLogInitially)
     {
         m_fileStream.open(filename, std::ios::out | std::ios::app);
+        
+        // rdbuf() with no arguments gets the current buffer
         m_originalStreamBufHandle = m_fileStream.rdbuf();
         m_nullStreamBufHandle     = &m_nullStreamBuf;
-
-        /* Reserve Temp Buffer for Stream buffering, default should be (?) 4KiB */
+        
+        /* Reserve Temp Buffer for Stream buffering */
         m_streamBufferUnderlyingMemory.resize(k_bufferingMemorySize);
         m_originalStreamBufHandle->pubsetbuf(
             m_streamBufferUnderlyingMemory.data(),
             k_bufferingMemorySize
         );
-
-
+        
         if(!toLogInitially) {
-            m_fileStream.set_rdbuf(m_nullStreamBufHandle);
+            // Fix: Use the public rdbuf(streambuf*) to set the buffer
+            static_cast<std::iostream&>(m_fileStream).rdbuf(m_nullStreamBufHandle);
         }
-        return;
+        
+        // Apply initial buffering state
+        if (flushAfterWrite) {
+            m_fileStream << std::unitbuf;
+        }
     }
 
     ~AtomicLogger() {
         std::unique_lock lock(m_bufferMutex);
-
-        m_fileStream.set_rdbuf(m_originalStreamBufHandle);
+        
+        // Fix: Restore the original buffer before destruction
+        static_cast<std::iostream&>(m_fileStream).rdbuf(m_originalStreamBufHandle);
         if(m_fileStream.is_open()) {
             m_fileStream.close();
         }
         m_streamBufferUnderlyingMemory.clear();
-        return;
     }
-
 
     LogStreamProxy get() {
         return LogStreamProxy(m_bufferMutex, m_fileStream);
@@ -84,34 +87,37 @@ public:
 
     void setLogging(bool enable) {
         std::unique_lock lock(m_bufferMutex); /* Wait for all Proxy operations to finish */
-        if (m_logging == enable)
+        if (m_logging == enable) {
             return;
-
-        m_fileStream.set_rdbuf(enable ? m_originalStreamBufHandle : m_nullStreamBufHandle);
+        }
+            
+        // Fix: Swap the buffer using the public setter
+        static_cast<std::iostream&>(m_fileStream).rdbuf(
+            enable ? m_originalStreamBufHandle : m_nullStreamBufHandle
+        );
         m_logging = enable;
-        return;
     }
 
     /* Useful for debugging, when needing immediate output */
     void setBufferingState(bool flushAfterWrite) {
         std::unique_lock lock(m_bufferMutex);
         m_fileStream << (flushAfterWrite ? std::unitbuf : std::nounitbuf);
-        return;
     }
-
 
 private:
     static constexpr uint64_t k_bufferingMemorySize = 128 * 1024;
-
+    
     bool    m_logging;
-    uint8_t m_reserved[7];
+    uint8_t m_reserved[7]; 
+    
     std::shared_mutex m_bufferMutex;
-    std::streambuf*   m_originalStreamBufHandle;
-    std::streambuf*   m_nullStreamBufHandle;
+    std::streambuf* m_originalStreamBufHandle;
+    std::streambuf* m_nullStreamBufHandle;
     std::vector<char> m_streamBufferUnderlyingMemory;
     std::fstream      m_fileStream;
     NullStreamBuffer  m_nullStreamBuf;
 };
+
 
 
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <cstring>
 #include <utility>
 
 
@@ -26,7 +27,7 @@ namespace internal
 
 
         CompactifiedType() {
-            memset( &m_value, 0x00, sizeof(decltype(m_value)) );
+            std::memset( &m_value, 0x00, sizeof(decltype(m_value)) );
             return;
         }
         ~CompactifiedType() = default;

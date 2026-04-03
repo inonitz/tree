@@ -3,7 +3,6 @@
 #include <util2/C/macro.h>
 #include <util2/C/base_type.h>
 #include <string>
-#include <fstream>
 #ifdef _MSC_VER
 #   ifndef _CRT_SECURE_NO_WARNINGS
 #       define _CRT_SECURE_NO_WARNINGS
