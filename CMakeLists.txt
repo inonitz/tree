@@ -33,10 +33,21 @@ function(UPDATE_SUBMODULES_ON_CMAKE_CONFIGURE SUBMODULE_CMAKE_TXT_PATH)
 endfunction()
 
 
-update_submodules_on_cmake_configure("dependencies/benchmark/CMakeLists.txt")
-update_submodules_on_cmake_configure("dependencies/cmocka/CMakeLists.txt")
-update_submodules_on_cmake_configure("dependencies/googletest/CMakeLists.txt")
-update_submodules_on_cmake_configure("dependencies/util2/CMakeLists.txt")
+# update_submodules_on_cmake_configure("dependencies/benchmark/CMakeLists.txt")
+# update_submodules_on_cmake_configure("dependencies/cmocka/CMakeLists.txt")
+# update_submodules_on_cmake_configure("dependencies/googletest/CMakeLists.txt")
+# update_submodules_on_cmake_configure("dependencies/util2/CMakeLists.txt")
+update_submodules_on_cmake_configure("dependencies")
+# In the case where a submodule "X" has been updated remotely,
+# and we want to reflect the changes in the project 
+# (i.e point the submodule head to the latest commit)
+#
+#
+# cd path/to/submodule
+# git checkout "latest_commit_name"
+# git pull origin "latest_commit_name"
+#
+# [NOTE]: call 'git remote -v' to make sure your remote fetch branch is actually named 'origin'
 
 
 option(ENABLE_SANITIZER_ADDRESS
