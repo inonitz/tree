@@ -32,14 +32,11 @@ int main(int argc, char *argv[])
         --gtest_filter [TestSuiteName]/[InstantiatedType].[SpecificTestName]
     */
     // ::testing::GTEST_FLAG(filter) = "GenericRecursiveAVLTreeTest/*.*";
-    // result = RUN_ALL_TESTS();
-    ::testing::GTEST_FLAG(filter) = "GenericAVLTreeTest*";
-    result = RUN_ALL_TESTS();
+    // ::testing::GTEST_FLAG(filter) = "GenericAVLTreeTest*";
     // ::testing::GTEST_FLAG(filter) = "AVLTreeTest*";
-    // result = RUN_ALL_TESTS();
     // ::testing::GTEST_FLAG(filter) = "FlatAVLTreeGenericTest*";
-    // result = RUN_ALL_TESTS();
     // ::testing::GTEST_FLAG(filter) = "*";
-    // result = RUN_ALL_TESTS();
+    // ::testing::GTEST_FLAG(filter) = "-*AVLTree*StochasticStressTest*";
+    result = RUN_ALL_TESTS();
     return result;
 }

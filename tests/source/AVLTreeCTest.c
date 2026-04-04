@@ -14,9 +14,9 @@
 #include <inttypes.h>
 
 
-#define GK_STEST_TOTAL_OPS     (1 * 1000 * 1000)
-#define GK_STEST_VAL_DIST_MIN  (1)
-#define GK_STEST_VAL_DIST_MAX  (2000000)
+#define GK_TEST_TOTAL_OPS     (1 * 1000 * 1000)
+#define GK_TEST_VAL_DIST_MIN  (1)
+#define GK_TEST_VAL_DIST_MAX  (2000000)
 #define GK_MASSIVE_BUFFER_SIZE (128ull * 1024 * 1024)
 #define GK_MANUAL_TREE_SIZE    (100)
 #define LOG_OPTION_DIRECTLY_TO_FILE 0
@@ -520,7 +520,7 @@ static void AVLTreeManualVerificationInsertDeleteTest(void** state) {
 
 	AVLTreeCreate(&test, uint32_cmp, sizeof(uint32_t));
 	for (uint64_t i = 0; i < GK_MANUAL_TREE_SIZE; ++i) {
-		data[i] = (uint32_t)(random32u() % 101); /* 0 to 100 */
+		data[i] = (random32u() % 101); /* 0 to 100 */
 	}
 
 
@@ -552,7 +552,7 @@ static void AVLTreeManualVerificationInsertDeleteTest(void** state) {
 
 	for (uint64_t i = 1; i < GK_MANUAL_TREE_SIZE; ++i)
 	{
-		randIdx      = (uint32_t) (random32u() % GK_MANUAL_TREE_SIZE);
+		randIdx      = (random32u() % GK_MANUAL_TREE_SIZE);
 		randValToDel = data[randIdx];
 
 		opState.m_op = AVLTreeRemove(&test, &randValToDel);
@@ -589,7 +589,7 @@ static void AVLTreeRandomOperationsFuzzStressTest(void** state) {
 	AVLTree* testTree;
 	UIntArray treeValueSet;
 
-	uint32_t randomValueBufSize = GK_STEST_TOTAL_OPS;
+	uint32_t randomValueBufSize = GK_TEST_TOTAL_OPS;
 	uint32_t* randomValueBuf    = NULL;
 
 	CTestOperationType op          = CTEST_AVL_OPER_MAX_OP;
@@ -612,7 +612,6 @@ static void AVLTreeRandomOperationsFuzzStressTest(void** state) {
 	uint32_t* searchExistingValueFailure = &searchInSet[1];
 
 
-	util2_initializeMersenneTwister19937Ver2_Default();
 	AVLTreeCreate(&treeA, uint32_cmp, sizeof(uint32_t));
 	AVLTreeCreate(&treeB, uint32_cmp, sizeof(uint32_t));
 	array_init(&treeValueSet);
@@ -622,14 +621,14 @@ static void AVLTreeRandomOperationsFuzzStressTest(void** state) {
 	f64 tmp = 0;
 	for(u32 i = 0; i < randomValueBufSize; ++i) {
 		tmp = random64f();
-		tmp = tmp * (GK_STEST_VAL_DIST_MAX - GK_STEST_VAL_DIST_MIN) + GK_STEST_VAL_DIST_MIN;
+		tmp = tmp * (GK_TEST_VAL_DIST_MAX - GK_TEST_VAL_DIST_MIN) + GK_TEST_VAL_DIST_MIN;
 		randomValueBuf[i] = (u32)tmp;
 	}
 
 
-	testTree = &treeA;
 	printf("AVLTreeCTest Begin\n");
-	for (uint32_t i = 0; i < GK_STEST_TOTAL_OPS; ++i) {
+	testTree = &treeA;
+	for (uint32_t i = 0; i < GK_TEST_TOTAL_OPS; ++i) {
 		// printf("\r\r\r\r\r\r");
 		status = (binaryTreeStatusPair_t){
 			BINARY_TREE_OP_SUCCESS,
@@ -892,7 +891,7 @@ int teardown_c_report_buffer(void** state) {
 		"g_massiveBuffer Consumed %" PRIu64 "/%" PRIu64 " Bytes for %u Operations\n", 
 		g_massiveBufferCurrIdx, 
 		(uint64_t)GK_MASSIVE_BUFFER_SIZE, 
-		GK_STEST_TOTAL_OPS
+		GK_TEST_TOTAL_OPS
 	);
 	if (g_reportFile) {
 		fprintf(g_reportFile, "%s", g_massiveBuffer);

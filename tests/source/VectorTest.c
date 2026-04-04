@@ -1,6 +1,7 @@
 #include "VectorTest.h"
 #include <cmocka.h>
 #include <tree/C/vector.h>
+#include <util2/C/debug_macro.h>
 #include <util2/C/random.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -164,6 +165,7 @@ static void Vector_test_getters_and_setters(void** state) {
 
     assert_int_equal(valptr,     GenericVectorBack(&vec));
     assert_int_equal(valptr + 1, GenericVectorEnd(&vec));
+    GenericVectorDestroy(&vec);
     return;
 }
 
@@ -454,7 +456,6 @@ static void Vector_test_clear_and_resize(void** state) {
 }
 
 
-
 static void VerifyInnerVectorState(
     GenericVector* vec,
     FuzzState*     state
@@ -486,18 +487,36 @@ static void VerifyInnerVectorState(
     return;
 }
 
-static void Vector_test_fuzz_generic_vector(void **state_ptr) {
-    (void)state_ptr;
-    const uint32_t num_operations = 1000000;
-    const uint32_t randSeed       = 42;
+
+static void Vector_test_fuzz_generic_vector(void **cmocka_state) {
+    (void)cmocka_state;
+    const uint32_t kMaximumRandomOperations = 1 * 1000 * 1000;
 
     GenericVector vec;
     FuzzState     state = {0, 0};
     int32_t*      valptr = NULL;
     int32_t       val    = 0;
+    int32_t       valold = 0;
 
+    uint32_t randIdx = 0;
+    uint32_t valCount = 0;
+    int32_t* valueBuf = NULL;
+    int64_t  valSum   = 0;
+
+    uint32_t currCap  = 0;
+    uint32_t currSize = 0;
+
+    uint32_t updatedSize = 0;
+    uint32_t updatedCap  = 0;
+
+
+// #ifdef UTIL2_DEBUG_BUILD
+    // randomInitFixedSeed();
+// #endif
+
+    printf("Vector_test_fuzz_generic_vector begin()\n");
     GenericVectorCreate(&vec, sizeof(int32_t));
-    for (int32_t i = 0; i < num_operations; ++i) {
+    for (int32_t i = 0; i < kMaximumRandomOperations; ++i) {
         // printf("\r\r\r\r\r\r");
         VectorOperation op = (VectorOperation)(random8u() % VECTOR_OP_COUNT_MAX);
 
@@ -505,7 +524,7 @@ static void Vector_test_fuzz_generic_vector(void **state_ptr) {
         switch (op)
         {
             case VECTOR_OP_PUSH_BACK:
-            int32_t val = random32i();
+            val = random32i();
             if (!GenericVectorPushBack(&vec, &val)) {
                 ++state.expected_size;
                 state.expected_sum += val;
@@ -522,20 +541,20 @@ static void Vector_test_fuzz_generic_vector(void **state_ptr) {
             break;
 
             case VECTOR_OP_INSERT:
-            uint32_t randInsertIdx = (state.expected_size == 0) ? 0 : (random32u() % (state.expected_size + 1));
-            uint32_t valCount      = (random8u() % 100) + 1;
-            int32_t* valueBuf      = malloc(valCount * sizeof(int32_t));
-            int64_t  valToInsertSum = 0;
+            randIdx  = (state.expected_size == 0) ? 0 : (random32u() % (state.expected_size + 1));
+            valCount = (random8u() % 100) + 1;
+            valueBuf = malloc(valCount * sizeof(int32_t));
+            valSum   = 0;
 
             if (valueBuf)
             {
                 for(uint32_t j = 0; j < valCount; ++j) {
                     valueBuf[j] = random32i();
-                    valToInsertSum += valueBuf[j];
+                    valSum += valueBuf[j];
                 }
-                if (!GenericVectorInsert(&vec, randInsertIdx, valCount, valueBuf)) {
+                if (!GenericVectorInsert(&vec, randIdx, valCount, valueBuf)) {
                     state.expected_size += valCount;
-                    state.expected_sum += valToInsertSum;
+                    state.expected_sum += valSum;
                 }
                 free(valueBuf);
             }
@@ -544,35 +563,34 @@ static void Vector_test_fuzz_generic_vector(void **state_ptr) {
             case VECTOR_OP_ERASE:
             if (state.expected_size > 0)
             {
-                uint32_t randIdx  = random32u() % state.expected_size;
-                uint32_t valCount = (random32u() % (state.expected_size - randIdx)) + 1;
-                int32_t* currVal       = NULL;
-                int64_t  valToEraseSum = 0;
-
+                randIdx  = random32u() % state.expected_size;
+                valCount = (random32u() % (state.expected_size - randIdx)) + 1;
+                valptr   = NULL;
+                valSum   = 0;
                 for (uint32_t j = 0; j < valCount; j++) {
-                    currVal = (int32_t*)GenericVectorGet(&vec, randIdx + j);
-                    valToEraseSum += *currVal;
+                    valptr = (int32_t*)GenericVectorGet(&vec, randIdx + j);
+                    valSum += *valptr;
                 }
 
                 GenericVectorErase(&vec, randIdx, valCount);
                 state.expected_size -= valCount;
-                state.expected_sum -= valToEraseSum;
+                state.expected_sum -= valSum;
             }
             break;
 
             case VECTOR_OP_RESIZE:
-            uint32_t updatedSize = random16u();
+            updatedSize = random16u();
             if (!GenericVectorResize(&vec, updatedSize))
             {
                 if (updatedSize < state.expected_size) {
                     /* Vector shrank: recalculate sum of remaining elements */
-                    int64_t  new_sum = 0;
-                    int32_t* currVal = NULL;
+                    valSum = 0;
+                    valptr = NULL;
                     for (uint32_t j = 0; j < updatedSize; j++) {
-                        currVal = (int32_t*)GenericVectorGet(&vec, j);
-                        new_sum += *currVal;
+                        valptr = (int32_t*)GenericVectorGet(&vec, j);
+                        valSum += *valptr;
                     }
-                    state.expected_sum = new_sum;
+                    state.expected_sum = valSum;
                 }
                 /* Vector Grew/Stayed the same: new elements are zeroed out by GenericVectorResize */
                 /* expected_sum remains exactly the same */
@@ -581,15 +599,15 @@ static void Vector_test_fuzz_generic_vector(void **state_ptr) {
             break;
 
             case VECTOR_OP_RESERVE:
-            uint32_t new_cap = GenericVectorCapacity(&vec) + random8u();
-            if(GenericVectorReserve(&vec, new_cap)) {
-                printf("GenericVectorReserve Failed(&vec, %u) Failed\n", new_cap);
+            updatedCap = GenericVectorCapacity(&vec) + random8u();
+            if(GenericVectorReserve(&vec, updatedCap)) {
+                printf("GenericVectorReserve Failed(&vec, %u) Failed\n", updatedCap);
             }
             break;
 
             case VECTOR_OP_SHRINK_TO_FIT:
-            uint32_t currCap  = GenericVectorCapacity(&vec);
-            uint32_t currSize = GenericVectorSize(&vec);
+            currCap  = GenericVectorCapacity(&vec);
+            currSize = GenericVectorSize(&vec);
             if(currSize > 0) {
                 if(GenericVectorShrinkToFit(&vec)) {
                     printf("GenericVectorShrinkToFit(&vec) Failed To Shrink From Capacity %u To Size %u\n", currCap, currSize);
@@ -605,12 +623,12 @@ static void Vector_test_fuzz_generic_vector(void **state_ptr) {
 
             case VECTOR_OP_SET:
             if (state.expected_size > 0) {
-                uint32_t idxToSet   = random32u() % state.expected_size;
-                int32_t  valueToSet = random32i();
-                int32_t  valueOld   = *(int32_t*)GenericVectorGet(&vec, idxToSet);
+                randIdx = random32u() % state.expected_size;
+                val     = random32i();
+                valold  = *(int32_t*)GenericVectorGet(&vec, randIdx);
 
-                GenericVectorSet(&vec, idxToSet, &valueToSet);
-                state.expected_sum = state.expected_sum - valueOld + valueToSet;
+                GenericVectorSet(&vec, randIdx, &val);
+                state.expected_sum = state.expected_sum - valold + val;
             }
             break;
 
@@ -625,6 +643,7 @@ static void Vector_test_fuzz_generic_vector(void **state_ptr) {
     }
 
 
+    printf("Vector_test_fuzz_generic_vector end()\n");
     GenericVectorDestroy(&vec);
     return;
 }

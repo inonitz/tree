@@ -1,4 +1,6 @@
 #include "AVLTreeGenericRecursiveTest.hpp"
+#include <util2/C/debugbreak.h>
+#include <util2/type_trait.hpp>
 #include <util2/C/aligned_malloc.h>
 #include <util2/C/ifcrash2.h>
 #include <util2/random.hpp>
@@ -392,16 +394,24 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, VerifyIsValidBST) {
     binaryTree<TypeParam>* oopsyNode = nullptr;
     auto testData = generateDataForValidBSTTest<TypeParam>();
 
-
+    // if constexpr (util2::type_trait::is_same_type<TypeParam, DummyRecord>::value) {
+    //     util2_debugbreak();
+    // }
+    // if constexpr (util2::type_trait::is_same_type<TypeParam, std::string>::value) {
+    //     util2_debugbreak();
+    // }
+    // if constexpr (util2::type_trait::is_same_type<TypeParam, std::string>::value) {
+    //     util2_debugbreak();
+    // }
     /* 
 		Construct a small tree:
             50
            /  \
           25   75
     */
-    tree.insertRecursive(testData[0]);
-    tree.insertRecursive(testData[1]);
-    tree.insertRecursive(testData[2]);
+    EXPECT_TRUE(tree.insertRecursive(testData[0]));
+    EXPECT_TRUE(tree.insertRecursive(testData[1]));
+    EXPECT_TRUE(tree.insertRecursive(testData[2]));
 
     /* Attach 60 (testData[3]) as the right child of 25, which doesn't satisfy the BST requirement */
     oopsyNode = new binaryTree<TypeParam>(testData[3]);
@@ -411,6 +421,7 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, VerifyIsValidBST) {
     EXPECT_FALSE(tree.isValidBST());
 
     tree.getRoot()->m_left->m_right = nullptr;
+    oopsyNode->m_data.release();
     delete oopsyNode;
     tree.clear();
     return;
@@ -441,6 +452,7 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, VerifyIsValidBSTDuplicateCheck) {
     EXPECT_FALSE(tree.isValidBST());
 
     ((binaryTree<TypeParam>*)(tree.getRoot()))->m_left = nullptr;
+    dupNode->m_data.release();
     delete dupNode;
     tree.clear();
 	return;

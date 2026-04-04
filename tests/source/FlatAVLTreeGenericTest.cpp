@@ -675,7 +675,7 @@ TYPED_TEST(FlatAVLTreeGenericTest, StochasticStressTest) {
     uint32_t& searchExistingValueFailure = searchInSet[1];
 
 
-    printf("FlatAVLTreeGenericTest End\n");
+    printf("FlatAVLTreeGenericTest Begin\n");
     gen.seed(g_testSeed);
     for (uint32_t i = 0; i < FlatAVLTreeGenericTest<TypeParam>::gk_stest_total_ops; ++i) {
         // printf("\r\r\r\r\r\r");

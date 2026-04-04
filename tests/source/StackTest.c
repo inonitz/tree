@@ -1,4 +1,5 @@
 #include "StackTest.h"
+#include <util2/C/random.h>
 #include <cmocka.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -191,17 +192,16 @@ static void Stack_test_fuzz_operations(void **state) {
     GenericStack stack;
 
 
-    srand(0);
     verify_stack_creation(&stack, sizeof(FuzzPayload), 10);
     for (uint32_t i = 0; i < kMaximumRandomOperations; ++i)
     {
-        op = rand() % FUZZ_STACK_OPERATION_MAX;
+        op = random8u() % FUZZ_STACK_OPERATION_MAX;
 
         switch(op) {
             case FUZZ_STACK_OPERATION_PUSH:
             tmpVal = (FuzzPayload){
                 i,
-                rand() % UINT32_MAX
+                random32u()
             };
             groundTruthBuf[groundTruthCnt] = tmpVal;
             ++groundTruthCnt;

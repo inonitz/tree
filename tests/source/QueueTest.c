@@ -1,4 +1,5 @@
-#include <stdlib.h>
+#include <util2/C/aligned_malloc.h>
+#include <util2/C/random.h>
 #include <tree/C/queue.h>
 #include <cmocka.h>
 
@@ -181,7 +182,7 @@ static void Queue_test_fuzz_operations(void **state) {
     (void)state;
     static const uint64_t kGroundTruthBufMaxSize   = 4 * 1024 * 1024;
     static const uint64_t kMaximumRandomOperations = 4 * 1024 * 1024;
-    FuzzPayload* groundTruthBuf  = malloc(sizeof(FuzzPayload) * kGroundTruthBufMaxSize);
+    FuzzPayload* groundTruthBuf  = util2_aligned_malloc(sizeof(FuzzPayload) * kGroundTruthBufMaxSize, sizeof(FuzzPayload));
     uint32_t     groundTruthCnt  = 0;
     uint32_t     groundTruthHead = 0;
     uint32_t     groundTruthTail = 0;
@@ -190,17 +191,16 @@ static void Queue_test_fuzz_operations(void **state) {
     GenericQueue queue;
 
 
-    srand(0);
     verify_queue_creation(&queue, sizeof(FuzzPayload), 10);
     for (uint32_t i = 0; i < kMaximumRandomOperations; ++i)
     {
-        op = rand() % FUZZ_STACK_OPERATION_MAX;
+        op = random8u() % FUZZ_STACK_OPERATION_MAX;
 
         switch(op) {
             case FUZZ_QUEUE_OPERATION_ENQUEUE:
             tmpVal = (FuzzPayload){
                 i,
-                rand() % UINT32_MAX
+                random32u()
             };
             groundTruthBuf[groundTruthTail % kGroundTruthBufMaxSize] = tmpVal;
             ++groundTruthTail;
@@ -238,7 +238,7 @@ static void Queue_test_fuzz_operations(void **state) {
     }
 
 
-    free(groundTruthBuf);
+    util2_aligned_free(groundTruthBuf);
     GenericQueueDestroy(&queue);
     return;
 }

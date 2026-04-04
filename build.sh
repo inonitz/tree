@@ -51,14 +51,7 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "--h" ]; then
     echo "  ./build.sh release shared build"
     exit 0
 fi
-cleanbuild
-configure
-build
-test
-debugcxxtests
-debugctests
-benchmark
-debugbenchmark
+
 
 
 
