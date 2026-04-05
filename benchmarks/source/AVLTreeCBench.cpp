@@ -69,7 +69,7 @@ static void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
 // C++ Wrapper for the C AVL Tree Implementation
 // ----------------------------------------------------------------------------
 template <typename T>
-static int GenericComparator(const void* a, const void* b) {
+static int GenericBenchComparator(const void* a, const void* b) {
     const T& arg1 = *__scast(const T*, a);
     const T& arg2 = *__scast(const T*, b);
     if (arg1 < arg2) return -1;
@@ -78,13 +78,38 @@ static int GenericComparator(const void* a, const void* b) {
 }
 
 template <typename T>
-class C_AVLTreeWrapper {
-private:
-    AVLTree m_tree;
+static int8_t GenericBenchConstructor(void* dest, const void* src) {
+    static_assert( !std::is_pod<T>::value );
+    return 0;
+}
 
+template <typename T>
+static void GenericBenchDestructor(void* a) {
+    static_assert( !std::is_pod<T>::value );
+}
+
+
+template<> int8_t GenericBenchConstructor<std::string>(void* dest, const void* src) {
+    const std::string* src_str = static_cast<const std::string*>(src);
+    new (dest) std::string(*src_str);
+    return 0;
+}
+
+template<> void GenericBenchDestructor<std::string>(void* obj) {
+    std::string* str = static_cast<std::string*>(obj);
+    str->~basic_string();
+    return;
+}
+
+
+
+
+template <typename T>
+class C_AVLTreeWrapper {
 public:
     C_AVLTreeWrapper() {
-        AVLTreeCreate(&m_tree, (binaryTreeComparatorFunc)GenericComparator<T>, sizeof(T));
+        defaultConstruct();
+        return;
     }
 
     ~C_AVLTreeWrapper() {
@@ -98,20 +123,37 @@ public:
     }
 
     bool remove(const T& val) {
-        T temp = val;
+        T temp{val};
         return AVLTreeRemove(&m_tree, &temp) == BINARY_TREE_OP_SUCCESS;
     }
 
     bool search(const T& val) const {
-        T temp = val;
+        T temp{val};
         return AVLTreeSearch(&m_tree, &temp);
     }
 
     void clear() {
         AVLTreeDestroy(&m_tree);
-        AVLTreeCreate(&m_tree, (binaryTreeComparatorFunc)GenericComparator<T>, sizeof(T));
+        defaultConstruct();
         return;
     }
+
+private:
+    void defaultConstruct() {
+        auto copyFunctor   = std::is_pod<T>::value ? NULL : GenericBenchConstructor<T>;
+        auto deleteFunctor = std::is_pod<T>::value ? NULL : GenericBenchDestructor<T>;
+
+        AVLTreeCreate(&m_tree, 
+            (binaryTreeComparatorFunc)GenericBenchComparator<T>,
+            (binaryTreeGenericValueCopyConstructorFunc)copyFunctor,
+            (binaryTreeGenericValueDestructorFunc)deleteFunctor,
+            sizeof(T)
+        );
+        return;
+    }
+
+private:
+    AVLTree m_tree;
 };
 
 
@@ -164,7 +206,7 @@ static void BM_AVLTreeCBenchDeletion(benchmark::State& state) {
             tree.clear();
             working_set = original_data;
             std::shuffle(working_set.begin(), working_set.end(), gen);
-            for(auto& val : working_set) tree.insert(val);
+            for(auto& val : working_set) { tree.insert(val); }
         }
         valToDelete = working_set.back();
         working_set.pop_back();

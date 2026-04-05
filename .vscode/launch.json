@@ -52,7 +52,27 @@
             "initCommands": [ "settings set target.process.follow-fork-mode child" ]
         },
 
-
+        // Debug Benchmark
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "LLDB (Windows-x86_64-Static-Debug-Benchmark)",
+            "program": "${workspaceFolder}\\build\\debug\\static\\bin\\debug_benchmark_treelib.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "initCommands": [ "settings set target.process.follow-fork-mode child" ]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "LLDB (Windows-x86_64-Dll-Debug-Benchmark)",
+            "program": "${workspaceFolder}\\build\\debug\\shared\\bin\\debug_benchmark_treelib.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "initCommands": [ "settings set target.process.follow-fork-mode child" ]
+        },
 
 
         // Linux Debug Tests
@@ -94,6 +114,28 @@
             "request": "launch",
             "name": "LLDB (Linux-x86_64-Shared-Debug-c)",
             "program": "${workspaceFolder}/build/debug/shared/bin/test_treelib_cmocka",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "initCommands": [ "settings set target.process.follow-fork-mode child" ]
+        },
+
+        // Benchmark Debug
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "LLDB (Linux-x86_64-Static-Debug-Benchmark)",
+            "program": "${workspaceFolder}/build/debug/static/bin/debug_benchmark_treelib",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "initCommands": [ "settings set target.process.follow-fork-mode child" ]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "LLDB (Linux-x86_64-Shared-Debug-Benchmark)",
+            "program": "${workspaceFolder}/build/debug/shared/bin/debug_benchmark_treelib",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false,

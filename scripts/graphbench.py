@@ -86,7 +86,7 @@ def plot_results(df: pd.DataFrame):
 
 if __name__ == "__main__":
     fileList = []
-    JsonDirToScan = Path('data')
+    JsonDirToScan = Path('iterations/2')
 
     for file in JsonDirToScan.iterdir():
         if file.is_file():

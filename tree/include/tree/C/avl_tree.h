@@ -3,6 +3,7 @@
 #include <tree/C/treelib_api.h>
 #include <tree/C/treelib_extern.h>
 #include <tree/C/compare_func.h>
+#include <tree/C/construct_func.h>
 #include <tree/C/op_result.h>
 #include <tree/C/print_func.h>
 #include <stddef.h>
@@ -16,6 +17,8 @@ typedef struct binaryTreeNode binaryTreeNode;
 typedef struct __avl_tree_definition {
 	binaryTreeNode*          m_root;
 	binaryTreeComparatorFunc m_cmp;
+    binaryTreeValCopyFunc    m_ValueCopyConstructor;
+    binaryTreeValDeleteFunc  m_ValueDestructor;
 	uint32_t                 m_nodeCount;
 	uint32_t                 m_dataSizeBytes;
 } AVLTree;
@@ -24,6 +27,8 @@ typedef struct __avl_tree_definition {
 void TREELIB_API AVLTreeCreate(
     AVLTree*                 root,
     binaryTreeComparatorFunc valueCompare,
+    binaryTreeValCopyFunc    valueCopyConstructorFunctor_NullForPODTypes,
+    binaryTreeValDeleteFunc  valueDestructorFunctor_NullForPODTypes,
     uint32_t                 valueSizeInBytes
 );
 binaryTreeResult_t TREELIB_API AVLTreeCreateCopy(

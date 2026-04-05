@@ -6,7 +6,14 @@ int main(int argc, char** argv) {
     benchmark::MaybeReenterWithoutASLR(argc, argv);
 
 
-    char  arg0_default[] = "benchmark";
+    // char  arg0_default[] = "benchmark";
+    // char* args_default   = __rcast(char*, arg0_default);
+    // if (!argv) {
+    //     argc = 1;
+    //     argv = &args_default;
+    // }
+
+    char  arg0_default[] = "--benchmark_filter=BM_AVLTreeCBench*";
     char* args_default   = __rcast(char*, arg0_default);
     if (!argv) {
         argc = 1;

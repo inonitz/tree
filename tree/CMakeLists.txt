@@ -18,6 +18,7 @@ set(PUBLIC_HEADERS
     include/tree/C/avl_tree.h
     include/tree/C/binary_tree.h
     include/tree/C/compare_func.h
+    include/tree/C/construct_func.h
     include/tree/C/op_result.h
     include/tree/C/print_func.h
     include/tree/C/queue.h

@@ -1,4 +1,3 @@
-#include "tree/C/op_result.h"
 #include <tree/C/avl_tree.h>
 #include <tree/C/binary_tree.h>
 #include <tree/C/stack.h>
@@ -25,7 +24,10 @@ void AVLTreeMaybeRebalance(
     binaryTreeNode* node,
     binaryTreeNode** maybeNewRootAddr
 );
-binaryTreeNode* removeNodeAndLinkParentWithChild(binaryTreeNode* nodeToModify);
+binaryTreeNode* removeNodeAndLinkParentWithChild(
+    binaryTreeNode*         nodeToModify,
+    binaryTreeValDeleteFunc nodeDestructorFunc
+);
 binaryTreeNode* AVLTreeFindMaxAndPushParents(
     binaryTreeNode* node,
     GenericStack*   parentQueue
@@ -42,12 +44,16 @@ void AVLTreeContextPrint(binaryTreePrintCtx* ctx, const char* format, ...);
 void AVLTreeCreate(
     AVLTree*                 root,
     binaryTreeComparatorFunc valueCompare,
+    binaryTreeValCopyFunc    valueCopyConstruct,
+    binaryTreeValDeleteFunc  valueDestruct,
     uint32_t                 valueSizeInBytes
 ) {
-    root->m_root          = NULL;
-    root->m_cmp           = valueCompare;
-    root->m_nodeCount     = 0;
-    root->m_dataSizeBytes = valueSizeInBytes;
+    root->m_root                 = NULL;
+    root->m_cmp                  = valueCompare;
+    root->m_ValueCopyConstructor = valueCopyConstruct;
+    root->m_ValueDestructor      = valueDestruct;
+    root->m_nodeCount            = 0;
+    root->m_dataSizeBytes        = valueSizeInBytes;
     return;
 }
 
@@ -59,17 +65,20 @@ binaryTreeResult_t AVLTreeCreateCopy(
     if(to->m_root != NULL || !AVLTreeEmpty(to)) {
         AVLTreeDestroy(to);
     }
-    to->m_root          = NULL;
-    to->m_cmp           = from->m_cmp;
-    to->m_nodeCount     = from->m_nodeCount;
-    to->m_dataSizeBytes = from->m_dataSizeBytes;
+    to->m_root                 = NULL;
+    to->m_cmp                  = from->m_cmp;
+    to->m_ValueCopyConstructor = from->m_ValueCopyConstructor;
+    to->m_ValueDestructor      = from->m_ValueDestructor;
+    to->m_nodeCount            = from->m_nodeCount;
+    to->m_dataSizeBytes        = from->m_dataSizeBytes;
     if(AVLTreeEmpty(from)) {
         return BINARY_TREE_OP_SUCCESS;
     }
     return binaryTreeDeepCopyNoBuf(
         from->m_root, 
         from->m_nodeCount, 
-        from->m_dataSizeBytes, 
+        from->m_dataSizeBytes,
+        from->m_ValueCopyConstructor,
         &to->m_root
     );
 }
@@ -77,7 +86,7 @@ binaryTreeResult_t AVLTreeCreateCopy(
 
 void AVLTreeDestroy(AVLTree* root)
 {
-    binaryTreeDestroy(root->m_root, root->m_nodeCount);
+    binaryTreeDestroy(root->m_root, root->m_ValueDestructor, root->m_nodeCount);
     root->m_root          = NULL;
     root->m_cmp           = NULL;
     root->m_nodeCount     = 0;
@@ -186,7 +195,12 @@ binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
     /* Initial Tree Empty case */
     if(root->m_root == NULL) {
         root->m_root = treelibMallocTypeExplicit(binaryTreeNode);
-        opstatus = binaryTreeNodeCreate(root->m_root, value, root->m_dataSizeBytes);
+        opstatus = binaryTreeNodeCreate(
+            root->m_root, 
+            value, 
+            root->m_dataSizeBytes,
+            root->m_ValueCopyConstructor
+        );
         ++root->m_nodeCount;
         return opstatus;
     }
@@ -211,7 +225,12 @@ binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
 
 
     allocNode = treelibMallocTypeExplicit(binaryTreeNode);
-    opstatus = binaryTreeNodeCreate(allocNode, value, root->m_dataSizeBytes);
+    opstatus = binaryTreeNodeCreate(
+        allocNode, 
+        value, 
+        root->m_dataSizeBytes,
+        root->m_ValueCopyConstructor
+    );
     if(opstatus == BINARY_TREE_OP_FAILURE) {
         treelibFreeTypeExplicit(allocNode);
         return BINARY_TREE_OP_FAILURE;
@@ -292,11 +311,11 @@ binaryTreeResult_t AVLTreeRemove(AVLTree* root, void* value)
         toDelete = successorNode;
     }
     /*
-        A. Needs to happen whether the node is full/not
-        B. 2-Node Tree Edgecase: getChild(toDelete) will be the new Root,
+        A. "removeNodeAndLinkParentWithChild" Needs to happen whether the node is full/not
+        B. 2-Node Tree Edgecase: toDelete.getChild() will be the new Root,
             and we won't enter the for loop.
     */
-    maybeNewRoot = removeNodeAndLinkParentWithChild(toDelete);
+    maybeNewRoot = removeNodeAndLinkParentWithChild(toDelete, root->m_ValueDestructor);
     GenericStackPop(&nodesTouched); /* Pop the value we just deleted from the tree. */
 
 
@@ -733,8 +752,10 @@ void AVLTreeMaybeRebalance(
 }
 
 
-binaryTreeNode* removeNodeAndLinkParentWithChild(binaryTreeNode* nodeToModify)
-{
+binaryTreeNode* removeNodeAndLinkParentWithChild(
+    binaryTreeNode*         nodeToModify,
+    binaryTreeValDeleteFunc nodeDestructorFunc
+) {
     binaryTreeNode* parentNode = nodeToModify->m_parent;
     binaryTreeNode* childNode  = nodeToModify->m_left ?
         nodeToModify->m_left
@@ -749,7 +770,7 @@ binaryTreeNode* removeNodeAndLinkParentWithChild(binaryTreeNode* nodeToModify)
         parentNode->m_left  = (parentNode->m_left  == nodeToModify) ? childNode : parentNode->m_left;
         parentNode->m_right = (parentNode->m_right == nodeToModify) ? childNode : parentNode->m_right;
     }
-    binaryTreeNodeDestroy(nodeToModify);
+    binaryTreeNodeDestroy(nodeToModify, nodeDestructorFunc);
     treelibFreeTypeExplicit(nodeToModify);
 
 

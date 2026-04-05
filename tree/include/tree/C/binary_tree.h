@@ -3,8 +3,8 @@
 #include <tree/C/treelib_api.h>
 #include <tree/C/treelib_extern.h>
 #include <tree/C/compare_func.h>
+#include <tree/C/construct_func.h>
 #include <tree/C/op_result.h>
-#include <stdint.h>
 
 
 TREELIB_EXTERNC_DECL_BEGIN
@@ -22,9 +22,10 @@ typedef struct binaryTreeNode {
 
 
 binaryTreeResult_t TREELIB_API binaryTreeNodeCreate(
-    binaryTreeNode* rootNode,
-    void*           value,
-    uint32_t        valueSizeBytes
+    binaryTreeNode*       rootNode,
+    void*                 value,
+    uint32_t              valueSizeBytes, 
+    binaryTreeValCopyFunc valueCopyConstructorFunc
 );
 binaryTreeResult_t TREELIB_API binaryTreeNodeCreateWithPointers(
     binaryTreeNode*       rootNode,
@@ -32,21 +33,31 @@ binaryTreeResult_t TREELIB_API binaryTreeNodeCreateWithPointers(
     binaryTreeNode const* rightNode,
     binaryTreeNode const* parentNode,
     void*                 value,
-    uint32_t              valueSizeBytes
+    uint32_t              valueSizeBytes, 
+    binaryTreeValCopyFunc valueCopyConstructorFunc
 );
-void TREELIB_API binaryTreeNodeDestroy(binaryTreeNode* node);
-binaryTreeResult_t TREELIB_API binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTreeSizeHint);
+void TREELIB_API binaryTreeNodeDestroy(
+    binaryTreeNode*         node,
+    binaryTreeValDeleteFunc valueDestructor
+);
+binaryTreeResult_t TREELIB_API binaryTreeDestroy(
+    binaryTreeNode*         rootNode,  
+    binaryTreeValDeleteFunc valueDestructor,
+    uint32_t                binaryTreeSizeHint
+);
 binaryTreeResult_t TREELIB_API binaryTreeDeepCopy(
     binaryTreeNode const* treeIn,
     uint32_t              binaryTreeSize,
-    uint32_t              valueSizeBytes,
+    uint32_t              valueSizeBytes, 
+    binaryTreeValCopyFunc valueCopyConstructorFunc,
     binaryTreeNode**      treeOut,
     binaryTreeNode**      treeNodeBufferOut
 );
 binaryTreeResult_t TREELIB_API binaryTreeDeepCopyNoBuf(
     binaryTreeNode const* treeIn,
     uint32_t              binaryTreeSize,
-    uint32_t              valueSizeBytes,
+    uint32_t              valueSizeBytes, 
+    binaryTreeValCopyFunc valueCopyConstructorFunc,
     binaryTreeNode**      treeOut
 );
 void TREELIB_API binaryTreeNodeShallowCopy(

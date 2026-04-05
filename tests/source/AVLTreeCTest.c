@@ -95,8 +95,8 @@ static void AVLTreeCreateEmptyCopyTest(void **state) {
     (void)state;
     AVLTree src, dst;
 	binaryTreeResult_t res = BINARY_TREE_OP_SUCCESS;
-    AVLTreeCreate(&src, uint32_cmp, sizeof(uint32_t));
-    AVLTreeCreate(&dst, uint32_cmp, sizeof(uint32_t));
+    AVLTreeCreate(&src, uint32_cmp, NULL, NULL, sizeof(uint32_t));
+    AVLTreeCreate(&dst, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 
     assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeCreateCopy(&src, &dst));
     assert_int_equal(AVLTreeSize(&dst), 0);
@@ -113,8 +113,8 @@ static void AVLTreeCreatePopulatedCopyTest(void **state) {
     AVLTree src, dst;
     uint32_t v1 = 10, v2 = 20, v3 = 5;
 	binaryTreeResult_t res = BINARY_TREE_OP_SUCCESS;
-    AVLTreeCreate(&src, uint32_cmp, sizeof(uint32_t));
-    AVLTreeCreate(&dst, uint32_cmp, sizeof(uint32_t));
+    AVLTreeCreate(&src, uint32_cmp, NULL, NULL, sizeof(uint32_t));
+    AVLTreeCreate(&dst, uint32_cmp, NULL, NULL, sizeof(uint32_t));
     
     assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&src, &v1) );
     assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&src, &v2) );
@@ -137,7 +137,7 @@ static void AVLTreeBasicInsertionAndSearchTest(void** state) {
 	AVLTree tree;
 	uint32_t vals[] = {50, 30, 70, 100};
 
-	AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
+	AVLTreeCreate(&tree, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 	assert_true(AVLTreeEmpty(&tree));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[0]));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[1]));
@@ -155,7 +155,7 @@ static void AVLTreeBasicInsertionAndSearchTest(void** state) {
 static void AVLTreeSingleRotationsLeftLeftTest(void** state) {
 	(void) state;
 	AVLTree tree;
-	AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
+	AVLTreeCreate(&tree, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 
 	uint32_t vals[] = {30, 20, 10, 40};
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[0]));
@@ -180,7 +180,7 @@ static void AVLTreeSingleRotationsLeftLeftTest(void** state) {
 static void AVLTreeSingleRotationsRightRightTest(void** state) {
 	(void) state;
 	AVLTree tree;
-	AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
+	AVLTreeCreate(&tree, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 
 	uint32_t vals[] = {10, 20, 30, 40};
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[0]));
@@ -207,7 +207,7 @@ static void AVLTreeDoubleRotationsLeftRightTest(void** state) {
 	AVLTree  tree;
 	uint32_t vals[] = {30, 10, 20};
 
-	AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
+	AVLTreeCreate(&tree, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[0]));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[1]));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[2]));
@@ -225,7 +225,7 @@ static void AVLTreeDoubleRotationsRightLeftTest(void** state) {
 	AVLTree  tree;
 	uint32_t vals[] = {10, 30, 20};
 
-	AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
+	AVLTreeCreate(&tree, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[0]));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[1]));
 	assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[2]));
@@ -249,7 +249,7 @@ static void AVLTreeDeletionRebalancingTest(void** state) {
 	uint32_t val25 = 25;
 
 
-    AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
+    AVLTreeCreate(&tree, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 	for (uint64_t i = 0; i < num_vals; ++i) {
 		assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &vals[i]));
 	}
@@ -282,8 +282,8 @@ static void AVLTreeCompareTreesEqualTest(void **state) {
 	binaryTreeStatusPair_t res;
     
 
-    AVLTreeCreate(&treeA, uint32_cmp, sizeof(uint32_t));
-    AVLTreeCreate(&treeB, uint32_cmp, sizeof(uint32_t));
+    AVLTreeCreate(&treeA, uint32_cmp, NULL, NULL, sizeof(uint32_t));
+    AVLTreeCreate(&treeB, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 	for (uint64_t i = 0; i < num_vals; ++i) {
 		assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&treeA, &vals[i]));
 		assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&treeB, &vals[i]));
@@ -308,8 +308,8 @@ static void AVLTreeCompareTreesEqualFromCopyTest(void **state) {
     binaryTreeStatusPair_t res;
 
 
-	AVLTreeCreate(&treeA, uint32_cmp, sizeof(uint32_t));
-    AVLTreeCreate(&treeB, uint32_cmp, sizeof(uint32_t));
+	AVLTreeCreate(&treeA, uint32_cmp, NULL, NULL, sizeof(uint32_t));
+    AVLTreeCreate(&treeB, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 	for (uint64_t i = 0; i < num_vals; ++i) {
 		assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&treeA, &vals[i]));
 	}
@@ -332,8 +332,8 @@ static void AVLTreeCompareTreesInequalEmptyEdgeCaseTest(void **state) {
 	binaryTreeStatusPair_t res;
 
 
-    AVLTreeCreate(&treeA, uint32_cmp, sizeof(uint32_t));
-    AVLTreeCreate(&treeB, uint32_cmp, sizeof(uint32_t));
+    AVLTreeCreate(&treeA, uint32_cmp, NULL, NULL, sizeof(uint32_t));
+    AVLTreeCreate(&treeB, uint32_cmp, NULL, NULL, sizeof(uint32_t));
     assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&treeA, &v1));
 
     res = AVLTreeCompare(&treeA, &treeB, uint32_cmp);
@@ -355,8 +355,8 @@ static void AVLTreeCompareTreesInequalFullTreeTest(void **state) {
     binaryTreeStatusPair_t res;
 
 
-	AVLTreeCreate(&treeA, uint32_cmp, sizeof(uint32_t));
-    AVLTreeCreate(&treeB, uint32_cmp, sizeof(uint32_t));
+	AVLTreeCreate(&treeA, uint32_cmp, NULL, NULL, sizeof(uint32_t));
+    AVLTreeCreate(&treeB, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 	for (uint64_t i = 0; i < num_vals; ++i) {
 		assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&treeA, &vals[i]));
 	}
@@ -383,7 +383,7 @@ static void AVLTreeVerifyBalanceFactorTest(void **state) {
     binaryTreeStatusPair_t res;
 
 
-	AVLTreeCreate(&treeA, uint32_cmp, sizeof(uint32_t));
+	AVLTreeCreate(&treeA, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 	for (uint64_t i = 0; i < num_vals; ++i) {
 		assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&treeA, &vals[i]));
 	}
@@ -428,8 +428,8 @@ static void AVLTreeVerifyIsValidBST(void **state) {
 
 
 	oopsyNode = treelibMallocTypeExplicit(binaryTreeNode);
-    AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
-    binaryTreeNodeCreate(oopsyNode, &oopsyVal, sizeof(uint32_t));
+    AVLTreeCreate(&tree, uint32_cmp, NULL, NULL, sizeof(uint32_t));
+    binaryTreeNodeCreate(oopsyNode, &oopsyVal, sizeof(uint32_t), NULL);
 
     /* 
 		Construct a small tree:
@@ -454,7 +454,7 @@ static void AVLTreeVerifyIsValidBST(void **state) {
 	assert_int_equal(res.m_bool, BINARY_TREE_BOOL_FALSE);
 
     tree.m_root->m_left->m_right = NULL;
-	binaryTreeNodeDestroy(oopsyNode);
+	binaryTreeNodeDestroy(oopsyNode, NULL);
     treelibFreeTypeExplicit(oopsyNode);
     AVLTreeDestroy(&tree);
 	return;
@@ -467,7 +467,7 @@ static void AVLTreeVerifyIsValidBSTEmpty(void **state) {
     binaryTreeStatusPair_t res;
 
 
-    AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
+    AVLTreeCreate(&tree, uint32_cmp, NULL, NULL, sizeof(uint32_t));
     res = AVLTreeIsValidBST(&tree);
     assert_int_equal(res.m_op, BINARY_TREE_OP_SUCCESS);
     assert_int_equal(res.m_bool, BINARY_TREE_BOOL_TRUE);
@@ -485,11 +485,13 @@ static void AVLTreeVerifyIsValidBSTDuplicateCheck(void **state) {
 	binaryTreeNode* dupNode = NULL;
 	binaryTreeStatusPair_t res;
 
-	AVLTreeCreate(&tree, uint32_cmp, sizeof(uint32_t));
+	AVLTreeCreate(&tree, uint32_cmp, NULL, NULL, sizeof(uint32_t));
     assert_int_equal(BINARY_TREE_OP_SUCCESS, AVLTreeInsert(&tree, &val));
 
 	dupNode = treelibMallocTypeExplicit(binaryTreeNode);
-    assert_int_equal(BINARY_TREE_OP_SUCCESS, binaryTreeNodeCreate(dupNode, &val, sizeof(uint32_t)));
+    assert_int_equal(BINARY_TREE_OP_SUCCESS, 
+		binaryTreeNodeCreate(dupNode, &val, sizeof(uint32_t), NULL)
+	);
 
 
     /* Manually force a duplicate node into the tree */
@@ -501,7 +503,7 @@ static void AVLTreeVerifyIsValidBSTDuplicateCheck(void **state) {
     assert_int_equal(res.m_bool, BINARY_TREE_BOOL_FALSE);
     
     tree.m_root->m_left = NULL;
-	binaryTreeNodeDestroy(dupNode);
+	binaryTreeNodeDestroy(dupNode, NULL);
     treelibFreeTypeExplicit(dupNode);
     AVLTreeDestroy(&tree);
 	return;
@@ -518,7 +520,7 @@ static void AVLTreeManualVerificationInsertDeleteTest(void** state) {
 	int      c        	  = 0;
 
 
-	AVLTreeCreate(&test, uint32_cmp, sizeof(uint32_t));
+	AVLTreeCreate(&test, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 	for (uint64_t i = 0; i < GK_MANUAL_TREE_SIZE; ++i) {
 		data[i] = (random32u() % 101); /* 0 to 100 */
 	}
@@ -612,8 +614,8 @@ static void AVLTreeRandomOperationsFuzzStressTest(void** state) {
 	uint32_t* searchExistingValueFailure = &searchInSet[1];
 
 
-	AVLTreeCreate(&treeA, uint32_cmp, sizeof(uint32_t));
-	AVLTreeCreate(&treeB, uint32_cmp, sizeof(uint32_t));
+	AVLTreeCreate(&treeA, uint32_cmp, NULL, NULL, sizeof(uint32_t));
+	AVLTreeCreate(&treeB, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 	array_init(&treeValueSet);
 	randomValueBuf = treelibMallocBufferExplicit(uint32_t, randomValueBufSize);
 	

@@ -12,7 +12,8 @@ static const uint32_t gkGenericQueueArbitraryInitialSize = 4096;
 binaryTreeResult_t binaryTreeNodeCreate(
     binaryTreeNode* rootNode,
     void*           value,
-    uint32_t        valueSizeBytes
+    uint32_t        valueSizeBytes,
+    binaryTreeValCopyFunc valueCopyConstructFunc
 ) {
     memset(rootNode, 0x00, sizeof(binaryTreeNode));
 
@@ -23,8 +24,11 @@ binaryTreeResult_t binaryTreeNodeCreate(
         return BINARY_TREE_OP_FAILURE;
     }
 
-
-    memcpy(rootNode->m_data, value, valueSizeBytes);
+    if(valueCopyConstructFunc == NULL) {
+        memcpy(rootNode->m_data, value, valueSizeBytes);
+    } else {
+        valueCopyConstructFunc(rootNode->m_data, value);
+    }
     return BINARY_TREE_OP_SUCCESS;
 }
 
@@ -35,7 +39,8 @@ binaryTreeResult_t binaryTreeNodeCreateWithPointers(
     binaryTreeNode const* rightNode,
     binaryTreeNode const* parentNode,
     void*                 value,
-    uint32_t              valueSizeBytes
+    uint32_t              valueSizeBytes,
+    binaryTreeValCopyFunc valueCopyConstructFunc
 ) {
     memset(rootNode, 0x00, sizeof(binaryTreeNode));
 
@@ -44,16 +49,35 @@ binaryTreeResult_t binaryTreeNodeCreateWithPointers(
         return BINARY_TREE_OP_FAILURE;
     }
 
-    memcpy(rootNode->m_data, value, valueSizeBytes);
     rootNode->m_left   = leftNode;
     rootNode->m_right  = rightNode;
     rootNode->m_parent = parentNode;
-    return BINARY_TREE_OP_SUCCESS;
+
+    if(valueCopyConstructFunc == NULL) {
+        memcpy(rootNode->m_data, value, valueSizeBytes);
+        return BINARY_TREE_OP_SUCCESS;
+    }
+    return ( 0 != valueCopyConstructFunc(rootNode->m_data, value) ) ? 
+        BINARY_TREE_OP_SUCCESS 
+        : 
+        BINARY_TREE_OP_FAILURE;
 }
 
 
-void binaryTreeNodeDestroy(binaryTreeNode* node)
-{
+void binaryTreeNodeDestroy(
+    binaryTreeNode* node,
+    binaryTreeValDeleteFunc valueDestructorFunctor
+) {
+    if(node == NULL) {
+        return;
+    }
+    
+    
+    /* If value is a complex type a destructor must be called */
+    if(valueDestructorFunctor != NULL) {
+        valueDestructorFunctor(node->m_data);
+    }
+    /* Now we can free it safely */
     treelibFreeTypeExplicit(node->m_data);
     memset(node, 0x00, sizeof(binaryTreeNode));
     /*
@@ -64,7 +88,11 @@ void binaryTreeNodeDestroy(binaryTreeNode* node)
 }
 
 
-binaryTreeResult_t binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTreeSizeHint) {
+binaryTreeResult_t binaryTreeDestroy(
+    binaryTreeNode*         rootNode, 
+    binaryTreeValDeleteFunc valueDestructorFunctor,
+    uint32_t                binaryTreeSizeHint
+) {
     if(rootNode == NULL) {
         return BINARY_TREE_OP_SUCCESS;
     }
@@ -80,7 +108,11 @@ binaryTreeResult_t binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTr
     binaryTreeResult_t status   = BINARY_TREE_OP_SUCCESS;
 
 
-    binaryTreeSizeHint = (binaryTreeSizeHint == 0) ? gkGenericStackArbitraryInitialSize : binaryTreeSizeHint;
+    binaryTreeSizeHint = (binaryTreeSizeHint == 0) ? 
+        gkGenericStackArbitraryInitialSize 
+        : 
+        binaryTreeSizeHint;
+    
     status = GenericStackCreate(&nodeStack, sizeof(binaryTreeNode*), binaryTreeSizeHint);
     if(status) {
         GenericStackDestroy(&nodeStack);
@@ -101,7 +133,7 @@ binaryTreeResult_t binaryTreeDestroy(binaryTreeNode* rootNode, uint32_t binaryTr
 
             /* These 4-LOC could be replaced by anything - this is just a tree traversal */
             GenericStackTop(&nodeStack, (void*)&tmpNode);
-            binaryTreeNodeDestroy(tmpNode);
+            binaryTreeNodeDestroy(tmpNode, valueDestructorFunctor);
             treelibFreeTypeExplicit(tmpNode);
             tmpNode = NULL;
 
@@ -124,6 +156,7 @@ binaryTreeResult_t binaryTreeDeepCopy(
     binaryTreeNode const* treeIn,
     uint32_t              binaryTreeSize,
     uint32_t              valueSizeBytes,
+    binaryTreeValCopyFunc valueCopyConstructorFunctor,
     binaryTreeNode**      treeOut,
     binaryTreeNode**      treeNodeBufferOut
 ) {
@@ -167,7 +200,8 @@ binaryTreeResult_t binaryTreeDeepCopy(
         currCopiedNode, 
         NULL, NULL, NULL, 
         currNode->m_data, 
-        valueSizeBytes
+        valueSizeBytes,
+        valueCopyConstructorFunctor
     );
 
     GenericQueuePush(&currLevelNodes,   (void*)&currNode);
@@ -197,7 +231,8 @@ binaryTreeResult_t binaryTreeDeepCopy(
                 failStatus[1] = binaryTreeNodeCreateWithPointers(leftCopiedNode, 
                     NULL, NULL, currCopiedNode, 
                     leftNode->m_data, 
-                    valueSizeBytes
+                    valueSizeBytes,
+                    valueCopyConstructorFunctor
                 );
                 currCopiedNode->m_left = leftCopiedNode;
 
@@ -212,7 +247,8 @@ binaryTreeResult_t binaryTreeDeepCopy(
                 failStatus[1] = binaryTreeNodeCreateWithPointers(rightCopiedNode, 
                     NULL, NULL, currCopiedNode, 
                     rightNode->m_data, 
-                    valueSizeBytes
+                    valueSizeBytes,
+                    valueCopyConstructorFunctor
                 );
                 currCopiedNode->m_right = rightCopiedNode;
 
@@ -239,6 +275,7 @@ binaryTreeResult_t binaryTreeDeepCopyNoBuf(
     binaryTreeNode const* treeIn,
     uint32_t              binaryTreeSize,
     uint32_t              valueSizeBytes,
+    binaryTreeValCopyFunc valueCopyConstructorFunctor,
     binaryTreeNode**      treeOut
 ) {
     binaryTreeNode const* currNode  = treeIn;
@@ -282,7 +319,8 @@ binaryTreeResult_t binaryTreeDeepCopyNoBuf(
         currCopiedNode, 
         NULL, NULL, NULL, 
         currNode->m_data, 
-        valueSizeBytes
+        valueSizeBytes,
+        valueCopyConstructorFunctor
     );
 
     GenericQueuePush(&currLevelNodes,   (void*)&currNode);
@@ -316,7 +354,8 @@ binaryTreeResult_t binaryTreeDeepCopyNoBuf(
                         leftCopiedNode, 
                         NULL, NULL, currCopiedNode, 
                         leftNode->m_data, 
-                        valueSizeBytes
+                        valueSizeBytes,
+                        valueCopyConstructorFunctor
                     );
 
                     currCopiedNode->m_left = leftCopiedNode;
@@ -336,7 +375,8 @@ binaryTreeResult_t binaryTreeDeepCopyNoBuf(
                         rightCopiedNode, 
                         NULL, NULL, currCopiedNode, 
                         rightNode->m_data, 
-                        valueSizeBytes
+                        valueSizeBytes,
+                        valueCopyConstructorFunctor
                     );
 
                     currCopiedNode->m_right = rightCopiedNode;
