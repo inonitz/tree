@@ -9,7 +9,7 @@ set(GOOGLE_TEST_DEBUG_TARGET_NAME
     ${PROJECT_NAME}_gtest_serial
 )
 
-
+message("${PROJECT_NAME} and ${GOOGLE_TEST_DEBUG_TARGET_NAME} and ${GOOGLE_TEST_TARGET_NAME}\n")
 set(GTEST_SOURCES
     source/AVLTreeGenericRecursiveTest.cpp
     source/AVLTreeGenericTest.cpp
@@ -36,11 +36,11 @@ target_sources(${GOOGLE_TEST_TARGET_NAME} PRIVATE ${GTEST_SOURCES})
 target_sources(${GOOGLE_TEST_TARGET_NAME} PRIVATE ${GTEST_HEADERS})
 target_link_libraries(
     ${GOOGLE_TEST_TARGET_NAME} PRIVATE
+    WORKSPACE_CONFIG::ProjectDefaultConfig
     TREELIB::treelib
     UTIL2::util2
     GTest::gtest
     GTest::gtest_main
-    WORKSPACE_CONFIG::Sanitizers
 )
 target_compile_definitions(${GOOGLE_TEST_TARGET_NAME} PRIVATE
     _CRT_SECURE_NO_WARNINGS=1
@@ -60,6 +60,7 @@ target_sources(${GOOGLE_TEST_DEBUG_TARGET_NAME} PRIVATE ${GTEST_HEADERS})
 target_sources(${GOOGLE_TEST_DEBUG_TARGET_NAME} PRIVATE ${GTEST_DEBUG_MAIN})
 target_link_libraries(
     ${GOOGLE_TEST_DEBUG_TARGET_NAME} PRIVATE
+    WORKSPACE_CONFIG::ProjectDefaultConfig
     TREELIB::treelib
     UTIL2::util2
     GTest::gtest
@@ -89,6 +90,6 @@ gtest_discover_tests(${GOOGLE_TEST_TARGET_NAME}
 add_custom_target(debug_${GOOGLE_TEST_DEBUG_TARGET_NAME}
     COMMAND ./${GOOGLE_TEST_DEBUG_TARGET_NAME}
     DEPENDS ${GOOGLE_TEST_DEBUG_TARGET_NAME}
-    WORKING_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY}
+    WORKING_DIRECTORY ${WORKSPACE_GLOBAL_CUSTOM_BUILD_OUTPUT_DIRECTORY}
     USES_TERMINAL
 )

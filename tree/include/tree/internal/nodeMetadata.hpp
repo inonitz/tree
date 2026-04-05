@@ -29,8 +29,8 @@ public:
 
     uint32_t getConditionalChild(bool trueLeftFalseRight) const noexcept {
         const uint64_t bitMask  = trueLeftFalseRight ? k_leftChildBitmask  : k_rightChildBitmask;
-        const uint32_t bitShift = trueLeftFalseRight ? k_leftChildBitShift : k_rightChildBitShift;
-        return (m_data & bitMask) >> bitShift;
+        const uint64_t bitShift = trueLeftFalseRight ? k_leftChildBitShift : k_rightChildBitShift;
+        return static_cast<uint32_t>( (m_data & bitMask) >> bitShift );
     }
 
     uint32_t getLeftChild() const noexcept {

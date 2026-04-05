@@ -4,9 +4,10 @@
 #       include <tree/internal/binaryTreeGeneric.hpp>
 #   endif /* __BINARY_TREE_GENERIC_DEFINITION_HEADER__ */
 #include <tree/internal/AVLTreeRotateState.hpp>
-#include <cstdio>
+#include <tree/internal/floatingPoint.hpp>
 #include <stack>
 #include <queue>
+#include <cassert>
 
 
 template<typename T>
@@ -15,8 +16,8 @@ int8_t binaryTree<T>::computeHeight(binaryTree<T>* node) noexcept
     if(node == nullptr) {
         return -1;
     }
-    auto rh = node->m_right ? node->m_right->m_height : -1;
-    auto lh = node->m_left  ? node->m_left->m_height  : -1;
+    int8_t rh = node->m_right ? node->m_right->m_height : -1;
+    int8_t lh = node->m_left  ? node->m_left->m_height  : -1;
     return 1 + std::max(rh, lh);
 }
 
@@ -26,8 +27,8 @@ int8_t binaryTree<T>::computeBalanceFactor(binaryTree<T>* node) noexcept
     if(node == nullptr) {
         return 0;
     }
-    int64_t rh = node->m_right ? node->m_right->m_height : -1;
-    int64_t lh = node->m_left  ? node->m_left->m_height  : -1;
+    int8_t rh = node->m_right ? node->m_right->m_height : -1;
+    int8_t lh = node->m_left  ? node->m_left->m_height  : -1;
     return rh - lh;
 }
 
@@ -74,7 +75,7 @@ uint32_t binaryTree<T>::writeTreeToBufferRecursive(
     uint32_t    space
 ) {
     constexpr auto kCOUNT = 5;
-    if (root == NULL) {
+    if (root == nullptr) {
         return 0;
     }
     space += kCOUNT;
@@ -133,7 +134,7 @@ void binaryTree<T>::destroy(binaryTree<T>* node) noexcept
     */
     currentHeightNodes.push(node);
     while(!currentHeightNodes.empty()) {
-        currentLevelSize = currentHeightNodes.size();
+        currentLevelSize = static_cast<uint32_t>(currentHeightNodes.size());
 
         while(currentLevelSize) {
             binaryTree<T>* currNode = currentHeightNodes.front();
@@ -164,7 +165,7 @@ void binaryTree<T>::deepCopy(
     binaryTree<T> const* currNode  = nodeIn;
     binaryTree<T> const* leftNode  = nodeIn->m_left;
     binaryTree<T> const* rightNode = nodeIn->m_right;
-    binaryTree<T>* currCopiedNode  = NULL;
+    binaryTree<T>* currCopiedNode  = nullptr;
     uint32_t                         currLevelSize = 0;
     std::queue<binaryTree<T> const*> currLevelNodes;
     std::queue<binaryTree<T>*>       copiedLevelNodes;
@@ -177,7 +178,7 @@ void binaryTree<T>::deepCopy(
     copiedLevelNodes.push(currCopiedNode);
     while( !currLevelNodes.empty() )
     {
-        currLevelSize = currLevelNodes.size();
+        currLevelSize = static_cast<uint32_t>(currLevelNodes.size());
         while(currLevelSize) {
             currNode       = currLevelNodes.front();
             currCopiedNode = copiedLevelNodes.front();
@@ -185,7 +186,7 @@ void binaryTree<T>::deepCopy(
             
             leftNode  = currNode->m_left;
             rightNode = currNode->m_right;
-            if(leftNode != NULL) {
+            if(leftNode != nullptr) {
                 currLevelNodes.push(leftNode);
 
                 currCopiedNode->m_left = new binaryTree<T>{ 
@@ -194,7 +195,7 @@ void binaryTree<T>::deepCopy(
                 };
                 copiedLevelNodes.push(currCopiedNode->m_left);
             }
-            if(rightNode != NULL) {
+            if(rightNode != nullptr) {
                 currLevelNodes.push(rightNode);
                 
                 currCopiedNode->m_right = new binaryTree<T>{ 
@@ -226,7 +227,8 @@ void binaryTree<T>::shallowCopy(
     nodeOut->m_data.set(nodeIn->m_data.get());
     nodeOut->m_height   = nodeIn->m_height;
     nodeOut->m_bf       = nodeIn->m_bf;
-    for(int i = 0; i < sizeof(nodeOut->m_reserved) / sizeof(nodeOut->m_reserved[0]); ++i) {
+
+    for(uint64_t i = 0; i < reservedBytesSize(); ++i) {
         nodeOut->m_reserved[i] = nodeIn->m_reserved[i];
     }
     return;
@@ -496,12 +498,15 @@ template<typename T>
 binaryTree<T> const* binaryTree<T>::searchIterative(binaryTree<T> const* node, T const& value) {
     binaryTree<T> const* searchptr = nullptr;
     bool found = false;
+    int8_t cmp = INT8_MAX;
 
     for(searchptr = node; (searchptr != nullptr) && !found; ) {
-        found = (searchptr->m_data.get() == value);
-        // printf("searchIterative cmp: %u ==? %u\n", searchptr->m_data, value);
+        cmp = FromGoogleTest::compareValues(value, searchptr->m_data.get());
+        found = (cmp == 0);
+        
+        assert(cmp != INT8_MAX);
         if(!found) {
-            searchptr = (value < searchptr->m_data.get()) ? 
+            searchptr = (cmp == -1) ? 
                 searchptr->m_left : 
                 searchptr->m_right;
         }
@@ -514,7 +519,8 @@ binaryTree<T> const* binaryTree<T>::searchIterative(binaryTree<T> const* node, T
 template<typename T>
 bool binaryTree<T>::AVLInsertIterative(binaryTree<T>* node, T const& value, binaryTree<T>** out)
 {
-    bool           found, cmp = found = false;
+    int8_t         cmp   = INT8_MAX;
+    bool           found = false;
     binaryTree<T>* search       = node;
     binaryTree<T>* allocNode    = nullptr;
     binaryTree<T>* maybeNewRoot = nullptr;
@@ -527,9 +533,12 @@ bool binaryTree<T>::AVLInsertIterative(binaryTree<T>* node, T const& value, bina
     }
     for(search = node; !found && search != nullptr; ) {
         nodesTouched.push(search);
-        found  = (value == search->m_data.get());
-        cmp    = (value < search->m_data.get());
-        search = cmp ? search->m_left : search->m_right;
+
+        cmp = FromGoogleTest::compareValues(value, search->m_data.get());
+        found  = (cmp == 0);
+        assert(cmp != INT8_MAX);
+
+        search = (cmp == -1) ? search->m_left : search->m_right;
     }
     
     
@@ -541,7 +550,7 @@ bool binaryTree<T>::AVLInsertIterative(binaryTree<T>* node, T const& value, bina
     
     allocNode = new binaryTree<T>{value};
     auto& top = nodesTouched.top();
-    if(cmp) {
+    if(cmp == -1) {
         top->m_left = allocNode;
     } else {
         top->m_right = allocNode;
@@ -565,16 +574,19 @@ bool binaryTree<T>::AVLInsertIterative(binaryTree<T>* node, T const& value, bina
 template<typename T>
 bool binaryTree<T>::AVLDeleteIterative(binaryTree<T>* node, T const& value, binaryTree<T>** out)
 {
+    int8_t         cmp       = INT8_MAX;
     bool           found     = false;
     binaryTree<T>* search    = nullptr;
-    binaryTree<T>* allocNode = nullptr;
     std::deque<binaryTree<T>*> nodesTouched;
+
 
     if(node == nullptr) {
         *out = nullptr;
         return false;
     }
-    if(binaryTree<T>::isLeaf(node) && value == node->m_data.get()) {
+
+    found = FromGoogleTest::checkEqualValues(value, node->m_data.get());
+    if(binaryTree<T>::isLeaf(node) && found) {
         node->m_data.release();
         delete node;
         
@@ -583,7 +595,7 @@ bool binaryTree<T>::AVLDeleteIterative(binaryTree<T>* node, T const& value, bina
     }
 
     auto* childIfSingleParent = node->m_left ? node->m_left : node->m_right;
-    if(binaryTree<T>::isSingleChildParent(node) && value == node->m_data.get()) {
+    if(binaryTree<T>::isSingleChildParent(node) && found) {
         node->m_data.release();
         delete node;
         
@@ -591,7 +603,9 @@ bool binaryTree<T>::AVLDeleteIterative(binaryTree<T>* node, T const& value, bina
         *out = childIfSingleParent;
         return true;
     }
-    if(binaryTree<T>::isSingleChildParent(node) && value == childIfSingleParent->m_data.get()) {
+
+    found = FromGoogleTest::checkEqualValues(value, childIfSingleParent->m_data.get());
+    if(binaryTree<T>::isSingleChildParent(node) && found) {
         childIfSingleParent->m_data.release();
         delete childIfSingleParent;
         
@@ -606,8 +620,12 @@ bool binaryTree<T>::AVLDeleteIterative(binaryTree<T>* node, T const& value, bina
     search = node;
     for(; search != nullptr && !found; ) {
         nodesTouched.push_back(search);
-        found = (value == search->m_data.get());
-        search = (value < search->m_data.get()) ? search->m_left : search->m_right;
+
+        cmp   = FromGoogleTest::compareValues(value, search->m_data.get());
+        found = (cmp == 0);
+        assert(cmp != INT8_MAX);
+
+        search = (cmp == -1) ? search->m_left : search->m_right;
     }
     if(!found) {
         *out = node;
@@ -737,8 +755,8 @@ bool binaryTree<T>::compareIterative(binaryTree const* nodeA, binaryTree const* 
     B.levelQueue.push(B.currNode);
     while( status && !A.levelQueue.empty() && !B.levelQueue.empty() )
     {
-        A.levelSize = A.levelQueue.size();
-        B.levelSize = B.levelQueue.size();
+        A.levelSize = static_cast<uint32_t>(A.levelQueue.size());
+        B.levelSize = static_cast<uint32_t>(B.levelQueue.size());
         while(status && A.levelSize && B.levelSize) 
         {
             A.currNode = A.levelQueue.front();
@@ -747,8 +765,8 @@ bool binaryTree<T>::compareIterative(binaryTree const* nodeA, binaryTree const* 
             /* Iterating Over Tree A */
             A.currLeft  = A.currNode->m_left;
             A.currRight = A.currNode->m_right;
-            if(A.currLeft  != NULL) { A.levelQueue.push(A.currLeft); }
-            if(A.currRight != NULL) { A.levelQueue.push(A.currRight); }
+            if(A.currLeft  != nullptr) { A.levelQueue.push(A.currLeft); }
+            if(A.currRight != nullptr) { A.levelQueue.push(A.currRight); }
             A.levelQueue.pop();
             --A.levelSize;
 
@@ -756,13 +774,16 @@ bool binaryTree<T>::compareIterative(binaryTree const* nodeA, binaryTree const* 
             /* Iterating Over Tree B */
             B.currLeft  = B.currNode->m_left;
             B.currRight = B.currNode->m_right;
-            if(B.currLeft  != NULL) { B.levelQueue.push(B.currLeft); }
-            if(B.currRight != NULL) { B.levelQueue.push(B.currRight); }
+            if(B.currLeft  != nullptr) { B.levelQueue.push(B.currLeft); }
+            if(B.currRight != nullptr) { B.levelQueue.push(B.currRight); }
             B.levelQueue.pop();
             --B.levelSize;
 
 
-            status = status && ( A.currNode->m_data.get() == B.currNode->m_data.get() );
+            status = status && FromGoogleTest::checkEqualValues(
+                A.currNode->m_data.get(), 
+                B.currNode->m_data.get() 
+            );
         }
     }
 
@@ -823,7 +844,6 @@ binaryTree<T>* binaryTree<T>::AVLInsertRecursive(binaryTree* node, binaryTree* p
 template<typename T>
 binaryTree<T>* binaryTree<T>::AVLDeleteRecursive(binaryTree* node, binaryTree* parent, T const& value)
 {
-    binaryTree* allocNode    = nullptr;
     binaryTree* maybeNewRoot = node;
 
 
@@ -885,7 +905,7 @@ bool binaryTree<T>::compareRecursive(binaryTree const* nodeA, binaryTree const* 
     if( (nodeA == nullptr && nodeB != nullptr) || (nodeA != nullptr && nodeB == nullptr) ) {
         return false;
     }
-    return nodeA->m_data.get() == nodeB->m_data.get()
+    return FromGoogleTest::checkEqualValues(nodeA->m_data.get(), nodeB->m_data.get())
         && binaryTree<T>::compareRecursive(nodeA->m_left, nodeB->m_left)
         && binaryTree<T>::compareRecursive(nodeA->m_right, nodeB->m_right);
 }

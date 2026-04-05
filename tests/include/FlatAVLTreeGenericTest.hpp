@@ -36,9 +36,9 @@ struct DummyRecord
         return os;
     }
 private:
-    uint64_t m_id;
-    double   m_values[8]{0};
-    char     m_metadata[32]{0};
+    uint64_t          m_id;
+    __unused double   m_values[8]{0};
+    __unused char     m_metadata[32]{0};
 };
 
 
@@ -90,4 +90,4 @@ public:
 };
 
 
-TYPED_TEST_SUITE(FlatAVLTreeGenericTest, Implementations);
+TYPED_TEST_SUITE(FlatAVLTreeGenericTest, Implementations,);

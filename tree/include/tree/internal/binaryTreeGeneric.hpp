@@ -111,15 +111,18 @@ public:
     static bool compareRecursive(binaryTree const* nodeA, binaryTree const* nodeB);
 
 public:
-    union
-    {
-        struct {
-            binaryTree* m_left   = nullptr;
-            binaryTree* m_right  = nullptr;
-            binaryTree* m_parent = nullptr;
-        };
-        binaryTree* m_nodes[3];
-    };
+    // union
+    // {
+    //     struct {
+    //         binaryTree* m_left   = nullptr;
+    //         binaryTree* m_right  = nullptr;
+    //         binaryTree* m_parent = nullptr;
+    //     };
+    //     binaryTree* m_nodes[3];
+    // };
+    binaryTree* m_left   = nullptr;
+    binaryTree* m_right  = nullptr;
+    binaryTree* m_parent = nullptr;
     valueType m_data;
     int8_t    m_height = 0;
     int8_t    m_bf     = 0;

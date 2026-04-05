@@ -34,12 +34,12 @@ binaryTreeResult_t binaryTreeNodeCreate(
 
 
 binaryTreeResult_t binaryTreeNodeCreateWithPointers(
-    binaryTreeNode*       rootNode,
-    binaryTreeNode const* leftNode,
-    binaryTreeNode const* rightNode,
-    binaryTreeNode const* parentNode,
-    void*                 value,
-    uint32_t              valueSizeBytes,
+    binaryTreeNode* rootNode,
+    binaryTreeNode* leftNode,
+    binaryTreeNode* rightNode,
+    binaryTreeNode* parentNode,
+    void*           value,
+    uint32_t        valueSizeBytes,
     binaryTreeValCopyFunc valueCopyConstructFunc
 ) {
     memset(rootNode, 0x00, sizeof(binaryTreeNode));
@@ -500,10 +500,10 @@ binaryTreeStatusPair_t binaryTreeCompare(
     };
     
     struct TreeContext A = {
-        nodeA, nodeA->m_left, nodeA->m_right, 0, BINARY_TREE_OP_SUCCESS, (GenericQueue){}
+        nodeA, nodeA->m_left, nodeA->m_right, 0, BINARY_TREE_OP_SUCCESS, (GenericQueue){ .m_buffer = NULL }
     };
     struct TreeContext B = {
-        nodeB, nodeB->m_left, nodeB->m_right, 0, BINARY_TREE_OP_SUCCESS, (GenericQueue){}
+        nodeB, nodeB->m_left, nodeB->m_right, 0, BINARY_TREE_OP_SUCCESS, (GenericQueue){ .m_buffer = NULL }
     };
 
 
@@ -659,5 +659,5 @@ binaryTreeBool_t binaryTreeSearchValue(
 
 
     *outNodeIfFound = cmpResult ? searchParent : NULL;
-    return cmpResult;
+    return (uint8_t)cmpResult;
 }

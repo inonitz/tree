@@ -183,7 +183,7 @@ void AVLTree<T>::printIterative(const binaryTree<T>* root, uint32_t space, Funct
 
     std::stack<TreeIdentPair> s;
     const binaryTree<T>* curr = root;
-    uint32_t currentSpace = 0;
+    uint32_t currentSpace = space;
     while (curr != nullptr || !s.empty()) {
         while (curr != nullptr) {
             currentSpace += kCOUNT;
@@ -196,14 +196,14 @@ void AVLTree<T>::printIterative(const binaryTree<T>* root, uint32_t space, Funct
         s.pop();
         
         curr = top.first;
-        int space = top.second;
+        uint32_t currSpace = top.second;
 
-        printf("\n%*s", space - kCOUNT, "");
+        printf("\n%*s", currSpace - kCOUNT, "");
         printTypename(root->m_data.get());
         printf(" (%u, %d)\n", root->m_height, root->m_bf);
 
         curr = curr->m_left;
-        currentSpace = space;
+        currentSpace = currSpace;
     }
 
 

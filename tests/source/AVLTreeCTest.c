@@ -1,8 +1,7 @@
 #include "AVLTreeCTest.h"
+// #include <util2/C/debugbreak.h>
 #include <util2/C/aligned_malloc.h>
-#include <util2/C/debugbreak.h>
 #include <util2/C/ifcrash2.h>
-#include <util2/C/mt19937ii.h>
 #include <util2/C/random.h>
 #include <tree/C/alloc.h>
 #include <tree/C/binary_tree.h>
@@ -94,7 +93,6 @@ static void array_destroy(UIntArray* arr) {
 static void AVLTreeCreateEmptyCopyTest(void **state) {
     (void)state;
     AVLTree src, dst;
-	binaryTreeResult_t res = BINARY_TREE_OP_SUCCESS;
     AVLTreeCreate(&src, uint32_cmp, NULL, NULL, sizeof(uint32_t));
     AVLTreeCreate(&dst, uint32_cmp, NULL, NULL, sizeof(uint32_t));
 
@@ -112,7 +110,6 @@ static void AVLTreeCreatePopulatedCopyTest(void **state) {
     (void)state;
     AVLTree src, dst;
     uint32_t v1 = 10, v2 = 20, v3 = 5;
-	binaryTreeResult_t res = BINARY_TREE_OP_SUCCESS;
     AVLTreeCreate(&src, uint32_cmp, NULL, NULL, sizeof(uint32_t));
     AVLTreeCreate(&dst, uint32_cmp, NULL, NULL, sizeof(uint32_t));
     
@@ -534,7 +531,7 @@ static void AVLTreeManualVerificationInsertDeleteTest(void** state) {
 		log_test(CTEST_LOG_OPTION_GLOBAL_DEFAULT, "[c=%3u] Insertion Of %3u -> %s\n", c, val, opState.m_op == BINARY_TREE_OP_SUCCESS ? "SUCCESS" : "FAILURE");
 
 		if (g_reportFile)
-			AVLTreePrint(&test, g_reportFile, 0, 0, printTreeDataMember);
+			AVLTreePrint(&test, g_reportFile, 0, printTreeDataMember);
 
 		opState = AVLTreeIsBalanced(&test);
 		log_test(CTEST_LOG_OPTION_GLOBAL_DEFAULT, "Post Insertion AVL Tree Balanced ? (%s, %s)\n", 
@@ -563,7 +560,7 @@ static void AVLTreeManualVerificationInsertDeleteTest(void** state) {
 		log_test(CTEST_LOG_OPTION_GLOBAL_DEFAULT, "[c=%3u] Deletion Of %3u -> %s\n", c, randValToDel, opState.m_op == BINARY_TREE_OP_SUCCESS ? "SUCCESS" : "FAILURE");
 
 		if (g_reportFile)
-			AVLTreePrint(&test, g_reportFile, 0, 0, printTreeDataMember);
+			AVLTreePrint(&test, g_reportFile, 0, printTreeDataMember);
 
 		opState = AVLTreeIsBalanced(&test);
 		log_test(CTEST_LOG_OPTION_GLOBAL_DEFAULT, "Post Deletion AVL Tree Balanced ? (%s, %s)\n", 
@@ -757,7 +754,7 @@ static void AVLTreeRandomOperationsFuzzStressTest(void** state) {
 }
 
 
-int run_all_c_avl_tree_tests() {
+int run_all_c_avl_tree_tests(void) {
 	const struct CMUnitTest tests[] = {
 		cmocka_unit_test(AVLTreeCreateEmptyCopyTest),
 		cmocka_unit_test(AVLTreeCreatePopulatedCopyTest),
@@ -785,6 +782,7 @@ int run_all_c_avl_tree_tests() {
 
 
 
+DISABLE_WARNING_FORMAT_STR_NOT_LITERAL
 void log_test(CTestLoggingOption_t option, const char* formatstr, ...) {
 	option = (option == CTEST_LOG_OPTION_GLOBAL_DEFAULT) ? g_logOption : option;
 	if(option == CTEST_LOG_OPTION_CANCEL_OPERATION || option == CTEST_LOG_OPTION_MAX) {
@@ -801,7 +799,7 @@ void log_test(CTestLoggingOption_t option, const char* formatstr, ...) {
 	}
 
 	/* Only option left is CTEST_LOG_OPTION_REDIRECT_CACHE_BUFFER */
-    u64 bytesWritten = vsnprintf(
+    u64 bytesWritten = (u64)vsnprintf(
 		&g_massiveBuffer[g_massiveBufferCurrIdx],
 		GK_MASSIVE_BUFFER_SIZE - g_massiveBufferCurrIdx,
 		formatstr,
@@ -826,11 +824,11 @@ void log_test_treeprint(AVLTree* tree, CTestLoggingOption_t option) {
 	}
 
 	if(option == CTEST_LOG_OPTION_DIRECTLY_TO_FILE) {
-		AVLTreePrint(tree, g_reportFile, 0, 0, printTreeDataMember);
+		AVLTreePrint(tree, g_reportFile, 0, printTreeDataMember);
 		return;
 	}
 	AVLTreePrint(tree, 
-		g_massiveBuffer, 1, 
+		g_massiveBuffer,
 		GK_MASSIVE_BUFFER_SIZE - g_massiveBufferCurrIdx, 
 		printTreeDataMember
 	);
@@ -850,15 +848,14 @@ void printTreeDataMember(
     binaryTreePrintCtx* ctx,
     const void* value
 ) {
-	const char* formatString = "[%u]";
-	uint32_t    actualVal 	 = *((uint32_t*)value);
+	uint32_t actualVal = *((uint32_t*)value);
 
     if(ctx->m_buf == NULL || (ctx->m_bufSize != 0 && ctx->m_bufOffset >= ctx->m_bufSize)) {
         return;
     }
 
 	if(ctx->m_bufSize == 0) {
-		fprintf((FILE*)ctx->m_buf, formatString, actualVal);
+		fprintf((FILE*)ctx->m_buf, "[%u]", actualVal);
 		return;
 	}
 
@@ -866,10 +863,10 @@ void printTreeDataMember(
 	int bytesWritten = snprintf(
 		(char*)ctx->m_buf + ctx->m_bufOffset,
 		ctx->m_bufSize - ctx->m_bufOffset,
-		formatString,
+		"[%u]",
 		actualVal
 	);
-	ctx->m_bufOffset += (bytesWritten > 0) ? bytesWritten : 0;
+	ctx->m_bufOffset += (bytesWritten > 0) ? (uint32_t)bytesWritten : 0;
 	return;
 }
 

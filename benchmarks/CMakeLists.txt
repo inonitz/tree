@@ -36,6 +36,7 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${SOURCES_BENCHMARK_MAIN})
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(
     ${PROJECT_NAME} PRIVATE
+    WORKSPACE_CONFIG::ProjectDefaultConfig
     TREELIB::treelib
     UTIL2::util2
     benchmark::benchmark
@@ -83,7 +84,7 @@ add_custom_target(run_${PROJECT_NAME}
 add_custom_target(debug_${PROJECT_NAME}
     COMMAND ./${PROJECT_NAME}
     DEPENDS ${PROJECT_NAME}
-    WORKING_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY}
+    WORKING_DIRECTORY ${WORKSPACE_GLOBAL_CUSTOM_BUILD_OUTPUT_DIRECTORY}
     USES_TERMINAL
     COMMENT "Running Benchmarking Debug Target..."
 )

@@ -12,13 +12,20 @@
 #include <cstdarg>
 
 
+DISABLE_WARNING_FORMAT_STR_NOT_LITERAL 
 template<typename T>
 void GenericRecursiveAVLTreeTest<T>::generic_write_to_test_buffer(const char* formatstr, ...) {
     va_list args;
     va_start(args, formatstr);
 
-    u64 bytesWritten = vsnprintf(&m_massiveBuffer[m_massiveBufferCurrIdx], gk_massiveBufferSize - m_massiveBufferCurrIdx, formatstr, args);
-    
+    auto written = vsnprintf(
+        &m_massiveBuffer[m_massiveBufferCurrIdx], 
+        gk_massiveBufferSize - m_massiveBufferCurrIdx, 
+        formatstr, 
+        args
+    );
+    u64 bytesWritten = static_cast<u64>(written);
+
     va_end(args);
 
     m_massiveBufferCurrIdx += (bytesWritten > 0) ? bytesWritten : 0;
@@ -57,7 +64,7 @@ void GenericRecursiveAVLTreeTest<T>::printTreeToMassiveBuf(void const* root, int
     }
     space += kCOUNT;
     
-    binaryTree<T>* _root = (binaryTree<T>*)root;
+    binaryTree<T>* _root = reinterpret_cast<binaryTree<T>*>(root);
     printTreeToMassiveBuf(_root->m_right, space);
     generic_write_to_test_buffer("\n\n\n%*s%d (%u, %d)\n", space - kCOUNT, "", 
         _root->m_data, 
@@ -445,13 +452,13 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, VerifyIsValidBSTDuplicateCheck) {
 
     /* Manually force a duplicate node into the tree */
     dupNode = new binaryTree<TypeParam>(testData[0]);
-    ((binaryTree<TypeParam>*)(tree.getRoot()))->m_left = dupNode;
+    const_cast<binaryTree<TypeParam>*>(tree.getRoot())->m_left = dupNode;
 
     /* BSTs must be strictly increasing; duplicates fail the > check */
     /* [NOTE]: see comment on first test of VerifyIsValidBST */
     EXPECT_FALSE(tree.isValidBST());
 
-    ((binaryTree<TypeParam>*)(tree.getRoot()))->m_left = nullptr;
+    const_cast<binaryTree<TypeParam>*>(tree.getRoot())->m_left = nullptr;
     dupNode->m_data.release();
     delete dupNode;
     tree.clear();
@@ -475,9 +482,10 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, VerifyBalanceFactor) {
 
 
 	/* Randomly choose a node to mess up, check that it's being detected */
+    auto* root = const_cast<binaryTree<TypeParam>*>(tree.getRoot());
 	for(uint32_t i = 0; i < 10; ++i) {
-		for(binaryTree<TypeParam> const* currNode = tree.getRoot(); currNode != NULL; ) {
-			parent = (binaryTree<TypeParam>*)currNode;
+		for(binaryTree<TypeParam>* currNode = root; currNode != NULL; ) {
+			parent = currNode;
 			currNode = (util2::random32i() > (INT32_MAX / 2)) ? 
                 currNode->m_left 
                 : 
@@ -507,7 +515,7 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, StochasticStressTest) {
     std::random_device rd;
     std::mt19937 gen;
 
-    std::uniform_int_distribution<> op_dist(0, (u8)OpType::MAX_OP);
+    std::uniform_int_distribution<> op_dist(0, static_cast<u8>(OpType::MAX_OP));
     
 
     uint32_t  seed = rd();
@@ -515,7 +523,6 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, StochasticStressTest) {
     OpType    op   = OpType::MAX_OP;
     TypeParam tmpValue{};
     uint32_t tmpValueIdx = 0;
-    bool     searchedValueIsRandom = false;
     bool     status                = false;
     uint32_t insertion[2] = {0, 0};
     uint32_t deletion[2]  = {0, 0};
@@ -557,7 +564,7 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, StochasticStressTest) {
                 continue;
             }
 
-            tmpValueIdx = gen() % treeValueSet.size();
+            tmpValueIdx = static_cast<uint32_t>(gen() % treeValueSet.size());
             tmpValue    = treeValueSet[tmpValueIdx];
             status      = tree.removeRecursive(tmpValue);
             treeValueSet.erase(treeValueSet.begin() + tmpValueIdx);
@@ -588,7 +595,7 @@ TYPED_TEST(GenericRecursiveAVLTreeTest, StochasticStressTest) {
                 continue;
             }
 
-            tmpValueIdx = gen() % treeValueSet.size();
+            tmpValueIdx = static_cast<uint32_t>(gen() % treeValueSet.size());
             tmpValue    = treeValueSet[tmpValueIdx];
             status = tree.searchRecursive(tmpValue);
             ++searchExistingValueOp;

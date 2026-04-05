@@ -1,4 +1,5 @@
 #include <benchmark/benchmark.h>
+#include <util2/C/macro.h>
 #include <util2/C/base_type.h>
 #include <random>
 #include <vector>
@@ -15,8 +16,8 @@ struct DummyRecord {
 
 private:
     u64 m_id;
-    double   m_values[8]{0};
-    char     m_metadata[32]{0};
+    __unused double   m_values[8]{0};
+    __unused char     m_metadata[32]{0};
 };
 
 
@@ -69,7 +70,7 @@ static void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
 // ----------------------------------------------------------------------------
 template <typename T> 
 static void BM_StdSetBenchInsertion(benchmark::State& state) {
-    const u64 N = state.range(0);
+    const u64 N = static_cast<u64>(state.range(0));
     std::set<T> tree;
     T valToInsert;
     
@@ -90,15 +91,15 @@ static void BM_StdSetBenchInsertion(benchmark::State& state) {
 
     state.counters["Failure"] = benchmark::Counter(static_cast<double>(failure));
     state.counters["Success"] = benchmark::Counter(static_cast<double>(success));
-    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
-    state.SetComplexityN(N);
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * static_cast<int64_t>(state.iterations()));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
     return;
 }
 
 
 template <typename T> 
 static void BM_StdSetBenchDeletion(benchmark::State& state) {
-    const u64 N = state.range(0);
+    const u64 N = static_cast<u64>(state.range(0));
     std::mt19937 gen(0);
     std::vector<T> original_data, working_set;
     std::set<T> tree;
@@ -122,15 +123,15 @@ static void BM_StdSetBenchDeletion(benchmark::State& state) {
         benchmark::DoNotOptimize(tree.erase(valToDelete));
     }
 
-    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
-    state.SetComplexityN(N);
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * static_cast<int64_t>(state.iterations()));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
     return;
 }
 
 
 template <typename T> 
 static void BM_StdSetBenchSearch(benchmark::State& state) {
-    const uint32_t N = state.range(0);
+    const u64 N = static_cast<u64>(state.range(0));
     std::set<T> tree;
     std::vector<T> dataSet;
     
@@ -139,7 +140,7 @@ static void BM_StdSetBenchSearch(benchmark::State& state) {
         tree.insert(elem);
     }
 
-    uint32_t i = 0;
+    u64 i = 0;
     for (auto _ : state) {
         state.PauseTiming();
         const T& valToSearch = dataSet[i % N];
@@ -149,8 +150,8 @@ static void BM_StdSetBenchSearch(benchmark::State& state) {
         benchmark::DoNotOptimize(tree.find(valToSearch));
     }
 
-    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
-    state.SetComplexityN(N);
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * static_cast<int64_t>(state.iterations()));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
     return;
 }
 

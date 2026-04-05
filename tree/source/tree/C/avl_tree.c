@@ -183,8 +183,6 @@ binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
     binaryTreeResult_t opstatus  = BINARY_TREE_OP_SUCCESS;
     binaryTreeBool_t   foundNode = BINARY_TREE_BOOL_FALSE;
     int8_t          cmpResult    = 0;
-    int8_t          bfLeft       = 0;
-    int8_t          bfRight      = 0;
     binaryTreeNode* search       = NULL;
     binaryTreeNode* maybeNewRoot = NULL;
     binaryTreeNode* allocNode    = NULL;
@@ -207,7 +205,7 @@ binaryTreeResult_t AVLTreeInsert(AVLTree* root, void* value)
 
 
     /* Tree isn't empty, we may find the node in the tree */
-    opstatus = GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode*), 2 * AVLTreeHeight(root));
+    opstatus = GenericStackCreate( &nodesTouched, sizeof(binaryTreeNode*), (uint32_t)(2 * AVLTreeHeight(root)) );
     foundNode = (opstatus == BINARY_TREE_OP_FAILURE); /* If alloc failed, we'll exit early */
     for(search = root->m_root; !foundNode && search != NULL; ) {
         GenericStackPush(&nodesTouched, (void*)&search);
@@ -265,12 +263,12 @@ binaryTreeResult_t AVLTreeRemove(AVLTree* root, void* value)
     uint8_t         fullNode     = BINARY_TREE_BOOL_FALSE;
     int8_t          cmpResult    = 0;
     binaryTreeNode* currNode     = root->m_root;
-    binaryTreeNode* toDelete     = NULL, *toDeleteData = NULL;
+    binaryTreeNode* toDelete     = NULL;
     binaryTreeNode* maybeNewRoot = NULL;
     GenericStack    nodesTouched;
 
 
-    opstatus = GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode*), 2 * AVLTreeHeight(root));
+    opstatus = GenericStackCreate(&nodesTouched, sizeof(binaryTreeNode*), (uint32_t)(2 * AVLTreeHeight(root)) );
     foundNode = (opstatus == BINARY_TREE_OP_FAILURE); /* Exit early if Stack Alloc failed */
     for(; !foundNode && currNode != NULL; )
     {
@@ -515,7 +513,6 @@ int8_t AVLTreeHeight(AVLTree const* root)
 binaryTreeResult_t AVLTreePrint(
     AVLTree const* root,
     void*          outputTargetPtr,
-    uint8_t        isBuffer,
     uint64_t       bufferSize,
     binaryTreeNodeDataPrinterFunc dataPrinter
 ) {
@@ -526,7 +523,7 @@ binaryTreeResult_t AVLTreePrint(
 
     binaryTreeResult_t    failStatus = BINARY_TREE_OP_SUCCESS;
     static const uint32_t kSpaceCount  = 8;
-    NodeSpacing_t         tmpNode      = {};
+    NodeSpacing_t         tmpNode      = { .m_ptr = NULL, .m_space = 0 };
     uint32_t              currentSpace = 0;
     GenericStack          nodeStack;
     const binaryTreeNode* currNode = root->m_root;
@@ -614,8 +611,8 @@ int8_t AVLTreeComputeBalance(binaryTreeNode* node) {
     if(node == NULL) {
         return 0;
     }
-    int16_t rh = node->m_right ? node->m_right->m_height : -1;
-    int16_t lh = node->m_left  ? node->m_left->m_height  : -1;
+    int8_t rh = node->m_right ? node->m_right->m_height : -1;
+    int8_t lh = node->m_left  ? node->m_left->m_height  : -1;
     return rh - lh;
 }
 
@@ -821,6 +818,9 @@ binaryTreeNode* AVLTreeFindMinAndPushParents(
 }
 
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+
 void AVLTreeContextPrint(binaryTreePrintCtx* ctx, const char* format, ...)
 {
     va_list args;
@@ -842,8 +842,10 @@ void AVLTreeContextPrint(binaryTreePrintCtx* ctx, const char* format, ...)
         format,
         args
     );
-    ctx->m_bufOffset += (written > 0) ? written : 0;
+    ctx->m_bufOffset += (written > 0) ? (uint32_t)written : 0;
 
     va_end(args);
     return;
 }
+
+#pragma GCC diagnostic pop

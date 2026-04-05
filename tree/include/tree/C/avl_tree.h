@@ -54,7 +54,6 @@ int8_t             TREELIB_API AVLTreeHeight(AVLTree const* root);
 binaryTreeResult_t TREELIB_API AVLTreePrint(
     AVLTree const* root,
     void*          outputTargetPtr,
-    uint8_t        isBuffer,
     uint64_t       bufferSize,
     binaryTreeNodeDataPrinterFunc optionalNodePrinter
 );

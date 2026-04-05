@@ -12,7 +12,7 @@
 TREELIB_EXTERNC_DECL_BEGIN
 
 
-int run_all_c_avl_tree_tests();
+int run_all_c_avl_tree_tests(void);
 
 typedef enum __avl_test_random_operation_type {
     CTEST_AVL_OPER_INSERT_OP,

@@ -9,12 +9,14 @@
 #include <cstdarg>
 
 
+DISABLE_WARNING_FORMAT_STR_NOT_LITERAL
 template<typename T>
 void GenericAVLTreeTest<T>::generic_write_to_test_buffer(const char* formatstr, ...) {
     va_list args;
     va_start(args, formatstr);
 
-    u64 bytesWritten = vsnprintf(&m_massiveBuffer[m_massiveBufferCurrIdx], gk_massiveBufferSize - m_massiveBufferCurrIdx, formatstr, args);
+    auto written = vsnprintf(&m_massiveBuffer[m_massiveBufferCurrIdx], gk_massiveBufferSize - m_massiveBufferCurrIdx, formatstr, args);
+    u64 bytesWritten = static_cast<u64>(written);
     
     va_end(args);
 
@@ -54,7 +56,7 @@ void GenericAVLTreeTest<T>::printTreeToMassiveBuf(void const* root, int space) {
     }
     space += kCOUNT;
     
-    binaryTree<T>* _root = (binaryTree<T>*)root;
+    binaryTree<T>* _root = reinterpret_cast<binaryTree<T>*>(root);
     printTreeToMassiveBuf(_root->m_right, space);
     generic_write_to_test_buffer("\n\n\n%*s%d (%u, %d)\n", space - kCOUNT, "", 
         _root->m_data, 
@@ -388,7 +390,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
     std::random_device rd;
     std::mt19937 gen;
 
-    std::uniform_int_distribution<> op_dist(0, (u8)OpType::MAX_OP);
+    std::uniform_int_distribution<> op_dist(0, static_cast<u8>(OpType::MAX_OP));
     
 
     uint32_t  seed = rd();
@@ -396,8 +398,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
     OpType    op   = OpType::MAX_OP;
     TypeParam tmpValue{};
     uint32_t tmpValueIdx = 0;
-    bool     searchedValueIsRandom = false;
-    bool     status                = false;
+    bool     status = false;
     uint32_t insertion[2] = {0, 0};
     uint32_t deletion[2]  = {0, 0};
     uint32_t searchType[2]    = {0, 0 };
@@ -438,7 +439,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
                 continue;
             }
 
-            tmpValueIdx = gen() % treeValueSet.size();
+            tmpValueIdx = static_cast<uint32_t>(gen() % treeValueSet.size());
             tmpValue    = treeValueSet[tmpValueIdx];
             status      = tree.remove(tmpValue);
             treeValueSet.erase(treeValueSet.begin() + tmpValueIdx);
@@ -469,7 +470,7 @@ TYPED_TEST(GenericAVLTreeTest, StochasticStressTest) {
                 continue;
             }
 
-            tmpValueIdx = gen() % treeValueSet.size();
+            tmpValueIdx = static_cast<uint32_t>(gen() % treeValueSet.size());
             tmpValue    = treeValueSet[tmpValueIdx];
             status = tree.search(tmpValue);
             ++searchExistingValueOp;

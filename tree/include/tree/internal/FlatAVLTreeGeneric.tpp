@@ -5,8 +5,10 @@
 #   endif /* __FLAT_AVL_TREE_GENERIC_DEFINITION_HEADER__ */
 #   include <tree/internal/AVLTreeRotateState.hpp>
 #   include <tree/internal/FlatAVLTreeGenericIterators.hpp>
+#   include <tree/internal/floatingPoint.hpp>
 #   include <cmath>
 #   include <string>
+#   include <cassert>
 
 
 namespace ati = flat_avl_tree_internal;
@@ -116,7 +118,6 @@ bool FlatAVLTree<T>::remove(T const& val) {
     uint32_t parentIdx   = ati::Metadata::k_nullIndex;
     uint32_t currNodeIdx = 0;
     uint32_t toDeleteIdx = 0;
-    bool     fullNode    = false;
 
 
     auto getParentOfTopNode = [](std::stack<uint32_t>& nodeStack) -> uint32_t {
@@ -193,13 +194,17 @@ bool FlatAVLTree<T>::remove(T const& val) {
 
 template <typename T>
 bool FlatAVLTree<T>::search(T const& val) {
-    bool found = false, cmp = false;
+    bool found = false;
+    int8_t cmp = 0;;
 
     for(uint32_t searchIndex = m_rootIdx; !found && nodeExists(searchIndex); ) {
         auto& currNode = getNodeValue(searchIndex);
 
-        found = (currNode == val);
-        searchIndex = getNodeMetadata(searchIndex).getConditionalChild(val < currNode);
+        cmp = FromGoogleTest::compareValues(val, currNode);
+        found = (cmp == 0);
+        assert(cmp != INT8_MAX);
+        
+        searchIndex = getNodeMetadata(searchIndex).getConditionalChild(cmp == -1);
     }
     return found;
 }
@@ -244,8 +249,8 @@ bool FlatAVLTree<T>::compare(FlatAVLTree const& other) const {
     B.levelQueue.push(B.currNodeIdx);
     while( status && !A.levelQueue.empty() && !B.levelQueue.empty() )
     {
-        A.levelSize = A.levelQueue.size();
-        B.levelSize = B.levelQueue.size();
+        A.levelSize = static_cast<uint32_t>(A.levelQueue.size());
+        B.levelSize = static_cast<uint32_t>(B.levelQueue.size());
         while(status && A.levelSize && B.levelSize) 
         {
             A.currNodeIdx = A.levelQueue.front();
@@ -269,7 +274,10 @@ bool FlatAVLTree<T>::compare(FlatAVLTree const& other) const {
             --B.levelSize;
 
 
-            status = status && ( readValue(A.currNodeIdx) == readValue(B.currNodeIdx) );
+            status = status && FromGoogleTest::checkEqualValues(
+                readValue(A.currNodeIdx), 
+                readValue(B.currNodeIdx) 
+            );
         }
     }
 
@@ -443,7 +451,7 @@ bool FlatAVLTree<T>::empty() const noexcept {
 
 template <typename T>
 uint32_t FlatAVLTree<T>::size() const noexcept {
-	return m_freeNodeIdx - m_freedNodes.size();
+	return static_cast<uint32_t>(m_freeNodeIdx - m_freedNodes.size());
 }
 
 template <typename T>
@@ -473,7 +481,7 @@ OutputStream& FlatAVLTree<T>::print(
 
     static const uint32_t kSpaceCount  = 8;
     NodeSpacing_t         tmpNode      = {};
-    uint32_t              currentSpace = 0;
+    uint32_t              currentSpace = space;
     uint32_t              currNode     = m_rootIdx;
     std::stack<NodeSpacing_t> nodeStack;
 
@@ -613,14 +621,18 @@ bool FlatAVLTree<T>::searchAndPushParents(
     T const&              value,
     std::stack<uint32_t>& nodeIdxStack
 ) {
-    bool found = false, cmp = false;
+    bool found = false;
+    int8_t cmp = INT8_MAX;
 
-    for(uint32_t searchIndex = m_rootIdx; !found && nodeExists(searchIndex); ) {
+    for(uint32_t searchIndex = nodeIndex; !found && nodeExists(searchIndex); ) {
         auto& currNode = readValue(searchIndex);
 
-        found = (currNode == value);
+        cmp = FromGoogleTest::compareValues(value, currNode);
+        found = (cmp == 0);
+
+        assert(cmp != INT8_MAX);
         nodeIdxStack.push(searchIndex);
-        searchIndex = readMetadata(searchIndex).getConditionalChild(value < currNode);
+        searchIndex = readMetadata(searchIndex).getConditionalChild(cmp == -1);
     }
     return found;
 }
@@ -815,14 +827,15 @@ void FlatAVLTree<T>::resize()
 
     const double  currHeightFloat = std::log2(size());
     const uint8_t lastLevelHeight = static_cast<uint8_t>(currHeightFloat);
-    const double  currHeightFractional = currHeightFloat - static_cast<double>(lastLevelHeight);
+    // const double  currHeightFractional = currHeightFloat - static_cast<double>(lastLevelHeight);
     /*
         rebalancing allows a height diff of at-most 2 levels, until rebalancing is performed.
         Meaning, we should be reallocate at-most 2 additional levels on every resize
     */
-    const uint32_t newSize = 0
-        + m_nodeVal.size()               /* Total Size upto now */
-        + (1 << (lastLevelHeight + 1) );  /* Level N+1 Size */
+    const uint32_t newSize = 
+        static_cast<uint32_t>(m_nodeVal.size()) /* Total Size upto now */
+        +
+        (1u << (lastLevelHeight + 1) ); /* Level N+1 Size */
 
     m_nodeVal.resize(newSize);
     m_nodeMetadata.resize(newSize);

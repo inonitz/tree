@@ -1,7 +1,7 @@
 #include "VectorTest.h"
 #include <cmocka.h>
 #include <tree/C/vector.h>
-#include <util2/C/debug_macro.h>
+#include <util2/C/macro.h>
 #include <util2/C/random.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -27,7 +27,7 @@ typedef enum {
     VECTOR_OP_COUNT_MAX
 } VectorOperation;
 
-const char* vectorOpToString(VectorOperation op) {
+__unused static const char* vectorOpToString(VectorOperation op) {
     static const char* strBuffer[10] = {
         "VECTOR_OP_PUSH_BACK",
         "VECTOR_OP_POP_BACK",
@@ -125,7 +125,7 @@ static void Vector_test_create_with_size_default_value_nonnull(void** state) {
 
 static void Vector_test_getters_and_setters(void** state) {
     (void)state;
-	GenericVector vec, vec1;
+	GenericVector vec;
     uint32_t vectorSize = 20;
     int32_t  valueToSet = 11;
     int32_t* valptr     = NULL;
@@ -194,7 +194,7 @@ static void Vector_test_push_back_and_access(void** state) {
 	assert_int_equal(*front, 0);
 	assert_int_equal(*back, 4);
 
-	for (int32_t i = 0; i < 5; ++i) {
+	for (uint32_t i = 0; i < 5; ++i) {
         val = (int32_t*)GenericVectorGet(&vec, i);
 		assert_non_null(val);
 		assert_int_equal(*val, i);
@@ -245,8 +245,10 @@ static void Vector_test_insert(void** state) {
 	int32_t  val0[] = {1, 2, 3};
 	int32_t  val1[] = {9, 9};
 	int32_t  expected0[] = {1, 9, 9, 2, 3};
+	const uint32_t expected0Size = ( sizeof(expected0) / sizeof(expected0[0]) );
     int32_t  val2[] = {5, 4};
     int32_t  expected1[] = {1, 9, 9, 2, 3, 5, 4};
+	const uint32_t expected1Size = ( sizeof(expected1) / sizeof(expected1[0]) );
     int32_t* val = NULL;
     bool     err = 0;
 
@@ -265,20 +267,21 @@ static void Vector_test_insert(void** state) {
     );
     assert_false(err);
 	assert_int_equal(GenericVectorSize(&vec), 5);
-	for (int32_t i = 0; i < ( sizeof(expected0) / sizeof(expected0[0]) ); ++i) {
+	for (uint32_t i = 0; i < expected0Size; ++i) {
 		val = (int32_t*)GenericVectorAt(&vec, i);
         assert_non_null(val);
 		assert_int_equal(*val, expected0[i]);
 	}
 
     /* Insert in the end */
-	err = GenericVectorInsert(&vec,
-        ( GenericVectorEnd(&vec) - GenericVectorBegin(&vec) ) / sizeof(int32_t),
+	err = GenericVectorInsert(&vec, (uint32_t)(
+            (uint64_t)( GenericVectorEnd(&vec) - GenericVectorBegin(&vec) ) / sizeof(int32_t)
+        ),
         2,
-        val2
+        &val2[0]
     );
     assert_false(err);
-	for (int32_t i = 0; i < ( sizeof(expected1) / sizeof(expected1[0]) ); ++i) {
+	for (uint32_t i = 0; i < expected1Size; ++i) {
 		val = (int32_t*)GenericVectorAt(&vec, i);
         assert_non_null(val);
 		assert_int_equal(*val, expected1[i]);
@@ -490,7 +493,7 @@ static void VerifyInnerVectorState(
 
 static void Vector_test_fuzz_generic_vector(void **cmocka_state) {
     (void)cmocka_state;
-    const uint32_t kMaximumRandomOperations = 1 * 1000 * 1000;
+    const int32_t kMaximumRandomOperations = 1 * 1000 * 1000;
 
     GenericVector vec;
     FuzzState     state = {0, 0};

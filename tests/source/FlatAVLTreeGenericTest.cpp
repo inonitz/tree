@@ -21,8 +21,8 @@ public:
 
 struct LogStreamProxy
 {
-    std::fstream&                       m_stream;
     std::shared_lock<std::shared_mutex> m_lock;
+    std::fstream&                       m_stream;
 
     LogStreamProxy(std::shared_mutex& mtx, std::fstream& os)
         : m_lock(mtx), m_stream(os) {}
@@ -107,8 +107,8 @@ public:
 private:
     static constexpr uint64_t k_bufferingMemorySize = 128 * 1024;
     
-    bool    m_logging;
-    uint8_t m_reserved[7]; 
+    bool             m_logging;
+    uint8_t __unused m_reserved[7]; 
     
     std::shared_mutex m_bufferMutex;
     std::streambuf* m_originalStreamBufHandle;
@@ -601,7 +601,6 @@ TYPED_TEST(FlatAVLTreeGenericTest, VerifyIsValidBSTDuplicateCheck) {
 TYPED_TEST(FlatAVLTreeGenericTest, VerifyBalanceFactor) {
     FlatAVLTree<TypeParam> tree;
     uint32_t allocNode  = flat_avl_tree_internal::Metadata::k_nullIndex;
-    int8_t   oldBalance = 0;
     auto     testAData  = generateDataForRebalanceTest<TypeParam>();
     auto     testBData  = generateDataForSimpleTypedTests<TypeParam>();
     auto     accessor   = flat_avl_tree_internal::FlatAVLTreeTestingMemberAccess{tree};
@@ -653,14 +652,13 @@ TYPED_TEST(FlatAVLTreeGenericTest, StochasticStressTest) {
     std::vector<TypeParam> treeValueSet;
     std::mt19937 gen;
 
-    std::uniform_int_distribution<> op_dist(0, (u8)OpType::MAX_OP);
+    std::uniform_int_distribution<> op_dist(0, static_cast<u8>(OpType::MAX_OP));
 
     TypeParam val{};
     OpType    op   = OpType::MAX_OP;
     TypeParam tmpValue{};
     uint32_t tmpValueIdx = 0;
-    bool     searchedValueIsRandom = false;
-    bool     status                = false;
+    bool     status = false;
     uint32_t insertion[2] = {0, 0};
     uint32_t deletion[2]  = {0, 0};
     uint32_t searchType[2]    = {0, 0 };
@@ -721,7 +719,7 @@ TYPED_TEST(FlatAVLTreeGenericTest, StochasticStressTest) {
                     << ": del (valueSet.empty() == true)\n";
                 continue;
             }
-            tmpValueIdx = gen() % treeValueSet.size();
+            tmpValueIdx = static_cast<uint32_t>(gen() % treeValueSet.size());
             tmpValue    = treeValueSet[tmpValueIdx];
             status      = tree.remove(tmpValue);
             treeValueSet.erase(treeValueSet.begin() + tmpValueIdx);
@@ -768,7 +766,7 @@ TYPED_TEST(FlatAVLTreeGenericTest, StochasticStressTest) {
                 << ": setsearch (valueSet.empty() == true)\n";
                 continue;
             }
-            tmpValueIdx = gen() % treeValueSet.size();
+            tmpValueIdx = static_cast<uint32_t>(gen() % treeValueSet.size());
             tmpValue    = treeValueSet[tmpValueIdx];
             status = tree.search(tmpValue);
             ++searchExistingValueOp;

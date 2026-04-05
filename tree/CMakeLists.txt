@@ -46,6 +46,7 @@ set(PRIVATE_HEADERS
     include/tree/internal/FlatAVLTreeGeneric.hpp
     include/tree/internal/FlatAVLTreeGeneric.tpp
     include/tree/internal/FlatAVLTreeGenericIterators.hpp
+    include/tree/internal/floatingPoint.hpp
 
     include/tree/internal/treelib_util.hpp
 )
@@ -70,7 +71,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     FILES ${PRIVATE_HEADERS}
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE 
-    UTIL2::util2
+    WORKSPACE_CONFIG::ProjectDefaultConfig
 )
 
 # The minimum C/C++ versions required for the library

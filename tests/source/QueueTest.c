@@ -1,3 +1,4 @@
+#include "QueueTest.h"
 #include <util2/C/aligned_malloc.h>
 #include <util2/C/random.h>
 #include <tree/C/queue.h>
@@ -187,7 +188,7 @@ static void Queue_test_fuzz_operations(void **state) {
     uint32_t     groundTruthHead = 0;
     uint32_t     groundTruthTail = 0;
     FuzzOp       op              = FUZZ_STACK_OPERATION_MAX;
-    FuzzPayload  tmpVal          = {};
+    FuzzPayload  tmpVal          = {0, 0};
     GenericQueue queue;
 
 
@@ -245,7 +246,7 @@ static void Queue_test_fuzz_operations(void **state) {
 
 
 
-int run_all_queue_tests() {
+int run_all_queue_tests(void) {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(Queue_test_create),
         cmocka_unit_test(Queue_test_basic_operations),

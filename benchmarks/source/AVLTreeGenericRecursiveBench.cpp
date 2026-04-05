@@ -1,3 +1,4 @@
+#include "benchmark/statistics.h"
 #include <benchmark/benchmark.h>
 #include <vector>
 #include <random>
@@ -24,8 +25,8 @@ struct DummyRecord
 
 private:
     u64 m_id;
-    double   m_values[8]{0};
-    char     m_metadata[32]{0};
+    __unused double m_values[8]{0};
+    __unused char   m_metadata[32]{0};
 };
 
 
@@ -77,7 +78,7 @@ static void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
 
 
 template <typename T> static void BM_AVLTreeGenericRecursiveBenchInsertion(benchmark::State& state) {
-    const u64 N = state.range(0);
+    const u64 N = static_cast<u64>(state.range(0));
     AVLTree<T> tree;
     T valToInsert;
     bool status = false;
@@ -98,14 +99,14 @@ template <typename T> static void BM_AVLTreeGenericRecursiveBenchInsertion(bench
     --insertStatus[0];
     state.counters["Failure"] = benchmark::Counter(static_cast<double>(insertStatus[0]));
     state.counters["Success"] = benchmark::Counter(static_cast<double>(insertStatus[1]));
-    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
-    state.SetComplexityN(N);
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * state.range(0));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
     return;
 }
 
 
 template <typename T> static void BM_AVLTreeGenericRecursiveBenchDeletion(benchmark::State& state) {
-    const u64 N = state.range(0);
+    const u64 N = static_cast<u64>(state.range(0));
     bool status = false;
     std::mt19937 gen(0);
     std::vector<T> original_data, working_set;
@@ -134,14 +135,14 @@ template <typename T> static void BM_AVLTreeGenericRecursiveBenchDeletion(benchm
 
 
     tree.clear();
-    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
-    state.SetComplexityN(N);
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * state.range(0));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
     return;
 }
 
 
 template <typename T> static void BM_AVLTreeGenericRecursiveBenchSearch(benchmark::State& state) {
-    const uint32_t N = state.range(0);
+    const uint64_t N = static_cast<uint64_t>(state.range(0));
     AVLTree<T> tree;
     std::vector<T> testVec;
     
@@ -152,7 +153,7 @@ template <typename T> static void BM_AVLTreeGenericRecursiveBenchSearch(benchmar
     }
 
 
-    uint32_t i = 0;
+    uint64_t i = 0;
     for (auto _ : state) {
         state.PauseTiming();
         const T& valToSearch = testVec[i % N];
@@ -164,8 +165,8 @@ template <typename T> static void BM_AVLTreeGenericRecursiveBenchSearch(benchmar
 
 
     tree.clear();
-    state.SetBytesProcessed(int64_t(state.range(0)) * sizeof(T));
-    state.SetComplexityN(N);
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * state.range(0));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
     return;
 }
 

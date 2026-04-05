@@ -16,8 +16,8 @@ struct DummyRecord {
 
 private:
     u64 m_id;
-    double m_values[8]{0};
-    char   m_metadata[32]{0};
+    __unused double m_values[8]{0};
+    __unused char   m_metadata[32]{0};
 };
 
 
@@ -78,13 +78,13 @@ static int GenericBenchComparator(const void* a, const void* b) {
 }
 
 template <typename T>
-static int8_t GenericBenchConstructor(void* dest, const void* src) {
+static int8_t GenericBenchConstructor(__unused void* dest, __unused const void* src) {
     static_assert( !std::is_pod<T>::value );
     return 0;
 }
 
 template <typename T>
-static void GenericBenchDestructor(void* a) {
+static void GenericBenchDestructor(__unused void* a) {
     static_assert( !std::is_pod<T>::value );
 }
 
@@ -140,13 +140,25 @@ public:
 
 private:
     void defaultConstruct() {
-        auto copyFunctor   = std::is_pod<T>::value ? NULL : GenericBenchConstructor<T>;
-        auto deleteFunctor = std::is_pod<T>::value ? NULL : GenericBenchDestructor<T>;
+        /* 
+            Passing a C++ Function (Compiler & System Dependant ABI) 
+            to a C Function (Extremely Stable ABI, rarely [if at all] changes)
+            is very much undefined behaviour.
+            If anyone were to pass a constructor/destructor function
+            to the C avl tree implementation it would have to be
+            a strictly C Function that wraps the C++ Constructor
+        */
+        binaryTreeValCopyFunc copyFunctor     = nullptr;
+        binaryTreeValDeleteFunc deleteFunctor = nullptr;
+        if constexpr (!std::is_standard_layout_v<T> || !std::is_trivial_v<T>) {
+            copyFunctor   = GenericBenchConstructor<T>;
+            deleteFunctor = GenericBenchDestructor<T>;
+        }
 
         AVLTreeCreate(&m_tree, 
-            (binaryTreeComparatorFunc)GenericBenchComparator<T>,
-            (binaryTreeGenericValueCopyConstructorFunc)copyFunctor,
-            (binaryTreeGenericValueDestructorFunc)deleteFunctor,
+            reinterpret_cast<binaryTreeComparatorFunc>(GenericBenchComparator<T>),
+            copyFunctor,
+            deleteFunctor,
             sizeof(T)
         );
         return;
@@ -164,7 +176,7 @@ private:
 // ----------------------------------------------------------------------------
 template <typename T> 
 static void BM_AVLTreeCBenchInsertion(benchmark::State& state) {
-    const u64 N = state.range(0);
+    const u64 N = static_cast<u64>(state.range(0));
     C_AVLTreeWrapper<T> tree;
     T valToInsert;
     bool status = false;
@@ -182,15 +194,15 @@ static void BM_AVLTreeCBenchInsertion(benchmark::State& state) {
     --insertStatus[0];
     state.counters["Failure"] = benchmark::Counter(static_cast<double>(insertStatus[0]));
     state.counters["Success"] = benchmark::Counter(static_cast<double>(insertStatus[1]));
-    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
-    state.SetComplexityN(N);
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * static_cast<int64_t>(state.iterations()));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
     return;
 }
 
 
 template <typename T> 
 static void BM_AVLTreeCBenchDeletion(benchmark::State& state) {
-    const u64 N = state.range(0);
+    const u64 N = static_cast<u64>(state.range(0));
     bool status = false;
     std::mt19937 gen(0);
     std::vector<T> original_data, working_set;
@@ -216,15 +228,15 @@ static void BM_AVLTreeCBenchDeletion(benchmark::State& state) {
         benchmark::DoNotOptimize(status = tree.remove(valToDelete));
     }
 
-    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
-    state.SetComplexityN(N);
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * static_cast<int64_t>(state.iterations()));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
     return;
 }
 
 
 template <typename T> 
 static void BM_AVLTreeCBenchSearch(benchmark::State& state) {
-    const uint32_t N = state.range(0);
+    const u64 N = static_cast<u64>(state.range(0));
     C_AVLTreeWrapper<T> tree;
     std::vector<T> dataSet;
     
@@ -233,7 +245,7 @@ static void BM_AVLTreeCBenchSearch(benchmark::State& state) {
         tree.insert(elem);
     }
 
-    uint32_t i = 0;
+    u64 i = 0;
     for (auto _ : state) {
         state.PauseTiming();
         const T& valToSearch = dataSet[i % N];
@@ -243,8 +255,9 @@ static void BM_AVLTreeCBenchSearch(benchmark::State& state) {
         benchmark::DoNotOptimize(tree.search(valToSearch));
     }
 
-    state.SetBytesProcessed(int64_t(state.iterations()) * sizeof(T));
-    state.SetComplexityN(N);
+
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * static_cast<int64_t>(state.iterations()));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
     return;
 }
 

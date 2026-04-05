@@ -65,7 +65,6 @@ static void Stack_test_create(void **state) {
 
 static void Stack_test_single_push(void **state) {
     (void) state;
-    uint8_t      status = 0;
     TestData     td1 = {1, 3.14};
     GenericStack stack;
 
@@ -96,8 +95,6 @@ static void Stack_test_top_element(void **state) {
 
 static void Stack_test_dynamic_growth(void **state) {
     (void) state;
-    // void*    stackBufChanged = NULL;
-    uint8_t  status = 0;
     TestData td1 = {1, 3.14};
     TestData td2 = {2, 6.28};
     TestData td3 = {3, 9.42};
@@ -106,14 +103,12 @@ static void Stack_test_dynamic_growth(void **state) {
     verify_stack_creation(&stack, sizeof(TestData), 128);
     assert_non_null(stack.m_buffer);
     assert_int_equal(stack.m_objSize, sizeof(TestData));
-    // stackBufChanged = stack.m_buffer;
 
     assert_false(GenericStackPush(&stack, &td1));
     assert_false(GenericStackPush(&stack, &td2));
 
     /* Pushing a 3rd element triggers GenericStackGrow */
     assert_false(GenericStackPush(&stack, &td3));
-    // assert_int_not_equal(stackBufChanged, stack.m_buffer);
 
     GenericStackDestroy(&stack);
     assert_null(stack.m_buffer);
@@ -188,7 +183,7 @@ static void Stack_test_fuzz_operations(void **state) {
     FuzzPayload* groundTruthBuf = malloc(sizeof(FuzzPayload) * kGroundTruthBufMaxSize);
     uint32_t     groundTruthCnt = 0;
     FuzzOp       op             = FUZZ_STACK_OPERATION_MAX;
-    FuzzPayload  tmpVal         = {};
+    FuzzPayload  tmpVal         = {0, 0};
     GenericStack stack;
 
 
@@ -241,7 +236,7 @@ static void Stack_test_fuzz_operations(void **state) {
 
 
 
-int run_all_stack_tests() {
+int run_all_stack_tests(void) {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(Stack_test_create),
         cmocka_unit_test(Stack_test_single_push),

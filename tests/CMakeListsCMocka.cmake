@@ -4,6 +4,9 @@ set(CMOCKA_TEST_TARGET_NAME
     ${PROJECT_NAME}_cmocka
 )
 
+message("${PROJECT_NAME} and ${CMOCKA_TEST_TARGET_NAME}\n")
+
+
 set(CMOCKA_SOURCES
     source/main.c
     source/AVLTreeCTest.c
@@ -35,10 +38,10 @@ target_sources(${CMOCKA_TEST_TARGET_NAME} PRIVATE ${CMOCKA_SOURCES})
 target_sources(${CMOCKA_TEST_TARGET_NAME} PRIVATE ${CMOCKA_HEADERS})
 target_link_libraries(
     ${CMOCKA_TEST_TARGET_NAME} PRIVATE
+    WORKSPACE_CONFIG::ProjectDefaultConfig
     TREELIB::treelib
     UTIL2::util2
     cmocka::cmocka
-    WORKSPACE_CONFIG::Sanitizers
 )
 target_compile_definitions(${CMOCKA_TEST_TARGET_NAME} PRIVATE
     _CRT_SECURE_NO_WARNINGS=1
@@ -54,7 +57,7 @@ foreach(group ${CMOCKA_STRUCTURES_TEST_GROUP})
     add_test(
         NAME "CMocka_${group}"
         COMMAND ./${CMOCKA_TEST_TARGET_NAME}
-        WORKING_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY}
+        WORKING_DIRECTORY ${WORKSPACE_GLOBAL_CUSTOM_BUILD_OUTPUT_DIRECTORY}
     )
     # TEST_FILTER only filters by test name, not the group
     set_tests_properties("CMocka_${group}" PROPERTIES
@@ -68,6 +71,6 @@ endforeach()
 add_custom_target(debug_${CMOCKA_TEST_TARGET_NAME}
     COMMAND ./${CMOCKA_TEST_TARGET_NAME}
     DEPENDS ${CMOCKA_TEST_TARGET_NAME}
-    WORKING_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY}
+    WORKING_DIRECTORY ${WORKSPACE_GLOBAL_CUSTOM_BUILD_OUTPUT_DIRECTORY}
     USES_TERMINAL
 )

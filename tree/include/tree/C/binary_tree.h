@@ -28,12 +28,12 @@ binaryTreeResult_t TREELIB_API binaryTreeNodeCreate(
     binaryTreeValCopyFunc valueCopyConstructorFunc
 );
 binaryTreeResult_t TREELIB_API binaryTreeNodeCreateWithPointers(
-    binaryTreeNode*       rootNode,
-    binaryTreeNode const* leftNode,
-    binaryTreeNode const* rightNode,
-    binaryTreeNode const* parentNode,
-    void*                 value,
-    uint32_t              valueSizeBytes, 
+    binaryTreeNode* rootNode,
+    binaryTreeNode* leftNode,
+    binaryTreeNode* rightNode,
+    binaryTreeNode* parentNode,
+    void*           value,
+    uint32_t        valueSizeBytes, 
     binaryTreeValCopyFunc valueCopyConstructorFunc
 );
 void TREELIB_API binaryTreeNodeDestroy(

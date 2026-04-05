@@ -37,8 +37,8 @@ struct DummyRecord
     }
 private:
     uint64_t m_id;
-    double   m_values[8]{0};
-    char     m_metadata[32]{0};
+    __unused double m_values[8]{0};
+    __unused char   m_metadata[32]{0};
 };
 
 
@@ -53,7 +53,7 @@ using Implementations = ::testing::Types<
     i32,
     i16,
     i8,
-    f32,
+    f32, 
     f64,
     DummyRecord,
     std::string
@@ -91,7 +91,7 @@ public:
 };
 
 
-TYPED_TEST_SUITE(GenericAVLTreeTest, Implementations);
+TYPED_TEST_SUITE(GenericAVLTreeTest, Implementations,);
 
 
 

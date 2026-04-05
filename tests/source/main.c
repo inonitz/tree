@@ -1,5 +1,6 @@
-#include <util2/C/env.h>
+#include <util2/C/macro.h>
 #include <util2/C/random.h>
+#include <util2/C/env.h>
 #include <stdio.h>
 #include "StackTest.h"
 #include "QueueTest.h"
@@ -7,10 +8,10 @@
 #include "VectorTest.h"
 
 
-int main(int argc, char *argv[])
+int main(__unused int argc, __unused char *argv[])
 {
     int result = 0;
-    uint32_t seed[8] = {};
+    uint32_t seed[8] = {0};
 
     (void)random8u(); /* Dummy call to init RNG */
     randomGetSeed(&seed[0], 8);

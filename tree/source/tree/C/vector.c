@@ -271,7 +271,7 @@ bool GenericVectorResize(GenericVector* toModify, uint32_t newSize) {
 }
 
 void GenericVectorSwap(GenericVector* vecA, GenericVector* vecB) {
-    GenericVector tmp = {};
+    GenericVector tmp;
     memcpy(&tmp, vecA, sizeof(GenericVector)); /* Move A->Tmp */
     memcpy(vecA, vecB, sizeof(GenericVector)); /* Move B->A   */
     memcpy(vecB, &tmp, sizeof(GenericVector)); /* Move A->B   */
@@ -282,7 +282,7 @@ void GenericVectorSwap(GenericVector* vecA, GenericVector* vecB) {
 
 
 void GenericVectorClearRange(uint8_t* begin, uint8_t* end) {
-    const uint64_t bytesToClear = (end - begin);
+    const uint64_t bytesToClear = (uint64_t)(end - begin);
     memset(begin, 0x00, bytesToClear);
     return;
 }
