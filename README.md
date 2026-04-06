@@ -28,7 +28,7 @@ But I never had the time to research the inner-workings of AVL Trees.
 
 This project Implements Generic AVL Trees in C & C++, with recursive & iterative implementations available.  
 Specifically, the C++ interface offers both Iterative & recursive versions, while C only offers an iterative version  
-All relevant data structures in this project are fully working, tested and **[benchmarked](https://github.com/inonitz/tree/README.md##Benchmarks)**
+All relevant data structures in this project are fully working, tested and **[Benchmarked](https://github.com/inonitz/tree#benchmarks)**
 
 <br></br>
 
