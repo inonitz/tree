@@ -69,7 +69,7 @@ static void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
 // C++ Wrapper for the C AVL Tree Implementation
 // ----------------------------------------------------------------------------
 template <typename T>
-static int GenericBenchComparator(const void* a, const void* b) {
+static int8_t GenericBenchComparator(const void* a, const void* b) {
     const T& arg1 = *__scast(const T*, a);
     const T& arg2 = *__scast(const T*, b);
     if (arg1 < arg2) return -1;
@@ -79,15 +79,19 @@ static int GenericBenchComparator(const void* a, const void* b) {
 
 template <typename T>
 static int8_t GenericBenchConstructor(__unused void* dest, __unused const void* src) {
-    static_assert( !std::is_pod<T>::value );
+    // constexpr auto typeHasComplexInitialization = 
+    //     !std::is_standard_layout_v<DummyRecord> || !std::is_trivial_v<DummyRecord>;
+    const T* src_str = static_cast<const T*>(src);
+    new (dest) T(*src_str);
     return 0;
 }
 
 template <typename T>
 static void GenericBenchDestructor(__unused void* a) {
-    static_assert( !std::is_pod<T>::value );
+    T* str = static_cast<T*>(a);
+    str->~T();
+    return;
 }
-
 
 template<> int8_t GenericBenchConstructor<std::string>(void* dest, const void* src) {
     const std::string* src_str = static_cast<const std::string*>(src);
@@ -99,6 +103,30 @@ template<> void GenericBenchDestructor<std::string>(void* obj) {
     std::string* str = static_cast<std::string*>(obj);
     str->~basic_string();
     return;
+}
+
+
+extern "C" int8_t Wrapper_cppStringCopyConstructor(void* dest, const void* src) {
+    return GenericBenchConstructor<std::string>(dest, src);
+}
+extern "C" void Wrapper_cppStringDestructor(void* obj) {
+    GenericBenchDestructor<std::string>(obj);
+    return;
+}
+
+extern "C" int8_t Wrapper_DummyRecordCopyConstructor(void* dest, const void* src) {
+    return GenericBenchConstructor<DummyRecord>(dest, src);
+}
+extern "C" void Wrapper_DummyRecordDestructor(void* obj) {
+    GenericBenchDestructor<DummyRecord>(obj);
+    return;
+}
+
+extern "C" int8_t Wrapper_CppStringComparisonOperator(const void* a, const void* b) {
+    return GenericBenchComparator<std::string>(a, b);
+}
+extern "C" int8_t Wrapper_DummyRecordComparisonOperator(const void* a, const void* b) {
+    return GenericBenchComparator<DummyRecord>(a, b);
 }
 
 
@@ -148,15 +176,23 @@ private:
             to the C avl tree implementation it would have to be
             a strictly C Function that wraps the C++ Constructor
         */
-        binaryTreeValCopyFunc copyFunctor     = nullptr;
-        binaryTreeValDeleteFunc deleteFunctor = nullptr;
-        if constexpr (!std::is_standard_layout_v<T> || !std::is_trivial_v<T>) {
-            copyFunctor   = GenericBenchConstructor<T>;
-            deleteFunctor = GenericBenchDestructor<T>;
+        binaryTreeValCopyFunc    copyFunctor    = nullptr;
+        binaryTreeValDeleteFunc  deleteFunctor  = nullptr;
+        binaryTreeComparatorFunc compareFunctor = GenericBenchComparator<T>;
+        /* Specialize for complex types that require C ABI wrappers */
+        if constexpr (std::is_same_v<std::string, T>) {
+            copyFunctor   = Wrapper_cppStringCopyConstructor;
+            deleteFunctor = Wrapper_cppStringDestructor;
+            compareFunctor = Wrapper_CppStringComparisonOperator;
+        } else if constexpr (std::is_same_v<DummyRecord, T>) {
+            copyFunctor   = Wrapper_DummyRecordCopyConstructor;
+            deleteFunctor = Wrapper_DummyRecordDestructor;
+            compareFunctor = Wrapper_DummyRecordComparisonOperator;
         }
 
+
         AVLTreeCreate(&m_tree, 
-            reinterpret_cast<binaryTreeComparatorFunc>(GenericBenchComparator<T>),
+            compareFunctor,
             copyFunctor,
             deleteFunctor,
             sizeof(T)
@@ -177,7 +213,7 @@ private:
 template <typename T> 
 static void BM_AVLTreeCBenchInsertion(benchmark::State& state) {
     const u64 N = static_cast<u64>(state.range(0));
-    C_AVLTreeWrapper<T> tree;
+    C_AVLTreeWrapper<T> tree{};
     T valToInsert;
     bool status = false;
     u64 insertStatus[2] = { 0, 0 };
@@ -206,7 +242,7 @@ static void BM_AVLTreeCBenchDeletion(benchmark::State& state) {
     bool status = false;
     std::mt19937 gen(0);
     std::vector<T> original_data, working_set;
-    C_AVLTreeWrapper<T> tree;
+    C_AVLTreeWrapper<T> tree{};
     T valToDelete{};
 
     generateUniqueVectorSet(original_data, N);
@@ -237,7 +273,7 @@ static void BM_AVLTreeCBenchDeletion(benchmark::State& state) {
 template <typename T> 
 static void BM_AVLTreeCBenchSearch(benchmark::State& state) {
     const u64 N = static_cast<u64>(state.range(0));
-    C_AVLTreeWrapper<T> tree;
+    C_AVLTreeWrapper<T> tree{};
     std::vector<T> dataSet;
     
     generateUniqueVectorSet(dataSet, N);

@@ -151,7 +151,11 @@ Benchmarks will be added soon enough, thanks to google benchmarks' Over engineer
 
 ## Roadmap/TODO
 
-* Optimize AVLDeleteIterative in AVLTreeGeneric.tpp, similarly to AVLInsertIterative
+* Optimize binaryTree::AVLDeleteIterative in AVLTreeGeneric.tpp, similarly to AVLInsertIterative in AVLTree.c
+* Add Benchmarking Footnotes, and append link to top-of README
+* Add Conclusion/What I learned
+* Add Automatic Testing Matrix For architecture/OS/Build Type (Shared/Dynamic/Static, Debug/Release, ...)  
+  * **(involves CI/CD which I'm not very familiar with currently)**
 
 <br></br>
 

@@ -1,7 +1,9 @@
 import json
 import re
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as tick
 from pathlib import Path
 
 
@@ -20,8 +22,8 @@ def parse_benchmark_files(file_paths: list[str]):
     countNotFiles = 0
     for file_path in file_paths:
         file_path = Path(file_path)
-        if not file_path.is_file():
-            print("Filepath {} was not found. Either the path is incorrect or the file doesn't exist\n".format(file_path))
+        if not file_path.is_file() or not file.with_suffix(".json"):
+            print("Filepath {} was not found. Path incorrect/File doesn't exist/File isn't json\n".format(file_path))
             countNotFiles += 1
         
     if countNotFiles > 0:
@@ -31,6 +33,7 @@ def parse_benchmark_files(file_paths: list[str]):
 
     for file_path in file_paths:
         with open(file_path, 'r') as f:
+            print(file_path)
             data = json.load(f)
             
             for run in data.get('benchmarks', []):
@@ -70,29 +73,56 @@ def plot_results(df: pd.DataFrame):
                 group = group.sort_values('N')
                 plt.plot(group['N'], group['RealTime'], marker='o', label=f"{label[1]}")
 
-            
 
+            # Setup Plot
+            timeUnitStr = subset['TimeUnit'].iloc[0]
             plt.title(f"Performance Benchmark - TestType: {ttype} DataType: {dtype}", loc='left')
             plt.xlabel("Size (N)")
-            plt.ylabel(f"Real Time ({subset['TimeUnit'].iloc[0]})")
+            plt.ylabel(f"Real Time ({timeUnitStr})")
             plt.xscale('log')
             plt.yscale('log')
-            plt.grid(True, which="both", ls="-", alpha=0.5)
+            plt.grid(visible=True, which="both", ls="-", alpha=0.5)
             plt.legend()
+
+            # Setup formatting for time measurements & data-structure-size (y & x axes)
+            axes = plt.gcf().gca()
+            xaxis = axes.xaxis
+            yaxis = axes.yaxis
+
+            # Format y axis to get better reading on performance measurements
+            yaxis.set_major_formatter(tick.FormatStrFormatter('%4.1f' + timeUnitStr))
+            yaxis.set_minor_formatter(tick.FormatStrFormatter('%4.1f' + timeUnitStr))
+            yaxis.set_major_locator(tick.LogLocator(base=10, numticks=12))
+            yaxis.set_minor_locator(tick.LogLocator(base=10, subs='auto', numticks=12))
+            yaxis.set_tick_params(which='minor', labelsize=8, colors='gray')
+            
+            # # format xaxis to understand better where bottlenecks occur
+            # # Needs a big plot to not clutter the graph
+            # xaxis.set_minor_locator(tick.LogLocator(base=10, subs='auto', numticks=5))
+            # xaxis.set_minor_formatter(tick.LogFormatterExponent(
+            #     base=10, 
+            #     labelOnlyBase=False,
+            #     minor_thresholds=(np.inf, np.inf)
+            #     )
+            # )
+            # xaxis.set_tick_params(which='minor', labelsize=5, colors='gray')            
             plt.tight_layout()
             plt.show()
 
 
 
 if __name__ == "__main__":
+    JsonDirToScan = Path('iterations/3')
     fileList = []
-    JsonDirToScan = Path('iterations/2')
 
+    # fileList = [ f for f in JsonDirToScan.iterdir() if (f.is_file() and f.with_suffix(".json")) ]
     for file in JsonDirToScan.iterdir():
-        if file.is_file():
+        if file.is_file() and file.suffix == '.json':
+            print(file.suffixes)
             fileList.append(file)
 
 
+    # [print(file) for file in fileList]
     df = parse_benchmark_files(fileList)
     if df is None:
         print("Error Processing File List")

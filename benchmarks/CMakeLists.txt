@@ -59,7 +59,7 @@ foreach(BENCH_NAME ${BENCHMARK_NAMES})
             "--benchmark_out=results_${BENCH_NAME}.json"
             "--benchmark_out_format=json"
             "--benchmark_filter=BM_${BENCH_NAME}*"
-        WORKING_DIRECTORY ${CMAKE_CUSTOM_BUILD_OUTPUT_DIRECTORY}
+        WORKING_DIRECTORY ${WORKSPACE_GLOBAL_CUSTOM_BUILD_OUTPUT_DIRECTORY}
     )
     set_tests_properties("bench_${BENCH_NAME}" PROPERTIES
         PROCESSOR_AFFINITY ON
