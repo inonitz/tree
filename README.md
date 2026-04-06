@@ -19,15 +19,17 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 A Long while ago I had to write a Virtual Address Space Manager for [primOS](https://github.com/inonitz/primOS) -  
-At the time, an AVL Tree seemed like a fitting data structure for searching & managing an address space,  
-since **[its height is kept to a certain minimum boundary](https://en.wikipedia.org/wiki/AVL_tree#Properties)** and it is a very common operation  
+
+At the time, reading forum posts, some educational materials and some of the linux kernel documentation  
+led me to believe that Searching the Address Space would be way more common than insertion/deletion.  
+Moreover, since AVL Trees **[Do keep their height to a minimum boundary](https://en.wikipedia.org/wiki/AVL_tree#Properties)**, I found it most fitting to pick an AVL Tree as my first choice  
 
 I did eventually find a working, open-source implementation online that fit the bill (See Acknowledgements Section),  
 But I never had the time to research the inner-workings of AVL Trees.  
 
 This project Implements Generic AVL Trees in C & C++, with recursive & iterative implementations available.  
 Specifically, the C++ interface offers both Iterative & recursive versions, while C only offers an iterative version  
-All relevant data structures in this project are fully working & tested
+All relevant data structures in this project are fully working, tested and benchmarked
 
 <br></br>
 
