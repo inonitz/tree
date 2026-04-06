@@ -84,10 +84,27 @@ I Wrote build scripts [build.sh](https://github.com/inonitz/tree/build.sh), [bui
 **By Default, The project will try to build EVERYTHING** - If you do not want that,  
 add the following flags to your cmake invocation (Or If Building with the scripts, disable in your platforms' Script):
 
-* ```-DTREELIB_BUILD_TESTS=OFF (Enabled By Default)```
-* ```-DENABLE_SANITIZER_ADDRESS=OFF (Enabled By Default)```
-* ```-DENABLE_SANITIZER_UNDEFINED=OFF (Enabled By Default)```
-* ```-DENABLE_SANITIZER_MEMORY=OFF (Enabled By Default)```
+* Project Specific:
+  * ``` -DENABLE_SANITIZER_ADDRESS=OFF ```
+  * ``` -DENABLE_SANITIZER_UNDEFINED=OFF ```
+  * ``` -DENABLE_SANITIZER_MEMORY=OFF ```
+  * ``` -DENABLE_LINK_TIME_OPTIMIZATION=OFF ```
+  * ``` -DTREELIB_BUILD_TESTS=OFF ```
+
+* Dependencies:
+  * ``` -DCMAKE_C_COMPILER=clang ```
+  * ``` -DCMAKE_CXX_COMPILER=clang++ ```
+  * ``` -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ```
+  * ``` -DCMAKE_COLOR_DIAGNOSTICS=ON ```
+  * ``` -DBUILD_GMOCK=OFF ```
+  * ``` -DINSTALL_GTEST=OFF ```
+  * ``` -DBENCHMARK_ENABLE_INSTALL=OFF ```
+  * ``` -DBENCHMARK_INSTALL_DOCS=OFF ```
+  * ``` -DBENCHMARK_INSTALL_TOOLS=OFF ```
+  * ``` -DBENCHMARK_DOWNLOAD_DEPENDENCIES=OFF ```
+  * ``` -DBENCHMARK_ENABLE_TESTING=OFF ```
+  * ``` -DBENCHMARK_ENABLE_GTEST_TESTS=OFF ```
+  * ``` -DBENCHMARK_USE_BUNDLED_GTEST=OFF ```
 
 Windows:
 
@@ -95,7 +112,7 @@ Windows:
 .\build.ps1 -Help
 .\build.ps1 -BuildType release -LinkType shared -Action configure
 .\build.ps1 -BuildType release -LinkType shared -Action build
-.\build.ps1 -BuildType release -LinkType shared -Action runtests/runbench
+.\build.ps1 -BuildType release -LinkType shared -Action test/benchmark
 ```
 
 Linux:
@@ -104,7 +121,7 @@ Linux:
 ./build.sh --help
 ./build.sh release static configure
 ./build.sh release static build
-./build.sh release static runtests/runbench
+./build.sh release static test/benchmark
 ```
 
 <br></br>
@@ -151,10 +168,8 @@ target_link_libraries(your_target_executable/library PRIVATE TREELIB::treelib)
 ## Roadmap/TODO
 
 * Optimize binaryTree::AVLDeleteIterative in AVLTreeGeneric.tpp, similarly to AVLInsertIterative in AVLTree.c
-* Add Benchmarking Footnotes, and append link to top-of README
-* Add Conclusion/What I learned
 * Add Automatic Testing Matrix For architecture/OS/Build Type (Shared/Dynamic/Static, Debug/Release, ...)  
-  * **(involves CI/CD Pipelines which I'm not very familiar with currently)**
+  * **(involves CI/CD Pipelines which I'm not very familiar with/not interested in currently)**
 
 <br></br>
 
@@ -183,14 +198,17 @@ Distributed under the MIT License. See `LICENSE` file for more information.
   3. C Implementation of an AVL Tree  
   4. C++ Implementation Of an Iterative AVL Tree  
   5. C++ Implementation Of a Recursive AVL Tree  
-  6. C++ Implementation Of an Iterative AVL Tree,  
-      with a specialized allocator and metadata packing  
-      to reduce memory footprint and pointer chasing.
+  6. C++ Implementation Of a 'Flat' Iterative AVL Tree, specifically:  
+      * Specialized Freelist Node-Allocator
+      * Reusing of freed nodes using a local Stack
+      * Metadata packing to 8 bytes, enabling a maximum of ~258 Million Elements  
+        This was done to reduce memory footprint, memory chasing & improve  
+        cache utilization
   
 * Each Data Structure was specialized to 3 Base Types
   1. u64 (trivial plain old data type)
   2. DummyRecord (Multiple Cache-Lines in Size, but still POD)
-  3. std::string (Complex Type with Complex Construction, Copying and destruction)
+  3. std::string (Non-Trivial Type with complex construction, copying and destruction)
 
 * Benchmarking was done concurrently to save time ([Approx ~5 Hours Serially](https://github.com/inonitz/tree/blob/master/scripts/iterations/3/test_benchmark_session_linux.txt))
 
