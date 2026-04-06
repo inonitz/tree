@@ -185,9 +185,19 @@ Distributed under the MIT License. See `LICENSE` file for more information.
 * [Best-README](https://github.com/othneildrew/Best-README-Template)
 * [AVL Tree Playlist by William Fiset](https://youtube.com/playlist?list=PLDV1Zeh2NRsD06x59fxczdWLhDDszUHKt&si=N7kZmzkVAIHU4jjc)
 * [Jenny's Data Structures & Algorithm Course](https://youtube.com/playlist?list=PLdo5W4Nhv31bbKJzrsKfMpo_grxuLl8LU&si=UGaS5lt1SiFYFAN-)  
-  - In particular, her videos regarding AVL Tree Rotations
+  * In particular, her videos regarding AVL Tree Rotations
 * [W3Schools AVL Trees](https://www.w3schools.com/dsa/dsa_data_avltrees.php)
-
+* [Typed Tests (GoogleTest)](https://google.github.io/googletest/advanced.html#typed-tests)
+* [GoogleBenchmark User Guide](https://github.com/google/benchmark/blob/main/docs/user_guide.md)
+  * I found the following references most relevant:
+  * [Setup & Teardown](https://github.com/google/benchmark/blob/main/docs/user_guide.md#setupteardown)
+  * [Templates](https://github.com/google/benchmark/blob/main/docs/user_guide.md#templated-benchmarks)
+  * [Fixtures](https://github.com/google/benchmark/blob/main/docs/user_guide.md#Fixtures)
+  * [Custom Counters](https://github.com/google/benchmark/blob/main/docs/user_guide.md#custom-counters)
+  * [PauseTiming() & ResumeTiming()](https://github.com/google/benchmark/blob/main/docs/user_guide.md#controlling-timers)
+* [Tick Formatting in Matplotlib](https://matplotlib.org/stable/gallery/ticks/tick-formatters.html)
+* [Axis Ticks in Matplotlib](https://matplotlib.org/stable/users/explain/axes/axes_ticks.html)
+* [Pathlib Basic Usage](https://stackoverflow.com/a/35188296)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
