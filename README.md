@@ -3,8 +3,6 @@
 [![Stargazers][stars-shield]][stars-url]
 [![MIT][license-shield]][license-url]
 
-
-
 <!-- PROJECT LOGO -->
 <div align="center">
 
@@ -18,6 +16,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
+
 A Long while ago I had to write a Virtual Address Space Manager for [primOS](https://github.com/inonitz/primOS) -  
 
 At the time, reading forum posts, some educational materials and some of the linux kernel documentation  
@@ -29,11 +28,12 @@ But I never had the time to research the inner-workings of AVL Trees.
 
 This project Implements Generic AVL Trees in C & C++, with recursive & iterative implementations available.  
 Specifically, the C++ interface offers both Iterative & recursive versions, while C only offers an iterative version  
-All relevant data structures in this project are fully working, tested and benchmarked
+All relevant data structures in this project are fully working, tested and **[benchmarked](https://github.com/inonitz/tree/README.md##Benchmarks)**
 
 <br></br>
 
 ### Project Structure
+
 The project has the same structure as my other project [util2](https://github.com/inonitz/util2), except that I added benchmarks & Proper Unit Testing
 <br></br>
 
@@ -61,6 +61,7 @@ The project has the same structure as my other project [util2](https://github.co
 #### Downloading  
 
 If you're only interested in the library itself, i.e no Testing/Benchmarking:
+
 ```sh
 git clone https://github.com/inonitz/tree/tree.git --branch onlylibrary desired_folder_path_from_cwd
 cd desired_folder_path_from_cwd/tree
@@ -118,7 +119,9 @@ In your CMakeLists.txt:
 ```sh
 add_subdirectory(your_directory/tree)
 ```
+
 Also, Don't forget to link to the library:
+
 ```sh
 target_link_libraries(your_target_executable/library PRIVATE TREELIB::treelib)
 ```
@@ -136,18 +139,12 @@ In your CMakeLists.txt:
 ```sh
 add_subdirectory(your_dependency_folder/tree)
 ```
+
 Also, Don't forget to link to the library:
+
 ```sh
 target_link_libraries(your_target_executable/library PRIVATE TREELIB::treelib)
 ```
-
-<br></br>
-
-
-<!-- Benchmarks -->
-## Benchmarks
-
-Benchmarks will be added soon enough, thanks to google benchmarks' Over engineering :)
 
 <br></br>
 
@@ -157,7 +154,7 @@ Benchmarks will be added soon enough, thanks to google benchmarks' Over engineer
 * Add Benchmarking Footnotes, and append link to top-of README
 * Add Conclusion/What I learned
 * Add Automatic Testing Matrix For architecture/OS/Build Type (Shared/Dynamic/Static, Debug/Release, ...)  
-  * **(involves CI/CD which I'm not very familiar with currently)**
+  * **(involves CI/CD Pipelines which I'm not very familiar with currently)**
 
 <br></br>
 
@@ -170,6 +167,67 @@ If you have a suggestion, please fork the repo and create a pull request. You ca
 ## License
 
 Distributed under the MIT License. See `LICENSE` file for more information.
+
+<br></br>
+
+<!-- Benchmarks -->
+## Benchmarks
+
+### *A few notes before the graphs*
+
+**The following benchmarks were tested on my i7-8750H Laptop with 16GBx2 2666Mhz DDR4 Ram**  
+
+* Search, Deletion & Insertion were Tested on 6 Different Data Structures  
+  1. std::set (clang-18)  
+  2. std::unordered_map (clang-18)  
+  3. C Implementation of an AVL Tree  
+  4. C++ Implementation Of an Iterative AVL Tree  
+  5. C++ Implementation Of a Recursive AVL Tree  
+  6. C++ Implementation Of an Iterative AVL Tree,  
+      with a specialized allocator and metadata packing  
+      to reduce memory footprint and pointer chasing.
+  
+* Each Data Structure was specialized to 3 Base Types
+  1. u64 (trivial plain old data type)
+  2. DummyRecord (Multiple Cache-Lines in Size, but still POD)
+  3. std::string (Complex Type with Complex Construction, Copying and destruction)
+
+* Benchmarking was done concurrently to save time ([Approx ~5 Hours Serially](https://github.com/inonitz/tree/blob/master/scripts/iterations/3/test_benchmark_session_linux.txt))
+
+<!-- <img src="https://github.com/inonitz/tree/blob/master/scripts/iterations/3/plots/.svg"> -->
+
+### **Finally, the benchmarks!**
+
+#### Searching for a Node
+
+<img src="scripts/iterations/3/plots/plot_u64_Search.svg">
+<img src="scripts/iterations/3/plots/plot_DummyRecord_Search.svg">
+<img src="scripts/iterations/3/plots/plot_std_string_Search.svg">
+
+#### Inserting Nodes
+
+<img src="scripts/iterations/3/plots/plot_u64_Insertion.svg">
+<img src="scripts/iterations/3/plots/plot_DummyRecord_Insertion.svg">
+<img src="scripts/iterations/3/plots/plot_std_string_Insertion.svg">
+
+#### Deleting Nodes
+
+<img src="scripts/iterations/3/plots/plot_u64_Deletion.svg">
+<img src="scripts/iterations/3/plots/plot_DummyRecord_Deletion.svg">
+<img src="scripts/iterations/3/plots/plot_std_string_Deletion.svg">
+
+## Conclusions/Lessons Learned
+
+* Recursion is pretty good for small *N*, but gets out of hand pretty quickly
+* Looking at the benchmarks, I can confidently assume that FlatAVLTree had way better cache utilization,  
+  due to the spatial locality of the internal nodes being placed in a big buffer,  
+  as compared with the usual implementation requiring pointer chasing and using malloc/free/new/delete
+* Premature Optimization is *still* the root of all evil, but indeed a very convenient learning tool
+* Never assume **anything** until you benchmark it
+* The Standard Library folks **really do know what they're doing**
+* If you think a task will require an allocated Time *N*, it will probably take *2N*, if not more
+* Testing is required to ensure growing complexity in a system/project doesn't completely overwhelm and impede the rate of development,  
+  more formally known as [Lehmans' Law of Software Evolution](https://en.wikipedia.org/wiki/Lehman%27s_laws_of_software_evolution)  (literally just found this out now lol)
 
 <!-- ACKNOWLEDGEMENTS -->
 ## Acknowledgements

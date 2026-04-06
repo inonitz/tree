@@ -22,8 +22,8 @@ def parse_benchmark_files(file_paths: list[str]):
     countNotFiles = 0
     for file_path in file_paths:
         file_path = Path(file_path)
-        if not file_path.is_file() or not file.with_suffix(".json"):
-            print("Filepath {} was not found. Path incorrect/File doesn't exist/File isn't json\n".format(file_path))
+        if not file_path.is_file() or file_path.suffixes[-1] != '.json':
+            print("'{}' was not found. Either the Path is incorrect, the File doesn't exist or just not a .json file".format(file_path))
             countNotFiles += 1
         
     if countNotFiles > 0:
@@ -33,7 +33,7 @@ def parse_benchmark_files(file_paths: list[str]):
 
     for file_path in file_paths:
         with open(file_path, 'r') as f:
-            print(file_path)
+            # print(file_path)
             data = json.load(f)
             
             for run in data.get('benchmarks', []):
@@ -54,15 +54,15 @@ def parse_benchmark_files(file_paths: list[str]):
     return pd.DataFrame(all_results)
 
 
-def plot_results(df: pd.DataFrame):
+def plot_results(df: pd.DataFrame, graph_and_show_plot_to_user=False, save_graphs_to_files=False):
     df['TestType'] = df['Operation'].str.extract('(Insertion|Deletion|Search)', expand=False)
     data_types = df['Type'].unique()
     test_types = df['TestType'].unique()
 
-    print(data_types)
-    print(test_types)
-    print(df)
-    print(df.to_string())
+    # print(data_types)
+    # print(test_types)
+    # print(df)
+    # print(df.to_string())
     for dtype in data_types:
         for ttype in test_types:
             subset = df[(df['Type'] == dtype) & (df['TestType'] == ttype)]
@@ -77,12 +77,13 @@ def plot_results(df: pd.DataFrame):
             # Setup Plot
             timeUnitStr = subset['TimeUnit'].iloc[0]
             plt.title(f"Performance Benchmark - TestType: {ttype} DataType: {dtype}", loc='left')
-            plt.xlabel("Size (N)")
+            plt.xlabel("Data Structure Size (Node Count) (N)")
             plt.ylabel(f"Real Time ({timeUnitStr})")
             plt.xscale('log')
             plt.yscale('log')
             plt.grid(visible=True, which="both", ls="-", alpha=0.5)
             plt.legend()
+            plt.tight_layout()
 
             # Setup formatting for time measurements & data-structure-size (y & x axes)
             axes = plt.gcf().gca()
@@ -105,20 +106,26 @@ def plot_results(df: pd.DataFrame):
             #     minor_thresholds=(np.inf, np.inf)
             #     )
             # )
-            # xaxis.set_tick_params(which='minor', labelsize=5, colors='gray')            
-            plt.tight_layout()
-            plt.show()
+            # xaxis.set_tick_params(which='minor', labelsize=5, colors='gray')
+
+            if save_graphs_to_files:
+                plt.savefig("plot_{}_{}.svg".format(dtype, ttype), format="svg")
+
+            # this clears the canvas, so it's done last.
+            if graph_and_show_plot_to_user:
+                plt.show()
 
 
 
 if __name__ == "__main__":
     JsonDirToScan = Path('iterations/3')
+    ShowPlotsFlag = False
+    SavePlotsFlag = True
     fileList = []
 
     # fileList = [ f for f in JsonDirToScan.iterdir() if (f.is_file() and f.with_suffix(".json")) ]
     for file in JsonDirToScan.iterdir():
-        if file.is_file() and file.suffix == '.json':
-            print(file.suffixes)
+        if file.is_file() and file.suffixes[-1] == '.json':
             fileList.append(file)
 
 
@@ -127,4 +134,4 @@ if __name__ == "__main__":
     if df is None:
         print("Error Processing File List")
     else:
-        plot_results(df)
+        plot_results(df, ShowPlotsFlag, SavePlotsFlag)
