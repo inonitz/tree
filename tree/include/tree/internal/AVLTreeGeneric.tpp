@@ -199,8 +199,8 @@ void AVLTree<T>::printIterative(const binaryTree<T>* root, uint32_t space, Funct
         uint32_t currSpace = top.second;
 
         printf("\n%*s", currSpace - kCOUNT, "");
-        printTypename(root->m_data.get());
-        printf(" (%u, %d)\n", root->m_height, root->m_bf);
+        printTypename(curr->m_data.get());
+        printf(" (%u, %d)\n", curr->m_height, curr->m_bf);
 
         curr = curr->m_left;
         currentSpace = currSpace;
