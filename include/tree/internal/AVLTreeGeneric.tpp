@@ -150,21 +150,21 @@ template<typename T> [[nodiscard]] auto AVLTree<T>::getRightChild() const -> bin
 
 template<typename T>
 template<typename Functor> 
-void AVLTree<T>::printRecursive(const binaryTree<T>* root, uint32_t space, Functor const& printTypename) const
+void AVLTree<T>::printRecursive(const binaryTree<T>* node, uint32_t space, Functor const& printTypename) const
 {
     constexpr auto kCOUNT = 10;
     
-    if (root == NULL) {
+    if (node == NULL) {
         return;
     }
     space += kCOUNT;
     
     
-    printRecursive(root->m_right, space, printTypename);
+    printRecursive(node->m_right, space, printTypename);
     printf("\n%*s", space - kCOUNT, "");
-    printTypename(root->m_data.get());
-    printf(" (%u, %d)\n", root->m_height, root->m_bf);
-    printRecursive(root->m_left, space, printTypename);
+    printTypename(node->m_data.get());
+    printf(" (%u, %d)\n", node->m_height, node->m_bf);
+    printRecursive(node->m_left, space, printTypename);
     return;
 }
 
@@ -199,8 +199,8 @@ void AVLTree<T>::printIterative(const binaryTree<T>* root, uint32_t space, Funct
         uint32_t currSpace = top.second;
 
         printf("\n%*s", currSpace - kCOUNT, "");
-        printTypename(root->m_data.get());
-        printf(" (%u, %d)\n", root->m_height, root->m_bf);
+        printTypename(curr->m_data.get());
+        printf(" (%u, %d)\n", curr->m_height, curr->m_bf);
 
         curr = curr->m_left;
         currentSpace = currSpace;

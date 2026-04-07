@@ -194,7 +194,7 @@ macro(DECLARE_OPTIONAL_INTERFACE_DEFAULT_PROJECT_CONFIGURATION)
         $<$<CXX_COMPILER_ID:Clang,AppleClang>:-fcolor-diagnostics>
         $<$<CXX_COMPILER_ID:GNU>:-fdiagnostics-color=always>
 
-        # --- MSVC ---
+
         $<$<AND:${IS_MSVC},$<OR:${IS_C},${IS_CXX}>>:
             ${MSVC_WARNINGS}
         >

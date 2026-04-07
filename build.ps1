@@ -11,12 +11,7 @@ param(
     [ValidateSet(
         "cleanbuild",
         "configure",
-        "build",
-        "test",
-        "debugcxxtests",
-        "debugctests",
-        "benchmark",
-        "debugbenchmark"
+        "build"
     )]
     [string]$Action,
 
@@ -36,7 +31,7 @@ function Show-CustomHelp {
     Write-Host "`nArguments:"
     Write-Host "  -BuildType   : debug, release, release_dbginfo, debug_perf, release_perf"
     Write-Host "  -LinkType    : shared, static"
-    Write-Host "  -Action      : cleanbuild, configure, build, test, debugcxxtests, debugctests, benchmark, debugbenchmark"
+    Write-Host "  -Action      : cleanbuild, configure, build"
 }
 
 
@@ -73,17 +68,7 @@ $CMAKE_ARGLIST = @(
     "-DENABLE_SANITIZER_ADDRESS=OFF",
     "-DENABLE_SANITIZER_UNDEFINED=OFF",
     "-DENABLE_SANITIZER_MEMORY=OFF",
-    "-DENABLE_LINK_TIME_OPTIMIZATION=OFF",
-    "-DTREELIB_BUILD_TESTS=ON",
-    "-DBUILD_GMOCK=OFF",
-    "-DINSTALL_GTEST=OFF"
-    "-DBENCHMARK_ENABLE_INSTALL=OFF",
-    "-DBENCHMARK_INSTALL_DOCS=OFF",
-    "-DBENCHMARK_INSTALL_TOOLS=OFF",
-    "-DBENCHMARK_DOWNLOAD_DEPENDENCIES=OFF",
-    "-DBENCHMARK_ENABLE_TESTING=OFF"
-    "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF",
-    "-DBENCHMARK_USE_BUNDLED_GTEST=OFF"
+    "-DENABLE_LINK_TIME_OPTIMIZATION=OFF"
 )
 
 
@@ -99,13 +84,13 @@ switch ($BuildType) {
 # $CMAKE_ARGLIST += $( If ($LinkType -eq "shared") { "-DBUILD_SHARED_LIBS=1 -DGTEST_LINKED_AS_SHARED_LIBRARY=1" } Else { "-DBUILD_SHARED_LIBS=0 -DGTEST_LINKED_AS_SHARED_LIBRARY=0" } )
 switch ($LinkType) {
     "shared" {
-        $CMAKE_ARGLIST += "-DGTEST_CREATE_SHARED_LIBRARY=1"
-        $CMAKE_ARGLIST += "-DGTEST_LINKED_AS_SHARED_LIBRARY=1"
+        # $CMAKE_ARGLIST += "-DGTEST_CREATE_SHARED_LIBRARY=1"
+        # $CMAKE_ARGLIST += "-DGTEST_LINKED_AS_SHARED_LIBRARY=1"
         $CMAKE_ARGLIST += "-DBUILD_SHARED_LIBS=1"
     }
     "static" {
-        $CMAKE_ARGLIST += "-DGTEST_CREATE_SHARED_LIBRARY=0"
-        $CMAKE_ARGLIST += "-DGTEST_LINKED_AS_SHARED_LIBRARY=0"
+        # $CMAKE_ARGLIST += "-DGTEST_CREATE_SHARED_LIBRARY=0"
+        # $CMAKE_ARGLIST += "-DGTEST_LINKED_AS_SHARED_LIBRARY=0"
         $CMAKE_ARGLIST += "-DBUILD_SHARED_LIBS=0"
     }
 }
@@ -153,37 +138,37 @@ if ($Action -eq "build") {
 }
 
 
-# 4. Run
-if ($Action -eq "test") {
-    if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
-    Run-Command "ninja test_treelib_run_all" { ninja test_treelib_run_all } # Defined in tests\CMakeLists.txt
-    if (-not $DryRun) { Pop-Location }
-}
+# # 4. Run
+# if ($Action -eq "test") {
+#     if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
+#     Run-Command "ninja test_treelib_run_all" { ninja test_treelib_run_all } # Defined in tests\CMakeLists.txt
+#     if (-not $DryRun) { Pop-Location }
+# }
 
 
-if ($Action -eq "debugcxxtests") {
-    if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
-    Run-Command "ninja debug_test_treelib_gtest_serial" { ninja debug_test_treelib_gtest_serial } # Defined in tests\CMakeLists.txt
-    if (-not $DryRun) { Pop-Location }
-}
-if ($Action -eq "debugctests") {
-    if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
-    # Defined in tests\CMakeListsCMocka.cmake
-    Run-Command "ninja debug_test_treelib_cmocka" { ninja debug_test_treelib_cmocka }
-    if (-not $DryRun) { Pop-Location }
-}
+# if ($Action -eq "debugcxxtests") {
+#     if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
+#     Run-Command "ninja debug_test_treelib_gtest_serial" { ninja debug_test_treelib_gtest_serial } # Defined in tests\CMakeLists.txt
+#     if (-not $DryRun) { Pop-Location }
+# }
+# if ($Action -eq "debugctests") {
+#     if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
+#     # Defined in tests\CMakeListsCMocka.cmake
+#     Run-Command "ninja debug_test_treelib_cmocka" { ninja debug_test_treelib_cmocka }
+#     if (-not $DryRun) { Pop-Location }
+# }
 
 
-if ($Action -eq "benchmark") {
-    if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
-    Run-Command "ninja run_benchmark_treelib" { ninja run_benchmark_treelib }
-    if (-not $DryRun) { Pop-Location }
-}
-if ($Action -eq "debugbenchmark") {
-    if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
-    Run-Command "ninja debug_benchmark_treelib" { ninja debug_benchmark_treelib }
-    if (-not $DryRun) { Pop-Location }
-}
+# if ($Action -eq "benchmark") {
+#     if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
+#     Run-Command "ninja run_benchmark_treelib" { ninja run_benchmark_treelib }
+#     if (-not $DryRun) { Pop-Location }
+# }
+# if ($Action -eq "debugbenchmark") {
+#     if (-not $DryRun) { Push-Location $CMAKE_FINAL_BUILD_DIR }
+#     Run-Command "ninja debug_benchmark_treelib" { ninja debug_benchmark_treelib }
+#     if (-not $DryRun) { Pop-Location }
+# }
 
 # if($Action -eq "benchmarkconcurrent") {
 #     $RUN_BENCHMARK_PARALLEL_SCRIPT = "..\..\..\scripts\benchmark_parallel.ps1"

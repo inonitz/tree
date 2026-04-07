@@ -1,9 +1,6 @@
 # Build output
 build/
 
-# Python Venv Files
-scripts/venv
-
 # Makefiles
 Makefile
 
@@ -17,7 +14,6 @@ Makefile
 # .vscode/settings.json
 
 # clangd Compilation Database
-.vscode/compile_commands
 .cache
 
 # Visual Studio files
