@@ -218,21 +218,21 @@ Distributed under the MIT License. See `LICENSE` file for more information.
 
 #### Searching for a Node
 
-<img src="scripts/iterations/3/plots/plot_u64_Search.svg">
-<img src="scripts/iterations/3/plots/plot_DummyRecord_Search.svg">
-<img src="scripts/iterations/3/plots/plot_std_string_Search.svg">
+<img src="https://raw.githubusercontent.com/inonitz/tree/master/scripts/iterations/3/plots/plot_u64_Search.svg">
+<img src="https://raw.githubusercontent.com/inonitz/tree/master/scripts/iterations/3/plots/plot_DummyRecord_Search.svg">
+<img src="https://raw.githubusercontent.com/inonitz/tree/master/scripts/iterations/3/plots/plot_std_string_Search.svg">
 
 #### Inserting Nodes
 
-<img src="scripts/iterations/3/plots/plot_u64_Insertion.svg">
-<img src="scripts/iterations/3/plots/plot_DummyRecord_Insertion.svg">
-<img src="scripts/iterations/3/plots/plot_std_string_Insertion.svg">
+<img src="https://raw.githubusercontent.com/inonitz/tree/master/scripts/iterations/3/plots/plot_u64_Insertion.svg">
+<img src="https://raw.githubusercontent.com/inonitz/tree/master/scripts/iterations/3/plots/plot_DummyRecord_Insertion.svg">
+<img src="https://raw.githubusercontent.com/inonitz/tree/master/scripts/iterations/3/plots/plot_std_string_Insertion.svg">
 
 #### Deleting Nodes
 
-<img src="scripts/iterations/3/plots/plot_u64_Deletion.svg">
-<img src="scripts/iterations/3/plots/plot_DummyRecord_Deletion.svg">
-<img src="scripts/iterations/3/plots/plot_std_string_Deletion.svg">
+<img src="https://raw.githubusercontent.com/inonitz/tree/master/scripts/iterations/3/plots/plot_u64_Deletion.svg">
+<img src="https://raw.githubusercontent.com/inonitz/tree/master/scripts/iterations/3/plots/plot_DummyRecord_Deletion.svg">
+<img src="https://raw.githubusercontent.com/inonitz/tree/master/scripts/iterations/3/plots/plot_std_string_Deletion.svg">
 
 ## Conclusions/Lessons Learned
 
