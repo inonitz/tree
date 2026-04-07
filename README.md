@@ -3,8 +3,6 @@
 [![Stargazers][stars-shield]][stars-url]
 [![MIT][license-shield]][license-url]
 
-
-
 <!-- PROJECT LOGO -->
 <div align="center">
 
@@ -18,18 +16,25 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-A Long while ago I had to write a Virtual Address Space Manager for [primOS](https://github.com/inonitz/primOS) -  
-At the time, an AVL Tree seemed a fitting Data Structure for searching & managing an address space,  
-since **[the height is kept to a certain minimum](https://en.wikipedia.org/wiki/AVL_tree#Properties)**, which is the most(ly*) common operation in an address space  
-While I Did find a working, open-source implementation online that fit the bill and did its job perfectly (See Acknowledgements Section), I never got into the inner-workings of AVL Trees, as I never had the time for it.  
 
-Finally,  
-This project is a Working, Tested, and Benchmarked Iterative-Only Generic Implementation of AVL Trees in C & C++
+A Long while ago I had to write a Virtual Address Space Manager for [primOS](https://github.com/inonitz/primOS) -  
+
+At the time, reading forum posts, some educational materials and some of the linux kernel documentation  
+led me to believe that Searching the Address Space would be way more common than insertion/deletion.  
+Moreover, since AVL Trees **[Do keep their height to a minimum boundary](https://en.wikipedia.org/wiki/AVL_tree#Properties)**, I found it most fitting to pick an AVL Tree as my first choice  
+
+I did eventually find a working, open-source implementation online that fit the bill (See Acknowledgements Section),  
+But I never had the time to research the inner-workings of AVL Trees.  
+
+This project Implements Generic AVL Trees in C & C++, with recursive & iterative implementations available.  
+Specifically, the C++ interface offers both Iterative & recursive versions, while C only offers an iterative version  
+All relevant data structures in this project are fully working, tested and **[Benchmarked](https://github.com/inonitz/tree#benchmarks)**
 
 <br></br>
 
 ### Project Structure
-The project has the same structure as my other project [tree](https://github.com/inonitz/util2), except that I added benchmarks & Proper Testing
+
+The project has the same structure as my other project [util2](https://github.com/inonitz/util2), except that I added benchmarks & Proper Unit Testing
 <br></br>
 
 <!-- ### Built With
@@ -56,15 +61,16 @@ The project has the same structure as my other project [tree](https://github.com
 #### Downloading  
 
 If you're only interested in the library itself, i.e no Testing/Benchmarking:
+
 ```sh
-git clone https://github.com/inonitz/tree/tree.git desired_folder_path_from_cwd
+git clone https://github.com/inonitz/tree/tree.git --branch onlylibrary desired_folder_path_from_cwd
 cd desired_folder_path_from_cwd/tree
 ```
 
 If you want to build Tests/Benchmarks Too:  
 
 ```sh
-git clone --recurse-submodules https://github.com/inonitz/tree/tree.git desired_folder_path_from_cwd
+git clone --recurse-submodules https://github.com/inonitz/tree/tree.git --branch master desired_folder_path_from_cwd
 cd desired_folder_path_from_cwd/tree
 ```
 
@@ -74,13 +80,31 @@ cd desired_folder_path_from_cwd/tree
 
 Because This project is somewhat big and building manually is cumbersome,  
 I Wrote build scripts [build.sh](https://github.com/inonitz/tree/build.sh), [build.ps1](https://github.com/inonitz/tree/build.ps1) for Linux & Windows Respectively  
+
 **By Default, The project will try to build EVERYTHING** - If you do not want that,  
 add the following flags to your cmake invocation (Or If Building with the scripts, disable in your platforms' Script):
 
-* ```sh -DTREELIB_BUILD_TESTS=OFF (Enabled By Default)```
-* ```sh -DENABLE_SANITIZER_ADDRESS=OFF (Enabled By Default)```
-* ```sh -DENABLE_SANITIZER_UNDEFINED=OFF (Enabled By Default)```
-* ```sh -DENABLE_SANITIZER_MEMORY=OFF (Enabled By Default)```
+* Project Specific:
+  * ``` -DENABLE_SANITIZER_ADDRESS=OFF ```
+  * ``` -DENABLE_SANITIZER_UNDEFINED=OFF ```
+  * ``` -DENABLE_SANITIZER_MEMORY=OFF ```
+  * ``` -DENABLE_LINK_TIME_OPTIMIZATION=OFF ```
+  * ``` -DTREELIB_BUILD_TESTS=OFF ```
+
+* Dependencies:
+  * ``` -DCMAKE_C_COMPILER=clang ```
+  * ``` -DCMAKE_CXX_COMPILER=clang++ ```
+  * ``` -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ```
+  * ``` -DCMAKE_COLOR_DIAGNOSTICS=ON ```
+  * ``` -DBUILD_GMOCK=OFF ```
+  * ``` -DINSTALL_GTEST=OFF ```
+  * ``` -DBENCHMARK_ENABLE_INSTALL=OFF ```
+  * ``` -DBENCHMARK_INSTALL_DOCS=OFF ```
+  * ``` -DBENCHMARK_INSTALL_TOOLS=OFF ```
+  * ``` -DBENCHMARK_DOWNLOAD_DEPENDENCIES=OFF ```
+  * ``` -DBENCHMARK_ENABLE_TESTING=OFF ```
+  * ``` -DBENCHMARK_ENABLE_GTEST_TESTS=OFF ```
+  * ``` -DBENCHMARK_USE_BUNDLED_GTEST=OFF ```
 
 Windows:
 
@@ -88,7 +112,7 @@ Windows:
 .\build.ps1 -Help
 .\build.ps1 -BuildType release -LinkType shared -Action configure
 .\build.ps1 -BuildType release -LinkType shared -Action build
-.\build.ps1 -BuildType release -LinkType shared -Action runtests/runbench
+.\build.ps1 -BuildType release -LinkType shared -Action test/benchmark
 ```
 
 Linux:
@@ -97,7 +121,7 @@ Linux:
 ./build.sh --help
 ./build.sh release static configure
 ./build.sh release static build
-./build.sh release static runtests/runbench
+./build.sh release static test/benchmark
 ```
 
 <br></br>
@@ -111,6 +135,12 @@ In your CMakeLists.txt:
 
 ```sh
 add_subdirectory(your_directory/tree)
+```
+
+Also, Don't forget to link to the library:
+
+```sh
+target_link_libraries(your_target_executable/library PRIVATE TREELIB::treelib)
 ```
 
 ### Out-Of-Source (Submodule/etc...) Build
@@ -127,21 +157,19 @@ In your CMakeLists.txt:
 add_subdirectory(your_dependency_folder/tree)
 ```
 
-<br></br>
+Also, Don't forget to link to the library:
 
-
-<!-- Benchmarks -->
-## Benchmarks
-
-Benchmarks will be added soon enough, thanks to google benchmarks' Over engineering :)
+```sh
+target_link_libraries(your_target_executable/library PRIVATE TREELIB::treelib)
+```
 
 <br></br>
 
 ## Roadmap/TODO
 
-* Add Resources Used
-* Add Acknowledgement to the C AVL Tree Implementor Mentioned in the opening paragraph
-* Add Macros/Minimal Headers to allow freestanding projects to use this library
+* Optimize binaryTree::AVLDeleteIterative in AVLTreeGeneric.tpp, similarly to AVLInsertIterative in AVLTree.c
+* Add Automatic Testing Matrix For architecture/OS/Build Type (Shared/Dynamic/Static, Debug/Release, ...)  
+  * **(involves CI/CD Pipelines which I'm not very familiar with/not interested in currently)**
 
 <br></br>
 
@@ -155,6 +183,70 @@ If you have a suggestion, please fork the repo and create a pull request. You ca
 
 Distributed under the MIT License. See `LICENSE` file for more information.
 
+<br></br>
+
+<!-- Benchmarks -->
+## Benchmarks
+
+### *A few notes before the graphs*
+
+**The following benchmarks were tested on my i7-8750H Laptop with 16GBx2 2666Mhz DDR4 Ram**  
+
+* Search, Deletion & Insertion were Tested on 6 Different Data Structures  
+  1. std::set (clang-18)  
+  2. std::unordered_map (clang-18)  
+  3. C Implementation of an AVL Tree  
+  4. C++ Implementation Of an Iterative AVL Tree  
+  5. C++ Implementation Of a Recursive AVL Tree  
+  6. C++ Implementation Of a 'Flat' Iterative AVL Tree, specifically:  
+      * Specialized Freelist Node-Allocator
+      * Reusing of freed nodes using a local Stack
+      * Metadata packing to 8 bytes, enabling a maximum of ~258 Million Elements  
+        This was done to reduce memory footprint, memory chasing & improve  
+        cache utilization
+  
+* Each Data Structure was specialized to 3 Base Types
+  1. u64 (trivial plain old data type)
+  2. DummyRecord (Multiple Cache-Lines in Size, but still POD)
+  3. std::string (Non-Trivial Type with complex construction, copying and destruction)
+
+* Benchmarking was done concurrently to save time ([Approx ~5 Hours Serially](https://github.com/inonitz/tree/blob/master/scripts/iterations/3/test_benchmark_session_linux.txt))
+
+<!-- <img src="https://github.com/inonitz/tree/blob/master/scripts/iterations/3/plots/.svg"> -->
+
+### **Finally, the benchmarks!**
+
+#### Searching for a Node
+
+<img src="scripts/iterations/3/plots/plot_u64_Search.svg">
+<img src="scripts/iterations/3/plots/plot_DummyRecord_Search.svg">
+<img src="scripts/iterations/3/plots/plot_std_string_Search.svg">
+
+#### Inserting Nodes
+
+<img src="scripts/iterations/3/plots/plot_u64_Insertion.svg">
+<img src="scripts/iterations/3/plots/plot_DummyRecord_Insertion.svg">
+<img src="scripts/iterations/3/plots/plot_std_string_Insertion.svg">
+
+#### Deleting Nodes
+
+<img src="scripts/iterations/3/plots/plot_u64_Deletion.svg">
+<img src="scripts/iterations/3/plots/plot_DummyRecord_Deletion.svg">
+<img src="scripts/iterations/3/plots/plot_std_string_Deletion.svg">
+
+## Conclusions/Lessons Learned
+
+* Recursion is pretty good for small *N*, but gets out of hand pretty quickly
+* Looking at the benchmarks, I can confidently assume that FlatAVLTree had way better cache utilization,  
+  due to the spatial locality of the internal nodes being placed in a big buffer,  
+  as compared with the usual implementation requiring pointer chasing and using malloc/free/new/delete
+* Premature Optimization is *still* the root of all evil, but indeed a very convenient learning tool
+* Never assume **anything** until you benchmark it
+* The Standard Library folks **really do know what they're doing**
+* If you think a task will require an allocated Time *N*, it will probably take *2N*, if not more
+* Testing is required to ensure growing complexity in a system/project doesn't completely overwhelm and impede the rate of development,  
+  more formally known as [Lehmans' Law of Software Evolution](https://en.wikipedia.org/wiki/Lehman%27s_laws_of_software_evolution)  (literally just found this out now lol)
+
 <!-- ACKNOWLEDGEMENTS -->
 ## Acknowledgements
 
@@ -162,13 +254,28 @@ Distributed under the MIT License. See `LICENSE` file for more information.
 * [GoogleTest](https://google.github.io/googletest)
 * [CMocka](https://cmocka.org)
 * [CMake](https://cmake.org/cmake/help/latest/guide/tutorial/index.html)
+* [Intrusive AVL Tree by Eric Biggers](https://github.com/ebiggers/avl_tree)
 
 <!-- References -->
 ## References
 
 * [Modern CMake](https://cliutils.gitlab.io/modern-cmake/README.html)
 * [Best-README](https://github.com/othneildrew/Best-README-Template)
-* There are many more to add, will be added soon.
+* [AVL Tree Playlist by William Fiset](https://youtube.com/playlist?list=PLDV1Zeh2NRsD06x59fxczdWLhDDszUHKt&si=N7kZmzkVAIHU4jjc)
+* [Jenny's Data Structures & Algorithm Course](https://youtube.com/playlist?list=PLdo5W4Nhv31bbKJzrsKfMpo_grxuLl8LU&si=UGaS5lt1SiFYFAN-)  
+  * In particular, her videos regarding AVL Tree Rotations
+* [W3Schools AVL Trees](https://www.w3schools.com/dsa/dsa_data_avltrees.php)
+* [Typed Tests (GoogleTest)](https://google.github.io/googletest/advanced.html#typed-tests)
+* [GoogleBenchmark User Guide](https://github.com/google/benchmark/blob/main/docs/user_guide.md)
+  * I found the following references most relevant:
+  * [Setup & Teardown](https://github.com/google/benchmark/blob/main/docs/user_guide.md#setupteardown)
+  * [Templates](https://github.com/google/benchmark/blob/main/docs/user_guide.md#templated-benchmarks)
+  * [Fixtures](https://github.com/google/benchmark/blob/main/docs/user_guide.md#Fixtures)
+  * [Custom Counters](https://github.com/google/benchmark/blob/main/docs/user_guide.md#custom-counters)
+  * [PauseTiming() & ResumeTiming()](https://github.com/google/benchmark/blob/main/docs/user_guide.md#controlling-timers)
+* [Tick Formatting in Matplotlib](https://matplotlib.org/stable/gallery/ticks/tick-formatters.html)
+* [Axis Ticks in Matplotlib](https://matplotlib.org/stable/users/explain/axes/axes_ticks.html)
+* [Pathlib Basic Usage](https://stackoverflow.com/a/35188296)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->

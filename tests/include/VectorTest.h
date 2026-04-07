@@ -1,0 +1,13 @@
+#ifndef __C_DYNAMIC_VECTOR_TESTING_DEFINITION_HEADER__
+#define __C_DYNAMIC_VECTOR_TESTING_DEFINITION_HEADER__
+#include <tree/C/treelib_extern.h>
+
+
+TREELIB_EXTERNC_DECL_BEGIN
+
+int run_all_vector_tests(void);
+
+TREELIB_EXTERNC_DECL_END
+
+
+#endif /* __C_DYNAMIC_VECTOR_TESTING_DEFINITION_HEADER__ */

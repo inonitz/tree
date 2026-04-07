@@ -1,0 +1,308 @@
+#include <benchmark/benchmark.h>
+#include <util2/C/base_type.h>
+#include <util2/C/macro.h>
+#include <tree/C/avl_tree.h>
+#include <vector>
+#include <random>
+
+
+struct DummyRecord {
+    DummyRecord() : m_id{0} {}
+    DummyRecord(u64 id) : m_id{id} {}
+
+    bool operator<(const DummyRecord& other) const { return m_id < other.m_id; }
+    bool operator>(const DummyRecord& other) const { return m_id > other.m_id; }
+    bool operator==(const DummyRecord& other) const { return m_id == other.m_id; }
+
+private:
+    u64 m_id;
+    __unused double m_values[8]{0};
+    __unused char   m_metadata[32]{0};
+};
+
+
+template <typename T>
+struct DataGen {
+    static T make(size_t i) {
+        if constexpr (std::is_arithmetic_v<T>) {
+            return static_cast<T>(i);
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            return std::to_string(i);
+        } else {
+            // Assume DummyRecord has a constructor taking a numeric value
+            return T{static_cast<u64>(i)};
+        }
+    }
+
+
+    static T random_val() {
+        static std::mt19937 gen(std::random_device{}());
+
+
+        if constexpr (std::is_floating_point_v<T>) {
+            std::uniform_real_distribution<T> dist(0, 1e9);
+            return dist(gen);
+        } else if constexpr (std::is_integral_v<T>) {
+            std::uniform_int_distribution<u64> dist(0, UINT64_MAX);
+            return static_cast<T>(dist(gen));
+        } else {
+            std::uniform_int_distribution<u64> dist(0, UINT64_MAX);
+            return make(dist(gen));
+        }
+    }
+};
+
+
+template <typename T>
+static void generateUniqueVectorSet(std::vector<T>& vec, size_t size) {
+    static std::mt19937 generator(std::random_device{}());
+    vec.clear();
+    vec.reserve(size);
+    for (size_t i = 0; i < size; ++i) {
+        vec.push_back(DataGen<T>::make(i));
+    }
+    std::shuffle(vec.begin(), vec.end(), generator);
+}
+
+
+// ----------------------------------------------------------------------------
+// C++ Wrapper for the C AVL Tree Implementation
+// ----------------------------------------------------------------------------
+template <typename T>
+static int8_t GenericBenchComparator(const void* a, const void* b) {
+    const T& arg1 = *__scast(const T*, a);
+    const T& arg2 = *__scast(const T*, b);
+    if (arg1 < arg2) return -1;
+    if (arg1 > arg2) return 1;
+    return 0;
+}
+
+template <typename T>
+static int8_t GenericBenchConstructor(__unused void* dest, __unused const void* src) {
+    // constexpr auto typeHasComplexInitialization = 
+    //     !std::is_standard_layout_v<DummyRecord> || !std::is_trivial_v<DummyRecord>;
+    const T* src_str = static_cast<const T*>(src);
+    new (dest) T(*src_str);
+    return 0;
+}
+
+template <typename T>
+static void GenericBenchDestructor(__unused void* a) {
+    T* str = static_cast<T*>(a);
+    str->~T();
+    return;
+}
+
+template<> int8_t GenericBenchConstructor<std::string>(void* dest, const void* src) {
+    const std::string* src_str = static_cast<const std::string*>(src);
+    new (dest) std::string(*src_str);
+    return 0;
+}
+
+template<> void GenericBenchDestructor<std::string>(void* obj) {
+    std::string* str = static_cast<std::string*>(obj);
+    str->~basic_string();
+    return;
+}
+
+
+extern "C" int8_t Wrapper_cppStringCopyConstructor(void* dest, const void* src) {
+    return GenericBenchConstructor<std::string>(dest, src);
+}
+extern "C" void Wrapper_cppStringDestructor(void* obj) {
+    GenericBenchDestructor<std::string>(obj);
+    return;
+}
+
+extern "C" int8_t Wrapper_DummyRecordCopyConstructor(void* dest, const void* src) {
+    return GenericBenchConstructor<DummyRecord>(dest, src);
+}
+extern "C" void Wrapper_DummyRecordDestructor(void* obj) {
+    GenericBenchDestructor<DummyRecord>(obj);
+    return;
+}
+
+extern "C" int8_t Wrapper_CppStringComparisonOperator(const void* a, const void* b) {
+    return GenericBenchComparator<std::string>(a, b);
+}
+extern "C" int8_t Wrapper_DummyRecordComparisonOperator(const void* a, const void* b) {
+    return GenericBenchComparator<DummyRecord>(a, b);
+}
+
+
+
+
+template <typename T>
+class C_AVLTreeWrapper {
+public:
+    C_AVLTreeWrapper() {
+        defaultConstruct();
+        return;
+    }
+
+    ~C_AVLTreeWrapper() {
+        AVLTreeDestroy(&m_tree);
+    }
+
+    bool insert(const T& val) {
+        T temp = val; // Create mutable copy if the C API does not use const void*
+        // Assumes binaryTreeResult_t resolves to a success integer/enum (e.g., 0 or 1)
+        return AVLTreeInsert(&m_tree, &temp) == BINARY_TREE_OP_SUCCESS; 
+    }
+
+    bool remove(const T& val) {
+        T temp{val};
+        return AVLTreeRemove(&m_tree, &temp) == BINARY_TREE_OP_SUCCESS;
+    }
+
+    bool search(const T& val) const {
+        T temp{val};
+        return AVLTreeSearch(&m_tree, &temp);
+    }
+
+    void clear() {
+        AVLTreeDestroy(&m_tree);
+        defaultConstruct();
+        return;
+    }
+
+private:
+    void defaultConstruct() {
+        /* 
+            Passing a C++ Function (Compiler & System Dependant ABI) 
+            to a C Function (Extremely Stable ABI, rarely [if at all] changes)
+            is very much undefined behaviour.
+            If anyone were to pass a constructor/destructor function
+            to the C avl tree implementation it would have to be
+            a strictly C Function that wraps the C++ Constructor
+        */
+        binaryTreeValCopyFunc    copyFunctor    = nullptr;
+        binaryTreeValDeleteFunc  deleteFunctor  = nullptr;
+        binaryTreeComparatorFunc compareFunctor = GenericBenchComparator<T>;
+        /* Specialize for complex types that require C ABI wrappers */
+        if constexpr (std::is_same_v<std::string, T>) {
+            copyFunctor   = Wrapper_cppStringCopyConstructor;
+            deleteFunctor = Wrapper_cppStringDestructor;
+            compareFunctor = Wrapper_CppStringComparisonOperator;
+        } else if constexpr (std::is_same_v<DummyRecord, T>) {
+            copyFunctor   = Wrapper_DummyRecordCopyConstructor;
+            deleteFunctor = Wrapper_DummyRecordDestructor;
+            compareFunctor = Wrapper_DummyRecordComparisonOperator;
+        }
+
+
+        AVLTreeCreate(&m_tree, 
+            compareFunctor,
+            copyFunctor,
+            deleteFunctor,
+            sizeof(T)
+        );
+        return;
+    }
+
+private:
+    AVLTree m_tree;
+};
+
+
+
+
+// ----------------------------------------------------------------------------
+// Benchmarks
+// ----------------------------------------------------------------------------
+template <typename T> 
+static void BM_AVLTreeCBenchInsertion(benchmark::State& state) {
+    const u64 N = static_cast<u64>(state.range(0));
+    C_AVLTreeWrapper<T> tree{};
+    T valToInsert;
+    bool status = false;
+    u64 insertStatus[2] = { 0, 0 };
+
+    for (auto _ : state) {
+        state.PauseTiming();
+        valToInsert = DataGen<T>::random_val();
+        ++insertStatus[status];
+        state.ResumeTiming();
+        
+        benchmark::DoNotOptimize(status = tree.insert(valToInsert));
+    }
+
+    --insertStatus[0];
+    state.counters["Failure"] = benchmark::Counter(static_cast<double>(insertStatus[0]));
+    state.counters["Success"] = benchmark::Counter(static_cast<double>(insertStatus[1]));
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * static_cast<int64_t>(state.iterations()));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
+    return;
+}
+
+
+template <typename T> 
+static void BM_AVLTreeCBenchDeletion(benchmark::State& state) {
+    const u64 N = static_cast<u64>(state.range(0));
+    bool status = false;
+    std::mt19937 gen(0);
+    std::vector<T> original_data, working_set;
+    C_AVLTreeWrapper<T> tree{};
+    T valToDelete{};
+
+    generateUniqueVectorSet(original_data, N);
+    
+    for (auto _ : state) {
+        state.PauseTiming();
+
+        if (working_set.empty()) {
+            tree.clear();
+            working_set = original_data;
+            std::shuffle(working_set.begin(), working_set.end(), gen);
+            for(auto& val : working_set) { tree.insert(val); }
+        }
+        valToDelete = working_set.back();
+        working_set.pop_back();
+
+        state.ResumeTiming();
+
+        benchmark::DoNotOptimize(status = tree.remove(valToDelete));
+    }
+
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * static_cast<int64_t>(state.iterations()));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
+    return;
+}
+
+
+template <typename T> 
+static void BM_AVLTreeCBenchSearch(benchmark::State& state) {
+    const u64 N = static_cast<u64>(state.range(0));
+    C_AVLTreeWrapper<T> tree{};
+    std::vector<T> dataSet;
+    
+    generateUniqueVectorSet(dataSet, N);
+    for(auto& elem : dataSet) {
+        tree.insert(elem);
+    }
+
+    u64 i = 0;
+    for (auto _ : state) {
+        state.PauseTiming();
+        const T& valToSearch = dataSet[i % N];
+        ++i;
+        state.ResumeTiming();
+        
+        benchmark::DoNotOptimize(tree.search(valToSearch));
+    }
+
+
+    state.SetBytesProcessed(static_cast<int64_t>(sizeof(T)) * static_cast<int64_t>(state.iterations()));
+    state.SetComplexityN(static_cast<benchmark::ComplexityN>(N));
+    return;
+}
+
+
+#define REGISTER_TYPED_AVL_TREE_C_BENCH(T) \
+    BENCHMARK_TEMPLATE(BM_AVLTreeCBenchInsertion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_AVLTreeCBenchDeletion, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity(); \
+    BENCHMARK_TEMPLATE(BM_AVLTreeCBenchSearch, T)->RangeMultiplier(2)->Range(1<<10, 1<<22)->Repetitions(2)->DisplayAggregatesOnly(true)->Complexity();
+
+REGISTER_TYPED_AVL_TREE_C_BENCH(u64)
+REGISTER_TYPED_AVL_TREE_C_BENCH(std::string)
+REGISTER_TYPED_AVL_TREE_C_BENCH(DummyRecord)

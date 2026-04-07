@@ -7,18 +7,34 @@ CMAKE_ARGLIST="\
     -DCMAKE_CXX_COMPILER=clang++ \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
     -DCMAKE_COLOR_DIAGNOSTICS=ON \
-    -DENABLE_SANITIZER_ADDRESS=OFF \
-    -DENABLE_SANITIZER_UNDEFINED=OFF \
+    -DENABLE_SANITIZER_ADDRESS=ON \
+    -DENABLE_SANITIZER_UNDEFINED=ON \
     -DENABLE_SANITIZER_MEMORY=OFF \
+    -DENABLE_LINK_TIME_OPTIMIZATION=OFF \
+    -DTREELIB_BUILD_TESTS=ON \
+    -DBUILD_GMOCK=OFF \
+    -DINSTALL_GTEST=OFF \
+    -DBENCHMARK_ENABLE_INSTALL=OFF \
+    -DBENCHMARK_INSTALL_DOCS=OFF \
+    -DBENCHMARK_INSTALL_TOOLS=OFF \
+    -DBENCHMARK_DOWNLOAD_DEPENDENCIES=OFF \
+    -DBENCHMARK_ENABLE_TESTING=OFF \
+    -DBENCHMARK_ENABLE_GTEST_TESTS=OFF \
+    -DBENCHMARK_USE_BUNDLED_GTEST=OFF
 "
 
 
 CMAKE_ORIGINAL_SCRIPT_PATH="$PWD" # Assuming that build.sh is in the same dir as the Root CMakeLists.txt
 CMAKE_ROOT_BUILD_DIR="build"
 CMAKE_INTRMD_BUILD_DIR=""
-CLEAN_CURRENT_ROOT_BUILD_DIR=true
+CLEAN_CURRENT_ROOT_BUILD_DIR=false
 CONFIGURE_CMAKE_FLAG=false
 BUILD_BINARIES_FLAG=false
+RUN_TEST_SUITE_FLAG=false
+DEBUG_TEST_SUITE_CXX_FLAG=false
+DEBUG_TEST_SUITE_C_FLAG=false
+RUN_BENCH_FLAG=false
+DEBUG_BENCH_FLAG=false
 
 
 if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "--h" ]; then
@@ -27,7 +43,7 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "--h" ]; then
     echo "Arguments:"
     echo "  build_type   - Type of build: debug, release, release_dbginfo, debug_perf, release_perf"
     echo "  library_type - Type of library: shared (.dll/.so), static (.lib/.a)"
-    echo "  action       - Action to take: cleanbuild, configure, build"
+    echo "  action       - Action to take: cleanbuild, configure, build, test, debugcxxtests, debugctests, benchmark, debugbenchmark"
     echo ""
     echo "Options:"
     echo "  help         - Display this help message"
@@ -56,7 +72,7 @@ then
 elif [ $1 = "debug_perf" ];
 then
     CMAKE_ARGLIST+=" -DCMAKE_BUILD_TYPE=Debug"
-    # CMAKE_ARGLIST+=" -DMEASURE_PERFORMANCE_TIMEOUT=1"
+    CMAKE_ARGLIST+=" -DMEASURE_PERFORMANCE_TIMEOUT=1"
     CMAKE_INTRMD_BUILD_DIR+="debug_perf/"
 
 elif [ $1 = "release" ];
@@ -72,7 +88,7 @@ then
 elif [ $1 = "release_perf" ];
 then
     CMAKE_ARGLIST+=" -DCMAKE_BUILD_TYPE=Release"
-    # CMAKE_ARGLIST+=" -DMEASURE_PERFORMANCE_TIMEOUT=1"
+    CMAKE_ARGLIST+=" -DMEASURE_PERFORMANCE_TIMEOUT=1"
     CMAKE_INTRMD_BUILD_DIR+="release_perf/"
 
 else
@@ -101,24 +117,38 @@ fi
 if [ $3 = "cleanbuild" ];
 then
     CLEAN_CURRENT_ROOT_BUILD_DIR=true
-    CONFIGURE_CMAKE_FLAG=false
-    BUILD_BINARIES_FLAG=false
 
 elif [ $3 = "configure" ];
 then
-    CLEAN_CURRENT_ROOT_BUILD_DIR=false
     CONFIGURE_CMAKE_FLAG=true
-    BUILD_BINARIES_FLAG=false
     CMAKE_ARGLIST+=" -DGIT_SUBMODULE=ON"
 
 elif [ $3 = "build" ];
 then
-    CLEAN_CURRENT_ROOT_BUILD_DIR=false
-    CONFIGURE_CMAKE_FLAG=false
     BUILD_BINARIES_FLAG=true
 
+elif [ $3 = "test" ];
+then
+    RUN_TEST_SUITE_FLAG=true
+
+elif [ $3 = "debugcxxtests" ];
+then
+    DEBUG_TEST_SUITE_CXX_FLAG=true
+
+elif [ $3 = "debugctests" ];
+then
+    DEBUG_TEST_SUITE_C_FLAG=true
+
+elif [ $3 = "benchmark" ];
+then
+    RUN_BENCH_FLAG=true
+
+elif [ $3 = "debugbenchmark" ];
+then
+    DEBUG_BENCH_FLAG=true
+
 else
-    printf "Unknown Argument %s - valid values are: cleanbuild, configure, build\nExiting..." $3
+    printf "Unknown Argument %s - valid values are: cleanbuild, configure, build, test, debugcxxtests, debugctests, benchmark, debugbenchmark\nExiting..." $3
     exit
 fi
 
@@ -159,18 +189,39 @@ ninja $PROJECT_NAME
 fi
 
 
-# if [ $RUN_TESTS_FLAG = "true" ];
-# then
-#     cd $CMAKE_FINAL_BUILD_DIR # This assumes we already built
-#     ninja run_test_treelib
-# fi
+# Running any of these targets Assumes that we've already built it.
+# Otherwise, we need to run the configure & build options beforehand.
+if [ $RUN_TEST_SUITE_FLAG = "true" ];
+then
+    cd $CMAKE_FINAL_BUILD_DIR
+    ninja test_treelib_run_all
+fi
 
-# if [ $RUN_BENCH_FLAG = "true" ];
-# then
-#     cd $CMAKE_FINAL_BUILD_DIR # This assumes we already built
-#     ninja run_benchmark_treelib
-# fi
 
+if [ $DEBUG_TEST_SUITE_CXX_FLAG = "true" ];
+then
+    cd $CMAKE_FINAL_BUILD_DIR
+    ninja debug_test_treelib_gtest_serial
+fi
+
+if [ $DEBUG_TEST_SUITE_C_FLAG = "true" ];
+then
+    cd $CMAKE_FINAL_BUILD_DIR
+    ninja debug_test_treelib_cmocka
+fi
+
+
+if [ $RUN_BENCH_FLAG = "true" ];
+then
+    cd $CMAKE_FINAL_BUILD_DIR
+    ninja run_benchmark_treelib
+fi
+
+if [ $DEBUG_BENCH_FLAG = "true" ];
+then
+    cd $CMAKE_FINAL_BUILD_DIR
+    ninja debug_benchmark_treelib
+fi
 
 # cd ../ # leave static/shared
 # cd ../ # leave debug/release/etc...

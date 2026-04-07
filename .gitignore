@@ -1,6 +1,9 @@
 # Build output
 build/
 
+# Python Venv Files
+scripts/venv
+
 # Makefiles
 Makefile
 
